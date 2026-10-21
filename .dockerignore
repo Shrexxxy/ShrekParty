@@ -1,0 +1,10 @@
+.git
+.specs
+.vs
+.idea
+data
+**/bin
+**/obj
+web/node_modules
+src/ShrekParty.Api/wwwroot
+deploy/.env

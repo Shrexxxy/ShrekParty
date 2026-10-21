@@ -1,0 +1,5 @@
+# Caddy сам получает и продлевает HTTPS-сертификат для домена. WebSocket (SignalR) проксируется без настроек.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:8080
+}
