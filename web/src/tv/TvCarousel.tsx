@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { api } from '../api/http'
-import type { AppSnapshot, FactDto } from '../api/types'
+import type { AppSnapshot } from '../api/types'
 import { Leaderboard } from '../components/Leaderboard'
 import { factsForCycle } from './carousel'
 import { Highlighted } from './Highlighted'
@@ -9,17 +9,25 @@ import { Highlighted } from './Highlighted'
 const LEADERBOARD_MS = 60_000
 const FACT_MS = 10_000
 
-/** Между ивентами: общая таблица минуту → два факта по 10 с → снова таблица; факты по кругу. */
+/** Слайд карусели: факт или фото (матч, мем, фотоохота) с подписью. */
+interface SlideDto {
+  kind: 'Fact' | 'Photo'
+  text: string
+  logins: string[]
+  imageUrl: string | null
+}
+
+/** Между ивентами: общая таблица минуту → два слайда (факты и фото) по 10 с → снова таблица; слайды по кругу. */
 export function TvCarousel({ snapshot }: { snapshot: AppSnapshot }) {
   const [cycle, setCycle] = useState(0)
-  const [facts, setFacts] = useState<FactDto[] | null>(null)
+  const [facts, setFacts] = useState<SlideDto[] | null>(null)
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
     if (facts === null) {
       const timer = setTimeout(async () => {
-        // Перечитываем на каждом круге — появляются новые игроки и факты.
-        const all = await api<FactDto[]>('/api/tv/facts').catch(() => [])
+        // Перечитываем на каждом круге — появляются новые фото и факты.
+        const all = await api<SlideDto[]>('/api/tv/slides').catch(() => [])
         setFacts(factsForCycle(all, cycle))
         setIndex(0)
       }, LEADERBOARD_MS)
@@ -57,8 +65,12 @@ export function TvCarousel({ snapshot }: { snapshot: AppSnapshot }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -40 }}
         >
-          <div className="tv-fact-label">А вы знали?</div>
-          <div className="tv-fact-text">
+          {fact.imageUrl ? (
+            <img className="tv-slide-photo" src={fact.imageUrl} alt="" />
+          ) : (
+            <div className="tv-fact-label">А вы знали?</div>
+          )}
+          <div className={fact.imageUrl ? 'tv-slide-caption' : 'tv-fact-text'}>
             <Highlighted text={fact.text} logins={fact.logins} />
           </div>
         </motion.div>

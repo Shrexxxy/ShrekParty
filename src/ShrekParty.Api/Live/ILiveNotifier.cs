@@ -13,9 +13,10 @@ public interface ILiveNotifier
 }
 
 /// <summary>
-/// Рассылка через SignalR: вошедшим — полный снапшот, гостям — без таблицы лидеров.
+/// Рассылка через SignalR: админу и ТВ — по группам, каждому игроку — свой снапшот (детали ивента у всех разные),
+/// гостям — без таблицы и ивента.
 /// </summary>
-public class LiveNotifier(IHubContext<LiveHub> hub, IServiceScopeFactory scopes) : ILiveNotifier
+public class LiveNotifier(IHubContext<LiveHub> hub, IServiceScopeFactory scopes, ConnectionTracker connections) : ILiveNotifier
 {
     /// <inheritdoc/>
     public async Task BroadcastAsync()
@@ -24,11 +25,16 @@ public class LiveNotifier(IHubContext<LiveHub> hub, IServiceScopeFactory scopes)
         using var scope = scopes.CreateScope();
         var builder = scope.ServiceProvider.GetRequiredService<SnapshotBuilder>();
 
-        var full = await builder.BuildAsync(includeLeaderboard: true);
-        var guest = full with { Leaderboard = [] };
-        var signedIn = Enum.GetValues<UserRole>().Select(LiveHub.RoleGroup).ToList();
+        await hub.Clients.Group(LiveHub.RoleGroup(UserRole.Admin))
+            .SendAsync(LiveHub.SnapshotMethod, await builder.BuildAsync(new SnapshotAudience(SignedIn: true, IsAdmin: true)));
+        await hub.Clients.Group(LiveHub.RoleGroup(UserRole.Viewer))
+            .SendAsync(LiveHub.SnapshotMethod, await builder.BuildAsync(new SnapshotAudience(SignedIn: true)));
+        foreach (var playerId in connections.ConnectedPlayers)
+        {
+            await hub.Clients.User(playerId.ToString())
+                .SendAsync(LiveHub.SnapshotMethod, await builder.BuildAsync(new SnapshotAudience(SignedIn: true, ViewerId: playerId)));
+        }
 
-        await hub.Clients.Groups(signedIn).SendAsync(LiveHub.SnapshotMethod, full);
-        await hub.Clients.Group(LiveHub.WaitingGroup).SendAsync(LiveHub.SnapshotMethod, guest);
+        await hub.Clients.Group(LiveHub.WaitingGroup).SendAsync(LiveHub.SnapshotMethod, await builder.BuildAsync(SnapshotAudience.Guest));
     }
 }

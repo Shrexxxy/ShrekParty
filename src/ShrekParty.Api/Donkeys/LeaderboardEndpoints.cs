@@ -21,6 +21,8 @@ public static class LeaderboardEndpoints
         {
             var events = await db.Events.AsNoTracking()
                 .Where(e => e.Status == EventStatus.Active || e.Status == EventStatus.Finished)
+                // Вкладка нужна только тем, кто даёт ослики.
+                .Where(e => e.Type != EventType.FightPoll && e.Type != EventType.Ceremony)
                 .ToListAsync();
 
             return events

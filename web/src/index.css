@@ -896,3 +896,706 @@ button.danger {
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
+
+.current-event {
+  border: 2px solid var(--ogre);
+}
+
+.current-event.idle {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.current-event-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.current-event-head h2 {
+  margin: 2px 0 0;
+}
+
+button.finish {
+  width: auto;
+  padding: 10px 14px;
+  flex: none;
+}
+
+.program {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.program-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.program-item.next {
+  outline: 2px solid var(--ogre-bright);
+}
+
+.program-status {
+  width: 3.5em;
+  flex: none;
+  font-size: 0.85em;
+}
+
+.program-title {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+}
+
+.program-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.program-actions button {
+  padding: 6px 10px;
+}
+
+.program-start {
+  flex: 1 1 100%;
+}
+
+.add-event {
+  margin-top: 8px;
+}
+
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Экраны ивентов (телефон и ТВ). */
+.active-event h2 {
+  margin-bottom: 8px;
+}
+
+.tv-event {
+  display: grid;
+  gap: 16px;
+}
+
+.poll {
+  display: grid;
+  gap: 10px;
+}
+
+.poll-option {
+  padding: 18px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.poll-option.mine {
+  outline: 3px solid var(--ogre-bright);
+}
+
+.poll-bar {
+  display: grid;
+  grid-template-columns: 10em 1fr 3em;
+  align-items: center;
+  gap: 16px;
+  font-size: clamp(24px, 3vw, 48px);
+}
+
+.poll-bar-fill {
+  display: block;
+  height: 1.2em;
+  border-radius: 8px;
+  background: var(--ogre);
+}
+
+.poll-result {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.poll-result.tv .poll-winner {
+  font-size: clamp(40px, 7vw, 120px);
+}
+
+.poll-winner {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ogre-bright);
+}
+
+.poll-coin {
+  font-size: 1.4em;
+  margin-bottom: 8px;
+}
+
+.laugh {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.laugh th,
+.laugh td {
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.laugh .laugh-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.laugh .best {
+  font-weight: 800;
+  color: var(--ogre-bright);
+}
+
+.laugh.tv {
+  font-size: clamp(20px, 2.4vw, 40px);
+}
+
+.bracket {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tournament.tv .bracket {
+  justify-content: center;
+  font-size: clamp(16px, 1.6vw, 28px);
+}
+
+.bracket-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 150px;
+}
+
+/* Матчи раунда — по высоте колонки, заголовок раунда всегда сверху. */
+.bracket-matches {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.bracket-title {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.bracket-match {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.bracket-match.live {
+  outline: 2px solid #ffb74d;
+  animation: pulse 1.2s infinite;
+}
+
+.bracket-match.mine {
+  outline: 2px solid var(--ogre-bright);
+}
+
+@keyframes pulse {
+  50% {
+    outline-color: transparent;
+  }
+}
+
+.bracket-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bracket-player.won {
+  font-weight: 800;
+  color: var(--ogre-bright);
+}
+
+.bracket-player.lost {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.bracket-player.empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.bracket-login {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bracket-score {
+  color: #ffb74d;
+}
+
+.my-bet {
+  color: var(--ogre-bright);
+}
+
+/* Именинник в сетке — светится и мигает. */
+.admin-ring .avatar {
+  border-color: gold;
+  box-shadow: 0 0 12px 4px gold;
+  animation: glow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  to {
+    box-shadow: 0 0 24px 8px #ff9800;
+    border-color: #ff9800;
+  }
+}
+
+.challenge-banner {
+  text-align: center;
+  font-size: clamp(28px, 4vw, 64px);
+  font-weight: 800;
+  color: gold;
+}
+
+.next-match {
+  background: rgba(139, 195, 74, 0.3);
+  font-weight: 700;
+  text-align: center;
+}
+
+.challenge-offer {
+  border: 2px solid gold;
+}
+
+.bet-card {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bet-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bet-sides button {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  font-weight: 700;
+}
+
+.hide,
+.hunt {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+.hide-phase,
+.hunt-task {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.hide-clock {
+  font-size: 56px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ogre-bright);
+}
+
+.hide.tv .hide-phase,
+.hunt.tv .hunt-task {
+  font-size: clamp(36px, 5vw, 80px);
+}
+
+.hide.tv .hide-clock,
+.hunt.tv .hide-clock {
+  font-size: clamp(80px, 14vw, 220px);
+}
+
+.hide-wall,
+.hunt-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.hide.tv .hide-wall,
+.hunt.tv .hunt-wall {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.hide-wall figure,
+.hunt-wall figure {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.hide-wall img,
+.hunt-wall img,
+.hunt-mine {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.hunt-mine {
+  max-width: 240px;
+  justify-self: center;
+}
+
+.hunt-wall figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.like {
+  padding: 4px 10px;
+}
+
+.like.on {
+  background: rgba(255, 107, 91, 0.3);
+}
+
+/* Чистый чёрный: на OLED пиксели не светятся; значок еле различим, чтобы игрок понял, что экран не завис. */
+.hide-dark {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: #000;
+  font-size: 32px;
+}
+
+.hide-dark span {
+  opacity: 0.08;
+}
+
+.hide-wall figure.mine img {
+  outline: 4px solid var(--ogre-bright);
+}
+
+.hide-wall:not(.admin) figure {
+  cursor: pointer;
+}
+
+.hide-wall.admin figcaption {
+  display: block;
+  font-size: 13px;
+}
+
+.hide-marker {
+  display: grid;
+  gap: 12px;
+}
+
+.hide-marker img {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.hide-marks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.hide-marks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hide-marks label.on {
+  background: rgba(255, 107, 91, 0.3);
+}
+
+.ceremony-phone {
+  text-align: center;
+  font-size: 20px;
+}
+
+.ceremony {
+  position: relative;
+  min-height: 80vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.ceremony-title {
+  font-size: clamp(48px, 7vw, 120px);
+  font-weight: 800;
+}
+
+.ceremony-player {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  font-size: clamp(24px, 3vw, 48px);
+}
+
+.ceremony-place {
+  font-size: clamp(36px, 5vw, 80px);
+  font-weight: 800;
+}
+
+.ceremony-login {
+  font-size: clamp(40px, 6vw, 96px);
+}
+
+.ceremony-achievement {
+  color: gold;
+  font-weight: 700;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 24px;
+}
+
+.podium-step {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  font-size: clamp(24px, 3vw, 44px);
+}
+
+.podium-block {
+  width: 12vw;
+  min-width: 120px;
+  border-radius: 12px 12px 0 0;
+  background: var(--ogre);
+  color: var(--swamp-dark);
+  font-size: clamp(48px, 6vw, 96px);
+  font-weight: 800;
+}
+
+.p1 .podium-block {
+  height: 34vh;
+  background: gold;
+}
+
+.p2 .podium-block {
+  height: 24vh;
+  background: silver;
+}
+
+.p3 .podium-block {
+  height: 16vh;
+  background: #cd7f32;
+}
+
+.ceremony-all {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti span {
+  position: absolute;
+  top: -10%;
+  font-size: 40px;
+  animation: fall 4s linear infinite;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(120vh) rotate(720deg);
+  }
+}
+
+.tv-message {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 24px;
+  padding: 5vw;
+  background: rgba(20, 32, 10, 0.95);
+  text-align: center;
+}
+
+.tv-message img {
+  max-width: 70vw;
+  max-height: 55vh;
+  border-radius: 16px;
+}
+
+.tv-message-text {
+  font-size: clamp(40px, 7vw, 120px);
+  font-weight: 800;
+}
+
+.tv-slide-photo {
+  max-width: 80vw;
+  max-height: 62vh;
+  border-radius: 16px;
+  justify-self: center;
+}
+
+.tv-slide-caption {
+  margin-top: 16px;
+  font-size: clamp(28px, 4vw, 64px);
+  font-weight: 800;
+}
+
+/* Пульты админки. */
+.controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.control-row > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-control {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.match-control.live {
+  outline: 2px solid #ffb74d;
+}
+
+.match-control.done {
+  opacity: 0.8;
+}
+
+.match-players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.match-players span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.match-players .won {
+  font-weight: 800;
+  color: var(--ogre-bright);
+}
+
+.score-input {
+  width: 4.5em;
+  padding: 8px;
+  font-size: 16px;
+}
+
+.ceremony-next {
+  font-size: 28px;
+  padding: 24px;
+}
+
+details summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: var(--ogre-bright);
+}
+
+.meme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.meme-grid figure {
+  margin: 0;
+}
+
+.meme-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.meme-grid figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.captions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.captions li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}

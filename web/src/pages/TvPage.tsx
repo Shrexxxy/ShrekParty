@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSnapshot } from '../api/live'
+import { EventView } from '../events/EventView'
+import { useWakeLock } from '../events/useWakeLock'
 import { TvAfterClose } from '../tv/TvAfterClose'
 import { TvCarousel } from '../tv/TvCarousel'
+import { TvMessageOverlay } from '../tv/TvMessageOverlay'
 import { TvWaiting } from '../tv/TvWaiting'
 
 const RESULTS_MS = 60_000
@@ -15,6 +18,8 @@ interface AfterClose {
 /** Экран ТВ: только показывает, режим выбирается по снапшоту. */
 export function TvPage() {
   const snapshot = useSnapshot()
+  // Ноутбук у ТВ не должен засыпать никогда.
+  useWakeLock(true)
   const [sound, setSound] = useState(false)
   const [afterClose, setAfterClose] = useState<AfterClose | null>(null)
   const sawOpen = useRef(false)
@@ -71,7 +76,13 @@ export function TvPage() {
 
   return (
     <main className="page tv">
-      {state === 'Finished' && afterClose ? (
+      <TvMessageOverlay message={snapshot.tvMessage} serverTime={snapshot.serverTime} />
+      {snapshot.activeEvent ? (
+        <div className="tv-event">
+          <h1 className="tv-title">{snapshot.activeEvent.title}</h1>
+          <EventView event={snapshot.activeEvent} serverTime={snapshot.serverTime} tv />
+        </div>
+      ) : state === 'Finished' && afterClose ? (
         <TvAfterClose
           key={afterClose.closedAt}
           withClosing={afterClose.withClosing}

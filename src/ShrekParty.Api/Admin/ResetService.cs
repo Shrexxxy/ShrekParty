@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
+using ShrekParty.Api.HideAndSeek;
 using ShrekParty.Api.Live;
 using ShrekParty.Api.Media;
 
@@ -12,11 +13,13 @@ namespace ShrekParty.Api.Admin;
 public class ResetService(AppDbContext db, MediaStorage storage, ILiveNotifier live)
 {
     /// <summary>
-    /// Удаляет игроков, попытки регистрации, награды, ивенты и медиа игроков (вместе с файлами).
+    /// Удаляет игроков, попытки регистрации, награды и медиа игроков (вместе с файлами).
+    /// Программа вечера остаётся, но снова черновиком; регистрация и тотализаторы удаляются.
     /// </summary>
     public async Task ResetAsync()
     {
-        var playerMedia = await db.MediaFiles.Where(m => m.UserId != null).ToListAsync();
+        // Медиа игроков и всё, что наснимали на репетиции (фото матчей, прятки); мемы и контент админа остаются.
+        var playerMedia = await db.MediaFiles.Where(m => m.UserId != null || m.MatchId != null || m.Tag == HideSeekModule.MediaTag).ToListAsync();
         foreach (var media in playerMedia)
         {
             File.Delete(storage.PathFor(media));
@@ -26,8 +29,24 @@ public class ResetService(AppDbContext db, MediaStorage storage, ILiveNotifier l
         await db.SaveChangesAsync();
 
         await db.DonkeyAwards.ExecuteDeleteAsync();
+        await db.PollVotes.ExecuteDeleteAsync();
+        await db.Bets.ExecuteDeleteAsync();
+        await db.LaughScores.ExecuteDeleteAsync();
+        await db.HideVotes.ExecuteDeleteAsync();
+        await db.HideShotPlayers.ExecuteDeleteAsync();
+        await db.HideShots.ExecuteDeleteAsync();
+        await db.PhotoSubmissions.ExecuteDeleteAsync();
+        await db.PhotoLikes.ExecuteDeleteAsync();
+        await db.TvMessages.ExecuteDeleteAsync();
+        await db.TournamentMatches.ExecuteDeleteAsync();
         await db.RegistrationAttempts.ExecuteDeleteAsync();
-        await db.Events.ExecuteDeleteAsync();
+        await db.Events.Where(e => e.Type == EventType.Registration || e.Type == EventType.Tote).ExecuteDeleteAsync();
+        await db.Events.ExecuteUpdateAsync(e => e
+            .SetProperty(x => x.Status, EventStatus.Draft)
+            .SetProperty(x => x.StartedAt, (DateTimeOffset?)null)
+            .SetProperty(x => x.FinishedAt, (DateTimeOffset?)null)
+            .SetProperty(x => x.StateJson, (string?)null)
+            .SetProperty(x => x.ResultJson, (string?)null));
         await db.Users.Where(u => u.Role == UserRole.Player).ExecuteDeleteAsync();
 
         await live.BroadcastAsync();

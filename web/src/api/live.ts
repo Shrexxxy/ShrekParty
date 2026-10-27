@@ -6,14 +6,24 @@ import type { AppSnapshot } from './types'
 // Одно соединение на всё приложение; React подписывается через useSyncExternalStore.
 let connection: HubConnection | null = null
 let current: AppSnapshot | null = null
+// Локальное время прихода текущего снапшота — для отсчётов по часам сервера.
+let receivedAt = 0
 const listeners = new Set<() => void>()
 
 function emit(next: AppSnapshot) {
   const applied = applySnapshot(current, next)
   if (applied !== current) {
     current = applied
+    receivedAt = Date.now()
     listeners.forEach((l) => l())
   }
+}
+
+/**
+ * Когда (по часам телефона) пришёл текущий снапшот.
+ */
+export function snapshotReceivedAt(): number {
+  return receivedAt
 }
 
 function start() {

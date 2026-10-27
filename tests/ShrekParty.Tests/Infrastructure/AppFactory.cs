@@ -9,8 +9,11 @@ namespace ShrekParty.Tests.Infrastructure;
 
 /// <summary>
 /// Тестовый хост приложения: своя временная папка данных (SQLite-файл и медиа), управляемое время.
+/// Фоновый таймер ивентов выключен — тесты двигают время и вызывают тик сами.
 /// </summary>
-public class AppFactory(string? dataDir = null) : WebApplicationFactory<Program>
+/// <param name="dataDir">Общая папка данных (для тестов перезапуска); null — своя временная.</param>
+/// <param name="configureServices">Подмена сервисов (например, тестовый модуль ивента).</param>
+public class AppFactory(string? dataDir = null, Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<Program>
 {
     public const string AdminLogin = "admin";
     public const string AdminPassword = "admin-test-pass";
@@ -33,7 +36,12 @@ public class AppFactory(string? dataDir = null) : WebApplicationFactory<Program>
         builder.UseSetting("Accounts:Admin:Password", AdminPassword);
         builder.UseSetting("Accounts:Viewer:Login", ViewerLogin);
         builder.UseSetting("Accounts:Viewer:Password", ViewerPassword);
-        builder.ConfigureServices(services => services.Replace(ServiceDescriptor.Singleton<TimeProvider>(Time)));
+        builder.UseSetting("Events:TickerEnabled", "false");
+        builder.ConfigureServices(services =>
+        {
+            services.Replace(ServiceDescriptor.Singleton<TimeProvider>(Time));
+            configureServices?.Invoke(services);
+        });
     }
 
     protected override void Dispose(bool disposing)

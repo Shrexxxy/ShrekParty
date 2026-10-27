@@ -38,7 +38,9 @@ public class MediaStorage(IOptions<StorageOptions> storage, AppDbContext db, Tim
         Guid? authorId,
         Guid? userId = null,
         Guid? eventId = null,
-        string? caption = null)
+        string? caption = null,
+        Guid? matchId = null,
+        string? tag = null)
     {
         Directory.CreateDirectory(MediaDir);
         var id = Guid.NewGuid();
@@ -59,6 +61,8 @@ public class MediaStorage(IOptions<StorageOptions> storage, AppDbContext db, Tim
             UserId = userId,
             EventId = eventId,
             Caption = caption,
+            MatchId = matchId,
+            Tag = tag,
             CreatedAt = time.GetUtcNow(),
         };
         db.MediaFiles.Add(media);

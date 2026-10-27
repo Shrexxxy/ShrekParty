@@ -1,8 +1,12 @@
+import { useWakeLock } from '../events/useWakeLock'
 import { useState, type FormEvent } from 'react'
 import { ApiError, api } from '../api/http'
 import { useSnapshot } from '../api/live'
 import { useMe } from '../api/me'
 import type { AppSnapshot, ScoringScheme } from '../api/types'
+import { CurrentEventCard } from '../admin/CurrentEventCard'
+import { Program } from '../admin/Program'
+import { TvControls } from '../admin/TvControls'
 import { Leaderboard } from '../components/Leaderboard'
 
 const STATE_LABELS = { Closed: 'закрыта, гости ждут', Open: 'открыта', Finished: 'закрыта, очки начислены' } as const
@@ -162,6 +166,7 @@ function ResetBlock() {
 /** Админка именинника. */
 export function AdminPage() {
   const snapshot = useSnapshot()
+  useWakeLock(Boolean(snapshot?.activeEvent))
   const { logout } = useMe()
 
   return (
@@ -174,9 +179,12 @@ export function AdminPage() {
         <p className="muted">Подключаюсь…</p>
       ) : (
         <>
+          <CurrentEventCard event={snapshot.activeEvent} serverTime={snapshot.serverTime} />
           <RegistrationControl snapshot={snapshot} />
+          <Program version={snapshot.serverTime} />
           <Leaderboard snapshot={snapshot} />
           <ManualAward snapshot={snapshot} />
+          <TvControls />
           <ResetBlock />
         </>
       )}

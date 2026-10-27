@@ -1,9 +1,7 @@
-import type { FactDto } from '../api/types'
-
 /**
  * Факты для очередного круга карусели — по кругу, без повторов внутри одного круга.
  */
-export function factsForCycle(facts: FactDto[], cycle: number, perCycle = 2): FactDto[] {
+export function factsForCycle<T>(facts: T[], cycle: number, perCycle = 2): T[] {
   if (facts.length === 0) {
     return []
   }

@@ -2,7 +2,15 @@
 
 export type UserRole = 'Player' | 'Admin' | 'Viewer'
 export type RegistrationState = 'Closed' | 'Open' | 'Finished'
-export type EventType = 'Registration'
+export type EventType =
+  | 'Registration'
+  | 'FightPoll'
+  | 'Tournament'
+  | 'Tote'
+  | 'Laugh'
+  | 'HideAndSeek'
+  | 'PhotoHunt'
+  | 'Ceremony'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
 export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 
@@ -36,10 +44,37 @@ export interface RegistrationStatusDto {
   closedAt: string | null
 }
 
+export interface ActiveEventDto {
+  id: string
+  type: EventType
+  title: string
+  startedAt: string | null
+  /** Своя форма у каждого типа — см. модули ивентов. */
+  details: unknown
+}
+
+export interface TvMessageDto {
+  text: string
+  imageUrl: string | null
+  until: string
+}
+
 export interface AppSnapshot {
   registration: RegistrationStatusDto
   leaderboard: LeaderboardRowDto[]
   serverTime: string
+  activeEvent?: ActiveEventDto | null
+  tvMessage?: TvMessageDto | null
+}
+
+export interface ProgramItemDto {
+  id: string
+  type: EventType
+  title: string
+  status: EventStatus
+  order: number
+  maxDonkeys: number
+  scheme: ScoringScheme
 }
 
 export interface FactDto {

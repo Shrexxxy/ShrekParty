@@ -2,22 +2,9 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { api } from '../api/http'
 import { useMe } from '../api/me'
 import type { MeDto } from '../api/types'
+import { photoForm } from '../components/imageUpload'
 
 const MAX_SIDE = 512
-
-/** Уменьшает фото до 512 px по большей стороне: селфи с iPhone весят мегабайты. */
-async function downscale(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('toBlob'))), 'image/jpeg', 0.85),
-  )
-}
 
 /** Кнопка селфи: только фронтальная камера, +5 осликов за первое фото. */
 export function AvatarUpload() {
@@ -36,9 +23,7 @@ export function AvatarUpload() {
     setBusy(true)
     setError(null)
     try {
-      const form = new FormData()
-      form.append('file', await downscale(file), 'selfie.jpg')
-      setMe(await api<MeDto>('/api/me/avatar', { method: 'POST', body: form }))
+      setMe(await api<MeDto>('/api/me/avatar', { method: 'POST', body: await photoForm(file, MAX_SIDE) }))
     } catch {
       setError('Не получилось загрузить, попробуй ещё раз')
     } finally {

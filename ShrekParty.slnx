@@ -5,4 +5,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/ShrekParty.Tests/ShrekParty.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ShrekParty.Rehearsal/ShrekParty.Rehearsal.csproj" />
+  </Folder>
 </Solution>

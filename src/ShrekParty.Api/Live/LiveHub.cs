@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using ShrekParty.Api.Auth;
 using ShrekParty.Api.Data.Entities;
 
 namespace ShrekParty.Api.Live;
@@ -30,8 +31,18 @@ public class LiveHub(ConnectionTracker connections, SnapshotBuilder snapshots, I
             return;
         }
 
+        var userId = Context.User!.UserId();
+        if (role == UserRole.Player && userId is not null)
+        {
+            connections.AddPlayer(Context.ConnectionId, userId.Value);
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, RoleGroup(role.Value));
-        await Clients.Caller.SendAsync(SnapshotMethod, await snapshots.BuildAsync(includeLeaderboard: true));
+        var audience = new SnapshotAudience(
+            SignedIn: true,
+            ViewerId: role == UserRole.Player ? userId : null,
+            IsAdmin: role == UserRole.Admin);
+        await Clients.Caller.SendAsync(SnapshotMethod, await snapshots.BuildAsync(audience));
     }
 
     /// <inheritdoc/>

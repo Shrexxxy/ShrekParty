@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ShrekParty.Api\ShrekParty.Api.csproj" />
+    <ProjectReference Include="..\..\tools\ShrekParty.Rehearsal\ShrekParty.Rehearsal.csproj" />
   </ItemGroup>
 
 </Project>
