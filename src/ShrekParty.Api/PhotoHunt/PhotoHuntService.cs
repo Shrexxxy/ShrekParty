@@ -104,6 +104,5 @@ public class PhotoHuntService(AppDbContext db, MediaStorage media, ILiveNotifier
     }
 
     private async Task<Event> ActiveAsync(Guid eventId) =>
-        await db.Events.FirstOrDefaultAsync(e => e.Id == eventId && e.Type == EventType.PhotoHunt && e.Status == EventStatus.Active)
-        ?? throw new EventRuleException("not_active");
+        await db.ActiveOfTypeAsync(eventId, EventType.PhotoHunt);
 }

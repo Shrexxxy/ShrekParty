@@ -26,4 +26,10 @@ public interface IEventModule
 
     /// <summary>После начисления по схеме — поправки модуля (множитель «вызова имениннику»).</summary>
     Task AfterFinishAsync(Event ev) => Task.CompletedTask;
+
+    /// <summary>
+    /// Рассылать снапшот каждый тик, даже без изменений состояния: частые действия (тапы) сами не рассылают,
+    /// а экранам нужен живой счёт.
+    /// </summary>
+    bool BroadcastEveryTick(Event ev) => false;
 }

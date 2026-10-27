@@ -5,6 +5,7 @@ import { Donkeys } from '../components/DonkeyIcon'
 import { Leaderboard } from '../components/Leaderboard'
 import { ActiveEventPanel } from '../events/EventView'
 import { isDarkPhase } from '../events/hide'
+import { selfieAllowed } from '../events/layer3'
 import { HideDark } from '../events/HideView'
 import { useWakeLock } from '../events/useWakeLock'
 import { AvatarUpload } from './AvatarUpload'
@@ -17,7 +18,7 @@ export function HomePage() {
   // В темноте экран должен гаснуть сам, как обычно.
   useWakeLock(Boolean(snapshot?.activeEvent) && !dark)
   const myRow = snapshot?.leaderboard.find((r) => r.userId === me?.id)
-  const canUploadAvatar = snapshot?.registration.state === 'Finished'
+  const canUploadAvatar = snapshot ? selfieAllowed(snapshot.registration.state, snapshot.activeEvent) : false
 
   if (dark) {
     return <HideDark />

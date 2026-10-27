@@ -15,7 +15,9 @@ public static class PhotoHuntEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapPhotoHunt(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/photo/{id:guid}", async (Guid id, IFormFile? file, ClaimsPrincipal user, PhotoHuntService hunt) =>
+        var routes = app.WithRuleErrors();
+
+        routes.MapPost("/api/photo/{id:guid}", async (Guid id, IFormFile? file, ClaimsPrincipal user, PhotoHuntService hunt) =>
         {
             if (file is null || file.Length == 0 || file.Length > AvatarEndpoints.MaxUploadBytes
                 || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
@@ -24,38 +26,24 @@ public static class PhotoHuntEndpoints
             }
 
             await using var stream = file.OpenReadStream();
-            return await Run(() => hunt.SubmitAsync(id, user.UserId()!.Value, stream, file.ContentType));
+            await hunt.SubmitAsync(id, user.UserId()!.Value, stream, file.ContentType);
+            return Results.NoContent();
         }).RequireAuthorization(AuthEndpoints.PlayerPolicy).DisableAntiforgery();
 
-        app.MapPut("/api/photo/{id:guid}/likes/{ownerId:guid}", (Guid id, Guid ownerId, ClaimsPrincipal user, PhotoHuntService hunt) =>
-                Run(() => hunt.LikeAsync(id, user.UserId()!.Value, ownerId)))
+        routes.MapPut("/api/photo/{id:guid}/likes/{ownerId:guid}", async (Guid id, Guid ownerId, ClaimsPrincipal user, PhotoHuntService hunt) =>
+            {
+                await hunt.LikeAsync(id, user.UserId()!.Value, ownerId);
+                return Results.NoContent();
+            })
             .RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
-        app.MapDelete("/api/photo/{id:guid}/likes/{ownerId:guid}", (Guid id, Guid ownerId, ClaimsPrincipal user, PhotoHuntService hunt) =>
-                Run(() => hunt.UnlikeAsync(id, user.UserId()!.Value, ownerId)))
+        routes.MapDelete("/api/photo/{id:guid}/likes/{ownerId:guid}", async (Guid id, Guid ownerId, ClaimsPrincipal user, PhotoHuntService hunt) =>
+            {
+                await hunt.UnlikeAsync(id, user.UserId()!.Value, ownerId);
+                return Results.NoContent();
+            })
             .RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
         return app;
-    }
-
-    private static async Task<IResult> Run(Func<Task> action)
-    {
-        try
-        {
-            await action();
-            return Results.NoContent();
-        }
-        catch (EventRuleException e)
-        {
-            return Results.Conflict(new { error = e.Code });
-        }
-        catch (ArgumentException e)
-        {
-            return Results.BadRequest(new { error = e.Message });
-        }
-        catch (KeyNotFoundException)
-        {
-            return Results.NotFound();
-        }
     }
 }

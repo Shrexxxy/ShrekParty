@@ -105,3 +105,55 @@ export interface CeremonyDetails {
   totalSteps: number
   standings: StandingDto[]
 }
+
+export interface ReactionRow {
+  userId: string
+  login: string
+  avatarUrl: string | null
+  attempts: { round: number; ms: number | null; falseStart: boolean }[]
+  best: number | null
+}
+
+export interface ReactionDetails {
+  round: number
+  totalRounds: number
+  phase: 'Red' | 'Green' | 'Result'
+  /** В Red — null: момент зелёного не раскрывается. */
+  deadline: string | null
+  rows: ReactionRow[]
+  myAttempt: number | null
+  myFalseStart: boolean
+}
+
+export interface TapperDetails {
+  phase: 'Countdown' | 'Running'
+  deadline: string
+  rows: { userId: string; login: string; avatarUrl: string | null; taps: number }[]
+}
+
+export interface DaysDetails {
+  phase: 'Answering' | 'Reveal'
+  deadline: string
+  myAnswer: number | null
+  iAmDisqualified: boolean
+  answered: number
+  total: number
+  disqualified: string[]
+  /** Админу всегда, остальным — с раскрытия. */
+  truth: number | null
+  /** С раскрытия: от самого далёкого к самому близкому. */
+  answers: { login: string; avatarUrl: string | null; days: number; diff: number }[]
+}
+
+export interface NeuroDetails {
+  index: number
+  total: number
+  phase: 'Guessing' | 'Reveal'
+  deadline: string
+  photoUrl: string
+  options: { userId: string; login: string; avatarUrl: string | null }[]
+  myGuess: string | null
+  guessed: number
+  subjectId: string | null
+  correct: string[]
+}

@@ -1599,3 +1599,333 @@ details summary {
   align-items: center;
   gap: 8px;
 }
+
+/* Слой 3 */
+
+.button-like {
+  display: inline-block;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+/* Реакция: экран на весь телефон, касание ловится сразу по pointerdown. */
+.reaction-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  border-radius: 0;
+  font-size: clamp(40px, 12vw, 96px);
+  font-weight: 900;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.reaction-screen.red {
+  background: #c62828;
+  color: #ffcdd2;
+}
+
+.reaction-screen.green {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.reaction,
+.days,
+.neuro {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+.reaction-phase {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.reaction.tv .reaction-phase {
+  font-size: clamp(32px, 4vw, 64px);
+}
+
+.reaction-phase.green {
+  color: var(--ogre-bright);
+}
+
+.reaction-phase.red {
+  color: var(--danger);
+}
+
+.reaction-mine {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.reaction-board {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.reaction-board th,
+.reaction-board td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reaction.tv .reaction-board {
+  font-size: clamp(18px, 2.2vw, 32px);
+}
+
+.reaction-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.reaction-best {
+  font-weight: 800;
+  color: var(--ogre-bright);
+}
+
+/* Тапалка */
+.tapper-countdown {
+  font-size: 120px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--ogre-bright);
+}
+
+.tapper-countdown.tv {
+  font-size: clamp(160px, 30vw, 400px);
+}
+
+.dragon-pad {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background-color: #4a90c8;
+  background-size: cover;
+  background-repeat: repeat-y;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.dragon {
+  font-size: 140px;
+  line-height: 1;
+  transition: transform 80ms ease-out;
+}
+
+.dragon img {
+  width: 60vw;
+  max-width: 320px;
+}
+
+.dragon.down {
+  transform: translateY(-14px) scale(1.04);
+}
+
+.dragon-count {
+  font-size: 48px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tapper-done {
+  text-align: center;
+  font-size: 22px;
+}
+
+.tapper.tv {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.tapper-banner {
+  font-size: clamp(36px, 5vw, 80px);
+  font-weight: 900;
+  color: #ffb74d;
+}
+
+.race {
+  display: grid;
+  gap: 8px;
+}
+
+.race-lane {
+  display: grid;
+  grid-template-columns: minmax(80px, 12%) 1fr 80px;
+  align-items: center;
+  gap: 12px;
+  font-size: clamp(16px, 1.8vw, 28px);
+}
+
+.race-login {
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-track {
+  position: relative;
+  height: 52px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.race-dragon {
+  position: absolute;
+  top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: left 900ms linear;
+}
+
+.race-sprite {
+  font-size: 32px;
+  height: 40px;
+}
+
+.race-taps {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Сколько мне дней */
+.days-warning {
+  color: #ffb74d;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.days.cheater {
+  font-size: 22px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.days-cheaters {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.days.tv .days-cheaters {
+  font-size: clamp(20px, 2.4vw, 36px);
+}
+
+.days-reveal {
+  display: grid;
+  gap: 10px;
+}
+
+.days-answer {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  font-size: clamp(18px, 2.4vw, 36px);
+}
+
+.days-truth {
+  font-size: clamp(28px, 5vw, 80px);
+  font-weight: 900;
+  color: var(--ogre-bright);
+}
+
+/* Нейрофото */
+.neuro-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.neuro.tv .neuro-head {
+  font-size: clamp(20px, 2.4vw, 40px);
+}
+
+.neuro-clock {
+  color: var(--ogre-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.neuro-photo {
+  width: 100%;
+  max-height: 55vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.neuro.tv .neuro-photo {
+  max-height: 70vh;
+}
+
+.neuro-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.neuro-options button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.neuro-options button.on {
+  background: var(--ogre);
+  color: var(--swamp-dark);
+  font-weight: 700;
+}
+
+.neuro-subject {
+  font-size: clamp(26px, 4vw, 64px);
+  font-weight: 900;
+  color: var(--ogre-bright);
+}
+
+.neuro-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.neuro-admin figure {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.neuro-admin img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.neuro-admin figcaption {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.neuro-admin select {
+  flex: 1;
+  min-width: 0;
+}

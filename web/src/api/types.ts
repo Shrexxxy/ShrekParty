@@ -11,6 +11,10 @@ export type EventType =
   | 'HideAndSeek'
   | 'PhotoHunt'
   | 'Ceremony'
+  | 'Reaction'
+  | 'Tapper'
+  | 'Days'
+  | 'NeuroPhoto'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
 export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 

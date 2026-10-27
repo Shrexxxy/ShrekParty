@@ -73,10 +73,7 @@ public class HideSeekModule(AppDbContext db, TimeProvider time) : IEventModule
     /// <inheritdoc/>
     public async Task StartAsync(Event ev)
     {
-        if (!await db.Users.AnyAsync(u => u.Role == UserRole.Player))
-        {
-            throw new EventRuleException("not_enough_players");
-        }
+        await db.EnsurePlayersAsync();
 
         SetState(ev, new HideState(HidePhase.Hiding, time.GetUtcNow() + HideTime));
     }

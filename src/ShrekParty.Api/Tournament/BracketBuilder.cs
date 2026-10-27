@@ -115,14 +115,14 @@ public static class BracketBuilder
             }
 
             var isBye = b.Player is null && b.Qualifier is null;
-            matches.Add(Main(roundStart, mainRounds, size, firstRound, j, a.Player, b.Player, isBye, thirdIndex));
+            matches.Add(MainMatch(roundStart, mainRounds, size, firstRound, j, a.Player, b.Player, isBye, thirdIndex));
         }
 
         foreach (var round in mainRounds.Skip(1))
         {
             for (var j = 0; j < MatchesIn(size, mainRounds, round); j++)
             {
-                matches.Add(Main(roundStart, mainRounds, size, round, j, null, null, false, thirdIndex));
+                matches.Add(MainMatch(roundStart, mainRounds, size, round, j, null, null, false, thirdIndex));
             }
         }
 
@@ -147,7 +147,7 @@ public static class BracketBuilder
         plan.Where(m => m.Round is TournamentRound.Quarter or TournamentRound.Semi or TournamentRound.Final)
             .Min(m => m.Round);
 
-    private static PlannedMatch Main(
+    private static PlannedMatch MainMatch(
         Dictionary<TournamentRound, int> roundStart,
         IReadOnlyList<TournamentRound> rounds,
         int size,

@@ -1,10 +1,25 @@
 import type { ActiveEventDto } from '../api/types'
 import { CeremonyView } from './CeremonyView'
-import type { CeremonyDetails, HideDetails, LaughDetails, PhotoHuntDetails, PollDetails, TournamentDetails } from './details'
+import { DaysView } from './DaysView'
+import type {
+  CeremonyDetails,
+  DaysDetails,
+  HideDetails,
+  LaughDetails,
+  NeuroDetails,
+  PhotoHuntDetails,
+  PollDetails,
+  ReactionDetails,
+  TapperDetails,
+  TournamentDetails,
+} from './details'
 import { HideView } from './HideView'
 import { LaughView } from './LaughView'
+import { NeuroView } from './NeuroView'
 import { PhotoView } from './PhotoView'
 import { PollView } from './PollView'
+import { ReactionView } from './ReactionView'
+import { TapperView } from './TapperView'
 import { TournamentView } from './TournamentView'
 
 /** Экран текущего ивента — общий для телефона и ТВ (tv меняет раскладку). */
@@ -23,6 +38,14 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return <PhotoView eventId={event.id} details={details as PhotoHuntDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Ceremony':
       return <CeremonyView details={details as CeremonyDetails} tv={tv} />
+    case 'Reaction':
+      return <ReactionView eventId={event.id} details={details as ReactionDetails} tv={tv} />
+    case 'Tapper':
+      return <TapperView eventId={event.id} details={details as TapperDetails} serverTime={serverTime} myId={myId} tv={tv} />
+    case 'Days':
+      return <DaysView eventId={event.id} details={details as DaysDetails} serverTime={serverTime} tv={tv} />
+    case 'NeuroPhoto':
+      return <NeuroView eventId={event.id} details={details as NeuroDetails} serverTime={serverTime} tv={tv} />
     default:
       return null
   }

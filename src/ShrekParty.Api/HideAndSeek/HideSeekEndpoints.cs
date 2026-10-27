@@ -21,7 +21,8 @@ public static class HideSeekEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapHideSeek(this IEndpointRouteBuilder app)
     {
-        var admin = app.MapGroup("/api/admin/hide").RequireAuthorization(AuthEndpoints.AdminPolicy);
+        var routes = app.WithRuleErrors();
+        var admin = routes.MapGroup("/api/admin/hide").RequireAuthorization(AuthEndpoints.AdminPolicy);
 
         // multipart: file + userIds через запятую.
         admin.MapPost("/{id:guid}/shots", async (Guid id, HttpRequest request, ClaimsPrincipal user, HideSeekService hide) =>
@@ -36,24 +37,33 @@ public static class HideSeekEndpoints
             }
 
             await using var stream = file.OpenReadStream();
-            return await Run(async () =>
-            {
-                var shotId = await hide.AddShotAsync(id, userIds, stream, file.ContentType, user.UserId()!.Value);
-                return Results.Created($"/api/admin/hide/shots/{shotId}", new { id = shotId });
-            });
+            var shotId = await hide.AddShotAsync(id, userIds, stream, file.ContentType, user.UserId()!.Value);
+            return Results.Created($"/api/admin/hide/shots/{shotId}", new { id = shotId });
         }).DisableAntiforgery();
 
-        admin.MapPut("/shots/{shotId:guid}/players", (Guid shotId, HideMarksRequest body, HideSeekService hide) =>
-            Run(() => hide.SetPlayersAsync(shotId, body.UserIds ?? [])));
+        admin.MapPut("/shots/{shotId:guid}/players", async (Guid shotId, HideMarksRequest body, HideSeekService hide) =>
+        {
+            await hide.SetPlayersAsync(shotId, body.UserIds ?? []);
+            return Results.NoContent();
+        });
 
-        admin.MapDelete("/shots/{shotId:guid}", (Guid shotId, HideSeekService hide) =>
-            Run(() => hide.DeleteShotAsync(shotId)));
+        admin.MapDelete("/shots/{shotId:guid}", async (Guid shotId, HideSeekService hide) =>
+        {
+            await hide.DeleteShotAsync(shotId);
+            return Results.NoContent();
+        });
 
-        admin.MapPost("/{id:guid}/stop", (Guid id, HideSeekService hide) =>
-            Run(() => hide.StopShootingAsync(id)));
+        admin.MapPost("/{id:guid}/stop", async (Guid id, HideSeekService hide) =>
+        {
+            await hide.StopShootingAsync(id);
+            return Results.NoContent();
+        });
 
-        app.MapPost("/api/hide/{id:guid}/vote", (Guid id, HideVoteRequest body, ClaimsPrincipal user, HideSeekService hide) =>
-                Run(() => hide.VoteAsync(id, body.ShotId, user.UserId()!.Value)))
+        routes.MapPost("/api/hide/{id:guid}/vote", async (Guid id, HideVoteRequest body, ClaimsPrincipal user, HideSeekService hide) =>
+            {
+                await hide.VoteAsync(id, body.ShotId, user.UserId()!.Value);
+                return Results.NoContent();
+            })
             .RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
         return app;
@@ -73,31 +83,5 @@ public static class HideSeekEndpoints
         }
 
         return true;
-    }
-
-    private static Task<IResult> Run(Func<Task> action) => Run(async () =>
-    {
-        await action();
-        return Results.NoContent();
-    });
-
-    private static async Task<IResult> Run(Func<Task<IResult>> action)
-    {
-        try
-        {
-            return await action();
-        }
-        catch (EventRuleException e)
-        {
-            return Results.Conflict(new { error = e.Code });
-        }
-        catch (ArgumentException e)
-        {
-            return Results.BadRequest(new { error = e.Message });
-        }
-        catch (KeyNotFoundException)
-        {
-            return Results.NotFound();
-        }
     }
 }

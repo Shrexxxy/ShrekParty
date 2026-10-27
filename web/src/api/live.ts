@@ -9,6 +9,7 @@ let current: AppSnapshot | null = null
 // Локальное время прихода текущего снапшота — для отсчётов по часам сервера.
 let receivedAt = 0
 const listeners = new Set<() => void>()
+const lostListeners = new Set<() => void>()
 
 function emit(next: AppSnapshot) {
   const applied = applySnapshot(current, next)
@@ -35,13 +36,23 @@ function start() {
     .build()
 
   conn.on('Snapshot', emit)
+  conn.onreconnecting(() => lostListeners.forEach((l) => l()))
   conn.onclose(() => {
     if (connection === conn) {
+      lostListeners.forEach((l) => l())
       setTimeout(() => connection === conn && conn.start().catch(() => undefined), 3000)
     }
   })
   connection = conn
   conn.start().catch(() => setTimeout(() => connection === conn && start(), 3000))
+}
+
+/**
+ * Подписка на обрыв живого канала (переподключение или закрытие); возвращает отписку.
+ */
+export function onConnectionLost(listener: () => void): () => void {
+  lostListeners.add(listener)
+  return () => lostListeners.delete(listener)
 }
 
 /**

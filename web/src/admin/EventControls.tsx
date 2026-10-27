@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActiveEventDto } from '../api/types'
 import { Avatar } from '../components/Avatar'
-import type { CeremonyDetails, HideDetails, LaughDetails, MatchDto, PhotoHuntDetails, PollDetails, TournamentDetails } from '../events/details'
+import type { CeremonyDetails, DaysDetails, HideDetails, LaughDetails, MatchDto, PhotoHuntDetails, PollDetails, TournamentDetails } from '../events/details'
 import { formatClock } from '../events/countdown'
+import { EventView } from '../events/EventView'
 import { PhotoView } from '../events/PhotoView'
 import { ROUND_TITLES } from '../events/tournament'
 import { useCountdown } from '../events/useCountdown'
@@ -366,6 +367,18 @@ export function EventControls({ event, serverTime }: { event: ActiveEventDto; se
       return <PhotoView eventId={event.id} details={details as PhotoHuntDetails} serverTime={serverTime} tv />
     case 'Ceremony':
       return <CeremonyControls event={event} details={details as CeremonyDetails} />
+    case 'Reaction':
+    case 'Tapper':
+    case 'NeuroPhoto':
+      // Идут сами по таймерам — пульту достаточно видеть то же, что ТВ.
+      return <EventView event={event} serverTime={serverTime} tv />
+    case 'Days':
+      return (
+        <>
+          <EventView event={event} serverTime={serverTime} tv />
+          {(details as DaysDetails).phase === 'Reveal' && <p className="muted">Когда раскрытие на ТВ закончится — «⏹ Завершить».</p>}
+        </>
+      )
     default:
       return null
   }

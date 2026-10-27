@@ -23,13 +23,13 @@ public class ToteService(AppDbContext db, ILiveNotifier live, TimeProvider time)
     private static readonly SemaphoreSlim BetLock = new(1, 1);
 
     /// <summary>
-    /// Ставка игрока: списывается сразу. Нарушение правил — <see cref="EventRuleException"/>, неверные данные — <see cref="ArgumentException"/>.
+    /// Ставка игрока: списывается сразу. Нарушение правил — <see cref="EventRuleException"/>, неверные данные — <see cref="BadInputException"/>.
     /// </summary>
     public async Task PlaceBetAsync(Guid matchId, Guid userId, Guid onPlayerId, int amount)
     {
         if (amount < 1)
         {
-            throw new ArgumentException("bad_amount");
+            throw new BadInputException("bad_amount");
         }
         if (amount > MaxBet)
         {
@@ -51,7 +51,7 @@ public class ToteService(AppDbContext db, ILiveNotifier live, TimeProvider time)
             }
             if (onPlayerId != match.PlayerAId && onPlayerId != match.PlayerBId)
             {
-                throw new ArgumentException("not_in_match");
+                throw new BadInputException("not_in_match");
             }
             if (await db.Bets.AnyAsync(b => b.MatchId == matchId && b.UserId == userId))
             {

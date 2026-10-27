@@ -11,7 +11,7 @@ namespace ShrekParty.Api.Tournament;
 
 /// <summary>
 /// Действия с матчами: начать, результат, отмена результата, вызов имениннику, фото.
-/// Нарушение правил — <see cref="EventRuleException"/> (409), неверные данные — <see cref="ArgumentException"/> (400).
+/// Нарушение правил — <see cref="EventRuleException"/> (409), неверные данные — <see cref="BadInputException"/> (400).
 /// </summary>
 public class TournamentService(AppDbContext db, ILiveNotifier live, MediaStorage media, ToteService tote, TimeProvider time)
 {
@@ -64,7 +64,7 @@ public class TournamentService(AppDbContext db, ILiveNotifier live, MediaStorage
         }
         if (winnerId != match.PlayerAId && winnerId != match.PlayerBId)
         {
-            throw new ArgumentException("winner_not_in_match");
+            throw new BadInputException("winner_not_in_match");
         }
 
         match.Status = MatchStatus.Done;
@@ -114,8 +114,7 @@ public class TournamentService(AppDbContext db, ILiveNotifier live, MediaStorage
     /// </summary>
     public async Task DecideChallengeAsync(Guid eventId, Guid playerId, bool accept)
     {
-        var ev = await db.Events.FirstOrDefaultAsync(e => e.Id == eventId && e.Type == EventType.Tournament && e.Status == EventStatus.Active)
-            ?? throw new EventRuleException("not_active");
+        var ev = await db.ActiveOfTypeAsync(eventId, EventType.Tournament);
         var matches = await db.TournamentMatches.Where(m => m.EventId == eventId).ToListAsync();
         var challenge = TournamentModule.ChallengeOf(ev, matches);
         if (challenge.State == ChallengeState.None || challenge.OfferedToId != playerId)

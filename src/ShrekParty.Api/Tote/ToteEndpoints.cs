@@ -17,25 +17,10 @@ public static class ToteEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapTote(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/matches/{id:guid}/bets", async (Guid id, PlaceBetRequest request, ClaimsPrincipal user, ToteService tote) =>
+        app.WithRuleErrors().MapPost("/api/matches/{id:guid}/bets", async (Guid id, PlaceBetRequest request, ClaimsPrincipal user, ToteService tote) =>
         {
-            try
-            {
-                await tote.PlaceBetAsync(id, user.UserId()!.Value, request.OnPlayerId, request.Amount);
-                return Results.NoContent();
-            }
-            catch (EventRuleException e)
-            {
-                return Results.Conflict(new { error = e.Code });
-            }
-            catch (ArgumentException e)
-            {
-                return Results.BadRequest(new { error = e.Message });
-            }
-            catch (KeyNotFoundException)
-            {
-                return Results.NotFound();
-            }
+            await tote.PlaceBetAsync(id, user.UserId()!.Value, request.OnPlayerId, request.Amount);
+            return Results.NoContent();
         }).RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
         return app;

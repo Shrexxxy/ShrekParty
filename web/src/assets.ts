@@ -7,6 +7,11 @@ export const ASSETS = {
     basket: '/assets/game/basket.png',
     onion: '/assets/game/onion.png',
   },
+  tapper: {
+    dragonUp: '/assets/tapper/dragon-up.png',
+    dragonDown: '/assets/tapper/dragon-down.png',
+    sky: '/assets/tapper/sky.jpg',
+  },
   ui: {
     donkey: '/assets/ui/donkey.png',
     defaultAvatar: '/assets/ui/avatar-default.png',

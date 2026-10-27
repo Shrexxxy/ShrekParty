@@ -13,25 +13,10 @@ public static class LaughEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapLaugh(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/api/admin/laugh/{id:guid}/scores", async (Guid id, LaughScoreRequest request, LaughModule laugh) =>
+        app.WithRuleErrors().MapPut("/api/admin/laugh/{id:guid}/scores", async (Guid id, LaughScoreRequest request, LaughModule laugh) =>
         {
-            try
-            {
-                await laugh.SetScoreAsync(id, request);
-                return Results.NoContent();
-            }
-            catch (EventRuleException e)
-            {
-                return Results.Conflict(new { error = e.Code });
-            }
-            catch (ArgumentException e)
-            {
-                return Results.BadRequest(new { error = e.Message });
-            }
-            catch (KeyNotFoundException)
-            {
-                return Results.NotFound();
-            }
+            await laugh.SetScoreAsync(id, request);
+            return Results.NoContent();
         }).RequireAuthorization(AuthEndpoints.AdminPolicy);
 
         return app;

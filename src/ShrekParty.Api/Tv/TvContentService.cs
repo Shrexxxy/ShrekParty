@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
+using ShrekParty.Api.Events;
 using ShrekParty.Api.Live;
 using ShrekParty.Api.Media;
 
@@ -60,7 +61,7 @@ public class TvContentService(AppDbContext db, MediaStorage media, ILiveNotifier
     {
         if (string.IsNullOrWhiteSpace(text) || seconds is < 1 or > MaxSeconds)
         {
-            throw new ArgumentException("bad_message");
+            throw new BadInputException("bad_message");
         }
 
         Guid? imageId = null;
@@ -106,7 +107,7 @@ public class TvContentService(AppDbContext db, MediaStorage media, ILiveNotifier
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            throw new ArgumentException("bad_caption");
+            throw new BadInputException("bad_caption");
         }
 
         var caption = new CaptionTemplate { Id = Guid.NewGuid(), Text = text.Trim() };

@@ -6,6 +6,7 @@ import { useMe } from '../api/me'
 import type { AppSnapshot, ScoringScheme } from '../api/types'
 import { CurrentEventCard } from '../admin/CurrentEventCard'
 import { Program } from '../admin/Program'
+import { NeuroPhotos } from '../admin/NeuroPhotos'
 import { TvControls } from '../admin/TvControls'
 import { Leaderboard } from '../components/Leaderboard'
 
@@ -185,6 +186,7 @@ export function AdminPage() {
           <Leaderboard snapshot={snapshot} />
           <ManualAward snapshot={snapshot} />
           <TvControls />
+          <NeuroPhotos snapshot={snapshot} />
           <ResetBlock />
         </>
       )}

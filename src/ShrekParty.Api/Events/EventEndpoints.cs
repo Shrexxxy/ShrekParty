@@ -22,7 +22,7 @@ public static class EventEndpoints
             return active is null ? Results.NoContent() : Results.Ok(active);
         }).RequireAuthorization();
 
-        var group = app.MapGroup("/api/admin/events").RequireAuthorization(AuthEndpoints.AdminPolicy);
+        var group = app.WithRuleErrors().MapGroup("/api/admin/events").RequireAuthorization(AuthEndpoints.AdminPolicy);
 
         group.MapGet("/", (EventEngine engine) => engine.GetProgramAsync());
 
@@ -44,26 +44,11 @@ public static class EventEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, EventEngine engine) => ToResult(await engine.DeleteAsync(id)));
 
-        group.MapPost("/{id:guid}/start", (Guid id, EventEngine engine) => RuleSafe(async () => ToResult(await engine.StartAsync(id))));
+        group.MapPost("/{id:guid}/start", async (Guid id, EventEngine engine) => ToResult(await engine.StartAsync(id)));
 
-        group.MapPost("/{id:guid}/finish", (Guid id, EventEngine engine) => RuleSafe(async () => ToResult(await engine.FinishAsync(id))));
+        group.MapPost("/{id:guid}/finish", async (Guid id, EventEngine engine) => ToResult(await engine.FinishAsync(id)));
 
         return app;
-    }
-
-    /// <summary>
-    /// Переводит нарушение правила ивента в 409 с кодом.
-    /// </summary>
-    public static async Task<IResult> RuleSafe(Func<Task<IResult>> action)
-    {
-        try
-        {
-            return await action();
-        }
-        catch (EventRuleException e)
-        {
-            return Results.Conflict(new { error = e.Code });
-        }
     }
 
     private static IResult ToResult(EngineOutcome outcome) => outcome switch

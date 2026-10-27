@@ -15,14 +15,26 @@ public static class TournamentEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapTournament(this IEndpointRouteBuilder app)
     {
-        var admin = app.MapGroup("/api/admin/matches").RequireAuthorization(AuthEndpoints.AdminPolicy);
+        var routes = app.WithRuleErrors();
+        var admin = routes.MapGroup("/api/admin/matches").RequireAuthorization(AuthEndpoints.AdminPolicy);
 
-        admin.MapPost("/{id:guid}/start", (Guid id, TournamentService service) => Run(() => service.StartMatchAsync(id)));
+        admin.MapPost("/{id:guid}/start", async (Guid id, TournamentService service) =>
+        {
+            await service.StartMatchAsync(id);
+            return Results.NoContent();
+        });
 
-        admin.MapPost("/{id:guid}/winner", (Guid id, MatchWinnerRequest request, TournamentService service) =>
-            Run(() => service.SetWinnerAsync(id, request.WinnerId, request.Score)));
+        admin.MapPost("/{id:guid}/winner", async (Guid id, MatchWinnerRequest request, TournamentService service) =>
+        {
+            await service.SetWinnerAsync(id, request.WinnerId, request.Score);
+            return Results.NoContent();
+        });
 
-        admin.MapPost("/{id:guid}/undo", (Guid id, TournamentService service) => Run(() => service.UndoAsync(id)));
+        admin.MapPost("/{id:guid}/undo", async (Guid id, TournamentService service) =>
+        {
+            await service.UndoAsync(id);
+            return Results.NoContent();
+        });
 
         admin.MapPost("/{id:guid}/photos", async (Guid id, IFormFile? file, ClaimsPrincipal user, TournamentService service) =>
         {
@@ -33,38 +45,17 @@ public static class TournamentEndpoints
             }
 
             await using var stream = file.OpenReadStream();
-            return await Run(() => service.AddPhotoAsync(id, stream, file.ContentType, user.UserId()!.Value));
+            await service.AddPhotoAsync(id, stream, file.ContentType, user.UserId()!.Value);
+            return Results.NoContent();
         }).DisableAntiforgery();
 
-        app.MapPost("/api/tournaments/{id:guid}/challenge", (Guid id, ChallengeRequest request, ClaimsPrincipal user, TournamentService service) =>
-                Run(() => service.DecideChallengeAsync(id, user.UserId()!.Value, request.Accept)))
+        routes.MapPost("/api/tournaments/{id:guid}/challenge", async (Guid id, ChallengeRequest request, ClaimsPrincipal user, TournamentService service) =>
+            {
+                await service.DecideChallengeAsync(id, user.UserId()!.Value, request.Accept);
+                return Results.NoContent();
+            })
             .RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
         return app;
-    }
-
-    private static async Task<IResult> Run(Func<Task> action)
-    {
-        try
-        {
-            await action();
-            return Results.NoContent();
-        }
-        catch (EventRuleException e)
-        {
-            return Results.Conflict(new { error = e.Code });
-        }
-        catch (ArgumentException e)
-        {
-            return Results.BadRequest(new { error = e.Message });
-        }
-        catch (KeyNotFoundException)
-        {
-            return Results.NotFound();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
     }
 }

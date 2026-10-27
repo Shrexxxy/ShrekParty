@@ -71,6 +71,34 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_play_tapper()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(3);
+        var admin = await TestClients.AdminAsync(_factory);
+        await StartAsync(admin, "Tapper");
+        _factory.Time.Advance(TimeSpan.FromSeconds(3));
+
+        await WaitUntilAsync(async () =>
+        {
+            await _factory.WithServiceAsync<EventEngine>(e => e.TickAsync());
+            return (await DetailsAsync(admin)).GetProperty("rows").EnumerateArray().All(r => r.GetProperty("taps").GetInt32() > 0);
+        });
+    }
+
+    [Fact]
+    public async Task Bots_answer_days()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(3);
+        var admin = await TestClients.AdminAsync(_factory);
+
+        await StartAsync(admin, "Days");
+
+        await WaitUntilAsync(async () => (await DetailsAsync(admin)).GetProperty("answered").GetInt32() == 3);
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

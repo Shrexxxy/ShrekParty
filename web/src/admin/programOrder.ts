@@ -7,6 +7,10 @@ export const EVENT_TYPE_LABELS: Partial<Record<EventType, string>> = {
   Laugh: 'Смехлыст',
   HideAndSeek: 'Прятки',
   PhotoHunt: 'Фотоохота',
+  Reaction: 'Реакция Шрека',
+  Tapper: 'Тапалка с драконом',
+  Days: 'Сколько мне дней',
+  NeuroPhoto: 'Угадай по нейрофото',
   Ceremony: 'Церемония',
 }
 

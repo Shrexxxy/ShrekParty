@@ -167,6 +167,11 @@ public sealed class Bot(string login, BotOptions options, BotTransport transport
         }
 
         using var response = await http.SendAsync(request, ct);
+        if (response.IsSuccessStatusCode && action.Description.Length == 0)
+        {
+            return;
+        }
+
         var error = response.IsSuccessStatusCode ? "" : $" → {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(ct)}";
         log.WriteLine($"[{login}] {action.Description}{error}");
     }

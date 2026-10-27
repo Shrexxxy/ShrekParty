@@ -39,16 +39,32 @@ public class SnapshotBuilder(RegistrationService registration, DonkeyService don
     /// <summary>
     /// Собрать снапшот для зрителя.
     /// </summary>
-    public async Task<AppSnapshot> BuildAsync(SnapshotAudience audience)
+    public async Task<AppSnapshot> BuildAsync(SnapshotAudience audience) => (await BuildManyAsync([audience]))[0];
+
+    /// <summary>
+    /// Снапшоты для нескольких зрителей разом: общее (регистрация, таблица, сообщение ТВ) читается один раз,
+    /// для каждого — только детали ивента. Порядок — как у <paramref name="audiences"/>.
+    /// </summary>
+    public async Task<IReadOnlyList<AppSnapshot>> BuildManyAsync(IReadOnlyList<SnapshotAudience> audiences)
     {
         var status = await registration.GetStatusAsync();
-        if (!audience.SignedIn)
+        var now = time.GetUtcNow();
+        var guest = new AppSnapshot(status, [], now);
+        if (!audiences.Any(a => a.SignedIn))
         {
-            return new AppSnapshot(status, [], time.GetUtcNow());
+            return audiences.Select(_ => guest).ToList();
         }
 
         var leaderboard = await donkeys.GetLeaderboardAsync();
-        var active = await events.GetActiveAsync(audience.ViewerId, audience.IsAdmin);
-        return new AppSnapshot(status, leaderboard, time.GetUtcNow(), active, await tv.GetActiveMessageAsync());
+        var message = await tv.GetActiveMessageAsync();
+        var result = new List<AppSnapshot>(audiences.Count);
+        foreach (var audience in audiences)
+        {
+            result.Add(audience.SignedIn
+                ? new AppSnapshot(status, leaderboard, now, await events.GetActiveAsync(audience.ViewerId, audience.IsAdmin), message)
+                : guest);
+        }
+
+        return result;
     }
 }

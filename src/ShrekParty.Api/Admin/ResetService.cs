@@ -4,6 +4,7 @@ using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.HideAndSeek;
 using ShrekParty.Api.Live;
 using ShrekParty.Api.Media;
+using ShrekParty.Api.Neuro;
 
 namespace ShrekParty.Api.Admin;
 
@@ -37,6 +38,13 @@ public class ResetService(AppDbContext db, MediaStorage storage, ILiveNotifier l
         await db.HideShots.ExecuteDeleteAsync();
         await db.PhotoSubmissions.ExecuteDeleteAsync();
         await db.PhotoLikes.ExecuteDeleteAsync();
+        await db.ReactionAttempts.ExecuteDeleteAsync();
+        await db.TapScores.ExecuteDeleteAsync();
+        await db.DaysAnswers.ExecuteDeleteAsync();
+        await db.NeuroGuesses.ExecuteDeleteAsync();
+        // Нейрофото — контент, остаются; отметки игроков снимаем (игроки удаляются), именинник остаётся.
+        await db.NeuroPhotos.Where(p => db.Users.Any(u => u.Id == p.SubjectId && u.Role == UserRole.Player))
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.SubjectId, (Guid?)null));
         await db.TvMessages.ExecuteDeleteAsync();
         await db.TournamentMatches.ExecuteDeleteAsync();
         await db.RegistrationAttempts.ExecuteDeleteAsync();

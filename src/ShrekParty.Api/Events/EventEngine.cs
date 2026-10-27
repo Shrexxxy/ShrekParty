@@ -40,6 +40,8 @@ public class EventEngine(
     {
         EventType.Tournament or EventType.Laugh or EventType.HideAndSeek => 100,
         EventType.PhotoHunt => 20,
+        EventType.Reaction or EventType.Tapper or EventType.Days => 30,
+        EventType.NeuroPhoto => 50,
         _ => 0,
     };
 
@@ -210,16 +212,22 @@ public class EventEngine(
             return;
         }
 
-        if (await ModuleFor(active.Type)!.TickAsync(active, time.GetUtcNow()))
+        var module = ModuleFor(active.Type)!;
+        if (await module.TickAsync(active, time.GetUtcNow()))
         {
             await db.SaveChangesAsync();
             await FinishAsync(active.Id);
             return;
         }
 
-        if (db.ChangeTracker.HasChanges())
+        var changed = db.ChangeTracker.HasChanges();
+        if (changed)
         {
             await db.SaveChangesAsync();
+        }
+
+        if (changed || module.BroadcastEveryTick(active))
+        {
             await live.BroadcastAsync();
         }
     }

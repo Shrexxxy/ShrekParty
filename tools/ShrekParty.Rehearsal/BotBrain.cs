@@ -3,6 +3,7 @@ using System.Text.Json;
 namespace ShrekParty.Rehearsal;
 
 /// <summary>Одно действие бота.</summary>
+/// <param name="Description">Строка в лог; пустая — частое действие (тапы), в лог только при ошибке.</param>
 /// <param name="Photo">Отправить сгенерированную картинку формой вместо JSON.</param>
 public record BotAction(string Description, HttpMethod Method, string Path, object? Body = null, bool Photo = false);
 
@@ -14,6 +15,7 @@ public static class BotBrain
     private const double BetChance = 0.6;
     private const double LikeChance = 0.5;
     private const int MaxBet = 10;
+    private const double FalseStartChance = 0.1;
 
     /// <summary>
     /// Новые действия по снапшоту ивента.
@@ -33,8 +35,69 @@ public static class BotBrain
             "Tournament" => Tournament(id, details, me, random, done),
             "PhotoHunt" => PhotoHunt(id, details, me, random, done),
             "HideAndSeek" => Hide(id, details, random, done),
+            "Reaction" => Reaction(id, details, random, done),
+            "Tapper" => Tapper(id, details, random),
+            "Days" => Days(id, details, random, done),
+            "NeuroPhoto" => Neuro(id, details, random, done),
             _ => [],
         };
+    }
+
+    private static IEnumerable<BotAction> Reaction(string id, JsonElement details, Random random, ISet<string> done)
+    {
+        var round = details.GetProperty("round").GetInt32();
+        var phase = details.GetProperty("phase").GetString();
+        if (details.GetProperty("myAttempt").ValueKind != JsonValueKind.Null || details.GetProperty("myFalseStart").GetBoolean())
+        {
+            yield break;
+        }
+
+        // Иногда бот, как живой, не выдерживает красного.
+        if (phase == "Red" && done.Add($"reaction-red:{id}:{round}") && random.NextDouble() < FalseStartChance)
+        {
+            yield return new BotAction("фальстарт!", HttpMethod.Post, $"/api/reaction/{id}/false-start");
+        }
+        else if (phase == "Green" && done.Add($"reaction:{id}:{round}"))
+        {
+            var ms = random.Next(200, 601);
+            yield return new BotAction($"реакция {ms} мс", HttpMethod.Post, $"/api/reaction/{id}/attempt", new { ms });
+        }
+    }
+
+    private static IEnumerable<BotAction> Tapper(string id, JsonElement details, Random random)
+    {
+        // Во время забега снапшот приходит каждую секунду — на каждый отвечаем пачкой.
+        if (details.GetProperty("phase").GetString() == "Running")
+        {
+            yield return new BotAction("", HttpMethod.Post, $"/api/tapper/{id}/taps", new { count = random.Next(5, 16) });
+        }
+    }
+
+    private static IEnumerable<BotAction> Days(string id, JsonElement details, Random random, ISet<string> done)
+    {
+        if (details.GetProperty("phase").GetString() != "Answering" || details.GetProperty("iAmDisqualified").GetBoolean()
+            || details.GetProperty("myAnswer").ValueKind != JsonValueKind.Null || !done.Add($"days:{id}"))
+        {
+            yield break;
+        }
+
+        var days = random.Next(8000, 10_001);
+        yield return new BotAction($"имениннику {days} дней", HttpMethod.Post, $"/api/days/{id}/answer", new { days });
+    }
+
+    private static IEnumerable<BotAction> Neuro(string id, JsonElement details, Random random, ISet<string> done)
+    {
+        var index = details.GetProperty("index").GetInt32();
+        if (details.GetProperty("phase").GetString() != "Guessing" || details.GetProperty("myGuess").ValueKind != JsonValueKind.Null
+            || !done.Add($"neuro:{id}:{index}"))
+        {
+            yield break;
+        }
+
+        var options = details.GetProperty("options").EnumerateArray().ToList();
+        var pick = options[random.Next(options.Count)];
+        yield return new BotAction($"на фото {pick.GetProperty("login").GetString()}", HttpMethod.Post, $"/api/neuro/{id}/guess",
+            new { userId = pick.GetProperty("userId").GetGuid() });
     }
 
     private static IEnumerable<BotAction> Poll(string id, JsonElement details, Random random, ISet<string> done)

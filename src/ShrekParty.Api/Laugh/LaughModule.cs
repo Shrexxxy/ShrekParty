@@ -67,18 +67,15 @@ public class LaughModule(AppDbContext db, ILiveNotifier live) : IEventModule
     }
 
     /// <summary>
-    /// Ставит, меняет или стирает очки партии. Нарушение — <see cref="EventRuleException"/> / <see cref="ArgumentException"/> / <see cref="KeyNotFoundException"/>.
+    /// Ставит, меняет или стирает очки партии. Нарушение — <see cref="EventRuleException"/> / <see cref="BadInputException"/> / <see cref="KeyNotFoundException"/>.
     /// </summary>
     public async Task SetScoreAsync(Guid eventId, LaughScoreRequest request)
     {
         if (request.Game is < 1 or > Games || request.Points < 0)
         {
-            throw new ArgumentException("bad_score");
+            throw new BadInputException("bad_score");
         }
-        if (!await db.Events.AnyAsync(e => e.Id == eventId && e.Type == EventType.Laugh && e.Status == EventStatus.Active))
-        {
-            throw new EventRuleException("not_active");
-        }
+        await db.ActiveOfTypeAsync(eventId, EventType.Laugh, tracking: false);
         if (!await db.Users.AnyAsync(u => u.Id == request.UserId && u.Role == UserRole.Player))
         {
             throw new KeyNotFoundException();

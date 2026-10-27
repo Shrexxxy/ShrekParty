@@ -18,7 +18,7 @@ public class HideSeekService(AppDbContext db, MediaStorage media, EventEngine en
     /// <summary>
     /// Снимок со списком попавших; пустой список — фото без людей, тоже хранится.
     /// </summary>
-    /// <exception cref="ArgumentException">Среди отмеченных есть не-игрок.</exception>
+    /// <exception cref="BadInputException">Среди отмеченных есть не-игрок.</exception>
     public async Task<Guid> AddShotAsync(Guid eventId, IReadOnlyCollection<Guid> userIds, Stream photo, string contentType, Guid adminId)
     {
         var ev = await ActiveAsync(eventId);
@@ -146,11 +146,10 @@ public class HideSeekService(AppDbContext db, MediaStorage media, EventEngine en
         var found = await db.Users.CountAsync(u => distinct.Contains(u.Id) && u.Role == UserRole.Player);
         if (found != distinct.Count)
         {
-            throw new ArgumentException("not_a_player");
+            throw new BadInputException("not_a_player");
         }
     }
 
     private async Task<Event> ActiveAsync(Guid eventId) =>
-        await db.Events.FirstOrDefaultAsync(e => e.Id == eventId && e.Type == EventType.HideAndSeek && e.Status == EventStatus.Active)
-        ?? throw new EventRuleException("not_active");
+        await db.ActiveOfTypeAsync(eventId, EventType.HideAndSeek);
 }

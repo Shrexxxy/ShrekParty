@@ -66,8 +66,7 @@ public class CeremonyModule(AppDbContext db, DonkeyService donkeys, ILiveNotifie
     /// </summary>
     public async Task NextAsync(Guid eventId)
     {
-        var ev = await db.Events.FirstOrDefaultAsync(e => e.Id == eventId && e.Type == EventType.Ceremony && e.Status == EventStatus.Active)
-            ?? throw new EventRuleException("not_active");
+        var ev = await db.ActiveOfTypeAsync(eventId, EventType.Ceremony);
         var step = StateOf(ev).Step;
         if (step + 1 >= TotalSteps(ResultOf(ev).Standings.Count))
         {
@@ -91,6 +90,13 @@ public class CeremonyModule(AppDbContext db, DonkeyService donkeys, ILiveNotifie
         var laugh = await db.LaughScores.GroupBy(s => s.UserId)
             .Select(g => new { UserId = g.Key, Best = g.Max(s => s.Points) })
             .ToListAsync();
+        var taps = await db.TapScores.GroupBy(t => t.UserId)
+            .Select(g => new { UserId = g.Key, Taps = g.Max(t => t.Taps) })
+            .ToListAsync();
+        var reaction = await db.ReactionAttempts.Where(a => a.Ms != null)
+            .GroupBy(a => a.UserId)
+            .Select(g => new { UserId = g.Key, Best = g.Min(a => a.Ms!.Value) })
+            .ToListAsync();
         var likes = await db.PhotoLikes.GroupBy(l => l.OwnerId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -103,6 +109,8 @@ public class CeremonyModule(AppDbContext db, DonkeyService donkeys, ILiveNotifie
         [
             new("Человек-невидимка", await HiddenLongestAsync()),
             new("Главный юморист", laugh.OrderByDescending(x => x.Best).Select(x => x.UserId).ToList()),
+            new("Король тапалки", taps.Where(x => x.Taps > 0).OrderByDescending(x => x.Taps).Select(x => x.UserId).ToList()),
+            new("Быстрее пули", reaction.OrderBy(x => x.Best).Select(x => x.UserId).ToList()),
             new("Фотогеничный огр", likes.Where(x => x.Count > 0).OrderByDescending(x => x.Count).Select(x => x.UserId).ToList()),
             new("Ставочник года", tote.Where(x => x.Net > 0).OrderByDescending(x => x.Net).Select(x => x.UserId).ToList()),
             new("Банкрот", tote.Where(x => x.Net < 0).OrderBy(x => x.Net).Select(x => x.UserId).ToList()),

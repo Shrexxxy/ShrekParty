@@ -13,12 +13,11 @@ public static class CeremonyEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapCeremony(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/admin/ceremony/{id:guid}/next", (Guid id, CeremonyModule ceremony) =>
-                EventEndpoints.RuleSafe(async () =>
-                {
-                    await ceremony.NextAsync(id);
-                    return Results.NoContent();
-                }))
+        app.WithRuleErrors().MapPost("/api/admin/ceremony/{id:guid}/next", async (Guid id, CeremonyModule ceremony) =>
+            {
+                await ceremony.NextAsync(id);
+                return Results.NoContent();
+            })
             .RequireAuthorization(AuthEndpoints.AdminPolicy);
 
         return app;

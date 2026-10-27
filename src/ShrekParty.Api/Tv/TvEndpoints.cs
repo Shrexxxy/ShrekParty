@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ShrekParty.Api.Auth;
+using ShrekParty.Api.Events;
 using ShrekParty.Api.Media;
 
 namespace ShrekParty.Api.Tv;
@@ -39,9 +40,9 @@ public static class TvEndpoints
                 await tv.PostMessageAsync(form["text"], seconds, stream, file?.ContentType, user.UserId()!.Value);
                 return Results.NoContent();
             }
-            catch (ArgumentException e)
+            catch (BadInputException e)
             {
-                return Results.BadRequest(new { error = e.Message });
+                return Results.BadRequest(new { error = e.Code });
             }
         }).DisableAntiforgery();
 
@@ -60,9 +61,9 @@ public static class TvEndpoints
                 var caption = await tv.AddCaptionAsync(request.Text);
                 return Results.Created($"/api/admin/captions/{caption.Id}", caption);
             }
-            catch (ArgumentException e)
+            catch (BadInputException e)
             {
-                return Results.BadRequest(new { error = e.Message });
+                return Results.BadRequest(new { error = e.Code });
             }
         });
 

@@ -8,6 +8,8 @@ using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Donkeys;
 using ShrekParty.Api.Events;
+using ShrekParty.Api.Reaction;
+using ShrekParty.Api.Tapper;
 using ShrekParty.Tests.Infrastructure;
 
 namespace ShrekParty.Tests.Ceremony;
@@ -91,6 +93,32 @@ public class CeremonyTests : IDisposable
         var achievements = Achievements(await DetailsAsync(admin));
         achievements["Bob"].Should().Be("Человек-невидимка");
         achievements["Cid"].Should().NotBe("Человек-невидимка");
+    }
+
+    [Fact]
+    public async Task Achievements_tapper_and_reaction()
+    {
+        var ann = await PlayerWithAsync("Ann", 150);
+        var bob = await PlayerWithAsync("Bob", 150);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var ev = Guid.NewGuid();
+            db.TapScores.AddRange(
+                new TapScore { Id = Guid.NewGuid(), EventId = ev, UserId = ann, Taps = 300 },
+                new TapScore { Id = Guid.NewGuid(), EventId = ev, UserId = bob, Taps = 100 });
+            db.ReactionAttempts.AddRange(
+                new ReactionAttempt { Id = Guid.NewGuid(), EventId = ev, UserId = ann, Round = 1, Ms = 400 },
+                new ReactionAttempt { Id = Guid.NewGuid(), EventId = ev, UserId = bob, Round = 1, Ms = 150 },
+                new ReactionAttempt { Id = Guid.NewGuid(), EventId = ev, UserId = ann, Round = 2, Ms = null });
+            await db.SaveChangesAsync();
+        }
+
+        var (_, admin) = await StartCeremonyAsync();
+
+        var achievements = Achievements(await DetailsAsync(admin));
+        achievements["Ann"].Should().Be("Король тапалки");
+        achievements["Bob"].Should().Be("Быстрее пули");
     }
 
     [Fact]
