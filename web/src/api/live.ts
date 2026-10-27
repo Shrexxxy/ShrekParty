@@ -1,5 +1,6 @@
 import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr'
 import { useSyncExternalStore } from 'react'
+import { bestOffset } from '../events/quiz'
 import { applySnapshot } from './snapshot'
 import type { AppSnapshot } from './types'
 
@@ -10,8 +11,16 @@ let current: AppSnapshot | null = null
 let receivedAt = 0
 const listeners = new Set<() => void>()
 const lostListeners = new Set<() => void>()
+// Замеры «часы сервера − часы телефона» по последним снапшотам — для честного времени нажатия.
+const offsetSamples: number[] = []
+const OFFSET_SAMPLES = 20
 
 function emit(next: AppSnapshot) {
+  offsetSamples.push(Date.parse(next.serverTime) - Date.now())
+  if (offsetSamples.length > OFFSET_SAMPLES) {
+    offsetSamples.shift()
+  }
+
   const applied = applySnapshot(current, next)
   if (applied !== current) {
     current = applied
@@ -45,6 +54,13 @@ function start() {
   })
   connection = conn
   conn.start().catch(() => setTimeout(() => connection === conn && start(), 3000))
+}
+
+/**
+ * На сколько часы сервера впереди часов телефона (лучшая оценка по последним снапшотам).
+ */
+export function clockOffset(): number {
+  return bestOffset(offsetSamples)
 }
 
 /**

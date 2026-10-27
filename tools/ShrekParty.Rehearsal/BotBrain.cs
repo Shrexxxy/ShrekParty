@@ -16,6 +16,7 @@ public static class BotBrain
     private const double LikeChance = 0.5;
     private const int MaxBet = 10;
     private const double FalseStartChance = 0.1;
+    private const double QuizPressChance = 0.8;
 
     /// <summary>
     /// Новые действия по снапшоту ивента.
@@ -39,8 +40,56 @@ public static class BotBrain
             "Tapper" => Tapper(id, details, random),
             "Days" => Days(id, details, random, done),
             "NeuroPhoto" => Neuro(id, details, random, done),
+            "Quiz" => Quiz(id, details, me, random, done),
             _ => [],
         };
+    }
+
+    private static IEnumerable<BotAction> Quiz(string id, JsonElement details, Guid me, Random random, ISet<string> done)
+    {
+        var phase = details.GetProperty("phase").GetString();
+        var myScore = details.GetProperty("scores").EnumerateArray()
+            .Where(s => s.GetProperty("userId").GetGuid() == me)
+            .Select(s => s.GetProperty("score").GetInt32())
+            .FirstOrDefault();
+
+        if (phase is "Choosing" or "Closed" && details.GetProperty("chooserId") is { ValueKind: JsonValueKind.String } chooser && chooser.GetGuid() == me)
+        {
+            var free = details.GetProperty("board").EnumerateArray()
+                .SelectMany(t => t.GetProperty("cells").EnumerateArray().Select(c => (Theme: t.GetProperty("name").GetString(), Cell: c)))
+                .Where(x => !x.Cell.GetProperty("played").GetBoolean())
+                .ToList();
+            if (free.Count > 0 && done.Add($"quiz-choose:{id}:{details.GetProperty("round").GetInt32()}:{free.Count}"))
+            {
+                var (theme, cell) = free[random.Next(free.Count)];
+                yield return new BotAction($"выбираю «{theme}» за {cell.GetProperty("price").GetInt32()}", HttpMethod.Post, $"/api/quiz/{id}/choose",
+                    new { questionId = cell.GetProperty("questionId").GetGuid() });
+            }
+        }
+
+        if (phase == "Reading"
+            && !details.GetProperty("wrong").EnumerateArray().Any(w => w.GetGuid() == me)
+            && done.Add($"quiz-press:{id}:{details.GetProperty("question").GetProperty("id").GetString()}:{details.GetProperty("wrong").GetArrayLength()}")
+            && random.NextDouble() < QuizPressChance)
+        {
+            yield return new BotAction("жму!", HttpMethod.Post, $"/api/quiz/{id}/press", new { clientTime = DateTimeOffset.UtcNow });
+        }
+
+        if (details.GetProperty("final") is not { ValueKind: JsonValueKind.Object } final || !final.GetProperty("iAmFinalist").GetBoolean())
+        {
+            yield break;
+        }
+
+        if (phase == "FinalBetting" && myScore > 0 && final.GetProperty("myBet").ValueKind == JsonValueKind.Null && done.Add($"quiz-bet:{id}"))
+        {
+            var amount = random.Next(1, myScore + 1);
+            yield return new BotAction($"ставлю в финале {amount}", HttpMethod.Post, $"/api/quiz/{id}/bet", new { amount });
+        }
+
+        if (phase == "FinalQuestion" && final.GetProperty("myAnswer").ValueKind == JsonValueKind.Null && done.Add($"quiz-answer:{id}"))
+        {
+            yield return new BotAction("отвечаю в финале", HttpMethod.Post, $"/api/quiz/{id}/final-answer", new { text = "Шрек!" });
+        }
     }
 
     private static IEnumerable<BotAction> Reaction(string id, JsonElement details, Random random, ISet<string> done)

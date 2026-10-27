@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ using ShrekParty.Api.Media;
 using ShrekParty.Api.Neuro;
 using ShrekParty.Api.PhotoHunt;
 using ShrekParty.Api.Poll;
+using ShrekParty.Api.Quiz;
 using ShrekParty.Api.Reaction;
 using ShrekParty.Api.Registration;
 using ShrekParty.Api.Spa;
@@ -78,6 +80,10 @@ builder.Services.AddScoped<IEventModule, DaysModule>();
 builder.Services.AddScoped<DaysService>();
 builder.Services.AddScoped<IEventModule, NeuroModule>();
 builder.Services.AddScoped<NeuroService>();
+builder.Services.AddScoped<QuizContentService>();
+builder.Services.AddScoped<IEventModule, QuizModule>();
+builder.Services.AddScoped<QuizService>();
+builder.Services.AddSingleton<TvPreloadStatus>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddShrekAuth();
 builder.Services.AddShrekProxy();
@@ -95,6 +101,17 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+
+// Файлы (видео Своей игры) — до 100 МБ; остальные запросы — со стандартным лимитом сервера (~30 МБ).
+app.Use((context, next) =>
+{
+    if (context.Request.HasFormContentType && context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+    {
+        limit.MaxRequestBodySize = AvatarEndpoints.MaxUploadBytes + 1024 * 1024;
+    }
+
+    return next(context);
+});
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -117,6 +134,9 @@ app.MapReaction();
 app.MapTapper();
 app.MapDays();
 app.MapNeuro();
+app.MapQuizContent();
+app.MapQuiz();
+app.MapQuizPreload();
 app.MapHub<LiveHub>("/hub");
 app.MapSpa();
 

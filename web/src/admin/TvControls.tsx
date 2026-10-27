@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/http'
+import type { AppSnapshot } from '../api/types'
 import { CameraButton } from './CameraButton'
 import { useAdminAction } from './useAdminAction'
 
@@ -147,10 +148,15 @@ function Captions() {
 }
 
 /** Блок «ТВ» в админке. */
-export function TvControls() {
+export function TvControls({ preload }: { preload: AppSnapshot['tvPreload'] }) {
   return (
     <section className="card admin-block">
       <h2>ТВ</h2>
+      <p className="muted">
+        {preload
+          ? `Медиа Своей игры на ТВ: ${preload.loaded} из ${preload.total} ${preload.loaded === preload.total ? '✅' : '⏳'}`
+          : 'ТВ ещё не сообщало, скачаны ли медиа Своей игры'}
+      </p>
       <MessageForm />
       <details>
         <summary>Мемы для карусели</summary>

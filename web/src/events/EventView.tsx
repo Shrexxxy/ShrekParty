@@ -9,6 +9,7 @@ import type {
   NeuroDetails,
   PhotoHuntDetails,
   PollDetails,
+  QuizDetails,
   ReactionDetails,
   TapperDetails,
   TournamentDetails,
@@ -18,6 +19,7 @@ import { LaughView } from './LaughView'
 import { NeuroView } from './NeuroView'
 import { PhotoView } from './PhotoView'
 import { PollView } from './PollView'
+import { QuizView } from './QuizView'
 import { ReactionView } from './ReactionView'
 import { TapperView } from './TapperView'
 import { TournamentView } from './TournamentView'
@@ -44,6 +46,8 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return <TapperView eventId={event.id} details={details as TapperDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Days':
       return <DaysView eventId={event.id} details={details as DaysDetails} serverTime={serverTime} tv={tv} />
+    case 'Quiz':
+      return <QuizView eventId={event.id} details={details as QuizDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'NeuroPhoto':
       return <NeuroView eventId={event.id} details={details as NeuroDetails} serverTime={serverTime} tv={tv} />
     default:

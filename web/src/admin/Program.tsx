@@ -4,8 +4,8 @@ import type { EventType, ProgramItemDto, ScoringScheme } from '../api/types'
 import { errorText } from './errors'
 import { EVENT_TYPE_LABELS, moveOrder, nextDraft } from './programOrder'
 
-const CREATABLE: EventType[] = ['FightPoll', 'Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Ceremony']
-const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto']
+const CREATABLE: EventType[] = ['FightPoll', 'Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Ceremony']
+const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz']
 const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Tournament: 100,
   Laugh: 100,
@@ -15,6 +15,7 @@ const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Tapper: 30,
   Days: 30,
   NeuroPhoto: 50,
+  Quiz: 100,
 }
 const STATUS_LABELS = { Draft: '⏳', Active: '▶️ идёт', Finished: '✅' } as const
 

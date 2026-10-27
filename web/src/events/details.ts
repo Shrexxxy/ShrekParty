@@ -157,3 +157,59 @@ export interface NeuroDetails {
   subjectId: string | null
   correct: string[]
 }
+
+export type QuizPhase =
+  | 'Roulette'
+  | 'Choosing'
+  | 'Reading'
+  | 'Answering'
+  | 'Closed'
+  | 'Done'
+  | 'FinalBetting'
+  | 'FinalQuestion'
+  | 'FinalJudging'
+  | 'FinalReveal'
+
+export interface QuizScore {
+  userId: string
+  login: string
+  avatarUrl: string | null
+  score: number
+}
+
+export interface QuizFinalist {
+  userId: string
+  login: string
+  avatarUrl: string | null
+  scoreBefore: number
+  /** Чужие — только админу и с раскрытия. */
+  bet: number | null
+  answer: string | null
+  correct: boolean | null
+}
+
+export interface QuizDetails {
+  phase: QuizPhase
+  round: number
+  rounds: number[]
+  board: { themeId: string; name: string; cells: { questionId: string; price: number; played: boolean }[] }[]
+  chooserId: string | null
+  deadline: string | null
+  question: {
+    id: string
+    themeName: string
+    price: number
+    text: string
+    mediaType: 'Image' | 'Audio' | 'Video' | null
+    /** Аудио/видео — только ТВ и админу; картинка — всем. */
+    mediaUrl: string | null
+  } | null
+  readingStartedAt: string | null
+  answererId: string | null
+  wrong: string[]
+  /** Админу всегда, остальным — после закрытия вопроса. */
+  answer: string | null
+  scores: QuizScore[]
+  mediaCommand: { action: 'Play' | 'Pause'; seq: number } | null
+  final: { themeName: string; finalists: QuizFinalist[]; iAmFinalist: boolean; myBet: number | null; myAnswer: string | null } | null
+}

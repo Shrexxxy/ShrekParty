@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActiveEventDto } from '../api/types'
 import { Avatar } from '../components/Avatar'
-import type { CeremonyDetails, DaysDetails, HideDetails, LaughDetails, MatchDto, PhotoHuntDetails, PollDetails, TournamentDetails } from '../events/details'
+import type { CeremonyDetails, DaysDetails, HideDetails, QuizDetails, LaughDetails, MatchDto, PhotoHuntDetails, PollDetails, TournamentDetails } from '../events/details'
 import { formatClock } from '../events/countdown'
 import { EventView } from '../events/EventView'
 import { PhotoView } from '../events/PhotoView'
 import { ROUND_TITLES } from '../events/tournament'
 import { useCountdown } from '../events/useCountdown'
 import { CameraButton } from './CameraButton'
+import { QuizControls } from './QuizControls'
 import { useAdminAction } from './useAdminAction'
 
 function PollControls({ event, details }: { event: ActiveEventDto; details: PollDetails }) {
@@ -367,6 +368,8 @@ export function EventControls({ event, serverTime }: { event: ActiveEventDto; se
       return <PhotoView eventId={event.id} details={details as PhotoHuntDetails} serverTime={serverTime} tv />
     case 'Ceremony':
       return <CeremonyControls event={event} details={details as CeremonyDetails} />
+    case 'Quiz':
+      return <QuizControls event={event} details={details as QuizDetails} serverTime={serverTime} />
     case 'Reaction':
     case 'Tapper':
     case 'NeuroPhoto':

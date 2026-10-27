@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { TvPage } from './pages/TvPage'
+import { QuizEditorPage } from './quiz/QuizEditorPage'
 
 /** Пускает только указанную роль (или гостя, если role === null); остальных — на их домашнюю страницу. */
 function Only({ role, children }: { role: UserRole | null; children: ReactNode }) {
@@ -29,6 +30,7 @@ export function App() {
           <Route path="/login" element={<Only role={null}><LoginPage /></Only>} />
           <Route path="/tv" element={<Only role="Viewer"><TvPage /></Only>} />
           <Route path="/admin" element={<Only role="Admin"><AdminPage /></Only>} />
+          <Route path="/admin/quiz" element={<Only role="Admin"><QuizEditorPage /></Only>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

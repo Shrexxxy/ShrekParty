@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using AwesomeAssertions;
 using ShrekParty.Api.Auth;
 using ShrekParty.Api.Donkeys;
+using ShrekParty.Api.Media;
 using ShrekParty.Tests.Infrastructure;
 
 namespace ShrekParty.Tests.Media;
@@ -84,7 +85,7 @@ public class AvatarTests : IDisposable
     {
         var player = await RegisteredAfterCloseAsync();
 
-        var response = await UploadAsync(player, new byte[10 * 1024 * 1024 + 1], "image/jpeg");
+        var response = await UploadAsync(player, new byte[AvatarEndpoints.MaxUploadBytes + 1], "image/jpeg");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }

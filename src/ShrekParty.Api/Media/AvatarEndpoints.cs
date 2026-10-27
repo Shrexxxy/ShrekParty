@@ -16,7 +16,7 @@ namespace ShrekParty.Api.Media;
 public static class AvatarEndpoints
 {
     /// <summary>Максимальный размер загружаемого файла.</summary>
-    public const long MaxUploadBytes = 10 * 1024 * 1024;
+    public const long MaxUploadBytes = 100 * 1024 * 1024;
 
     /// <summary>Ослики за первую аватарку.</summary>
     public const int AvatarDonkeys = 5;
@@ -78,7 +78,8 @@ public static class AvatarEndpoints
             }
 
             http.Response.Headers[HeaderNames.CacheControl] = "public, max-age=86400";
-            return Results.File(Path.GetFullPath(path), media!.ContentType);
+            // Диапазоны — чтобы видео и аудио перематывались и «Повторить» не качало файл заново.
+            return Results.File(Path.GetFullPath(path), media!.ContentType, enableRangeProcessing: true);
         }).RequireAuthorization();
 
         return app;

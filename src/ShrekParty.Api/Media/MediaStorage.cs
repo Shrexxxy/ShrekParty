@@ -17,7 +17,12 @@ public class MediaStorage(IOptions<StorageOptions> storage, AppDbContext db, Tim
         ["image/heic"] = ".heic",
         ["image/gif"] = ".gif",
         ["audio/mpeg"] = ".mp3",
+        ["audio/mp4"] = ".m4a",
+        ["audio/ogg"] = ".ogg",
+        ["audio/wav"] = ".wav",
         ["video/mp4"] = ".mp4",
+        ["video/webm"] = ".webm",
+        ["video/quicktime"] = ".mov",
     };
 
     /// <summary>Папка с файлами.</summary>

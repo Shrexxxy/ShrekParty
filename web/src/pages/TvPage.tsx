@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSnapshot } from '../api/live'
 import { EventView } from '../events/EventView'
 import { useWakeLock } from '../events/useWakeLock'
+import { useQuizPreload } from '../tv/quizCache'
 import { TvAfterClose } from '../tv/TvAfterClose'
 import { TvCarousel } from '../tv/TvCarousel'
 import { TvMessageOverlay } from '../tv/TvMessageOverlay'
@@ -20,6 +21,7 @@ export function TvPage() {
   const snapshot = useSnapshot()
   // Ноутбук у ТВ не должен засыпать никогда.
   useWakeLock(true)
+  useQuizPreload()
   const [sound, setSound] = useState(false)
   const [afterClose, setAfterClose] = useState<AfterClose | null>(null)
   const sawOpen = useRef(false)

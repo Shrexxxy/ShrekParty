@@ -1,5 +1,6 @@
 using ShrekParty.Api.Donkeys;
 using ShrekParty.Api.Events;
+using ShrekParty.Api.Quiz;
 using ShrekParty.Api.Registration;
 using ShrekParty.Api.Tv;
 
@@ -13,12 +14,14 @@ namespace ShrekParty.Api.Live;
 /// <param name="ServerTime">Время сборки — клиент отбрасывает снапшоты старее уже показанного.</param>
 /// <param name="ActiveEvent">Текущий ивент программы с деталями для этого зрителя; гостям — null.</param>
 /// <param name="TvMessage">Ручное сообщение именинника на ТВ, пока не истекло.</param>
+/// <param name="TvPreload">Сколько медиа Своей игры скачало ТВ — только админу.</param>
 public record AppSnapshot(
     RegistrationStatusDto Registration,
     IReadOnlyList<LeaderboardRowDto> Leaderboard,
     DateTimeOffset ServerTime,
     ActiveEventDto? ActiveEvent = null,
-    TvMessageDto? TvMessage = null);
+    TvMessageDto? TvMessage = null,
+    TvPreloadDto? TvPreload = null);
 
 /// <summary>
 /// Кому собирается снапшот.
@@ -34,7 +37,13 @@ public record SnapshotAudience(bool SignedIn, Guid? ViewerId = null, bool IsAdmi
 /// <summary>
 /// Собирает снапшот из текущего состояния.
 /// </summary>
-public class SnapshotBuilder(RegistrationService registration, DonkeyService donkeys, EventEngine events, TvContentService tv, TimeProvider time)
+public class SnapshotBuilder(
+    RegistrationService registration,
+    DonkeyService donkeys,
+    EventEngine events,
+    TvContentService tv,
+    TvPreloadStatus preload,
+    TimeProvider time)
 {
     /// <summary>
     /// Собрать снапшот для зрителя.
@@ -61,7 +70,9 @@ public class SnapshotBuilder(RegistrationService registration, DonkeyService don
         foreach (var audience in audiences)
         {
             result.Add(audience.SignedIn
-                ? new AppSnapshot(status, leaderboard, now, await events.GetActiveAsync(audience.ViewerId, audience.IsAdmin), message)
+                ? new AppSnapshot(
+                    status, leaderboard, now, await events.GetActiveAsync(audience.ViewerId, audience.IsAdmin), message,
+                    audience.IsAdmin ? preload.Current : null)
                 : guest);
         }
 

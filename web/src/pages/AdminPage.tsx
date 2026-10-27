@@ -1,5 +1,6 @@
 import { useWakeLock } from '../events/useWakeLock'
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import { ApiError, api } from '../api/http'
 import { useSnapshot } from '../api/live'
 import { useMe } from '../api/me'
@@ -174,6 +175,7 @@ export function AdminPage() {
     <main className="page">
       <header className="admin-header">
         <h1>Админка</h1>
+        <Link to="/admin/quiz">✏️ Своя игра</Link>
         <button onClick={() => void logout()}>Выйти</button>
       </header>
       {snapshot === null ? (
@@ -185,7 +187,7 @@ export function AdminPage() {
           <Program version={snapshot.serverTime} />
           <Leaderboard snapshot={snapshot} />
           <ManualAward snapshot={snapshot} />
-          <TvControls />
+          <TvControls preload={snapshot.tvPreload} />
           <NeuroPhotos snapshot={snapshot} />
           <ResetBlock />
         </>

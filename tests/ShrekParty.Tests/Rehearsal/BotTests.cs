@@ -99,6 +99,27 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_play_quiz_question()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(3);
+        var admin = await TestClients.AdminAsync(_factory);
+        object Q(string text) => new { text, answer = "Ответ" };
+        var content = new { themes = new object[] { new { round = 1, name = "Шрек", questions = new[] { Q("В1"), Q("В2"), Q("В3") } } } };
+        (await admin.PostAsJsonAsync("/api/admin/quiz/import", content)).EnsureSuccessStatusCode();
+        await StartAsync(admin, "Quiz");
+        _factory.Time.Advance(TimeSpan.FromSeconds(5));
+
+        // Рулетка → бот-выбирающий выбирает клетку → боты жмут → окно нажатий закрывается по часам.
+        await WaitUntilAsync(async () =>
+        {
+            _factory.Time.Advance(TimeSpan.FromMilliseconds(200));
+            await _factory.WithServiceAsync<EventEngine>(e => e.TickAsync());
+            return (await DetailsAsync(admin)).GetProperty("phase").GetString() == "Answering";
+        });
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

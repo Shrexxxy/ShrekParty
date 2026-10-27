@@ -15,6 +15,7 @@ export type EventType =
   | 'Tapper'
   | 'Days'
   | 'NeuroPhoto'
+  | 'Quiz'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
 export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 
@@ -69,6 +70,8 @@ export interface AppSnapshot {
   serverTime: string
   activeEvent?: ActiveEventDto | null
   tvMessage?: TvMessageDto | null
+  /** Сколько медиа Своей игры скачало ТВ — только админу. */
+  tvPreload?: { loaded: number; total: number; at: string } | null
 }
 
 export interface ProgramItemDto {
