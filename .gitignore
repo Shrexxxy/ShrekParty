@@ -482,7 +482,7 @@ $RECYCLE.BIN/
 *.swp
 
 # Локальные данные приложения
-data/
+/data/
 web/node_modules/
 src/ShrekParty.Api/wwwroot/
 
