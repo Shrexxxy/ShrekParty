@@ -45,6 +45,9 @@ public enum EventType
 
     /// <summary>Своя игра.</summary>
     Quiz,
+
+    /// <summary>Аукцион после церемонии, ослики не даёт.</summary>
+    Auction,
 }
 
 /// <summary>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using ShrekParty.Api.Auction;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Days;
 using ShrekParty.Api.HideAndSeek;
@@ -72,6 +73,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<QuizScoreEntry> QuizScoreEntries => Set<QuizScoreEntry>();
 
     public DbSet<QuizFinalAnswer> QuizFinalAnswers => Set<QuizFinalAnswer>();
+
+    public DbSet<AuctionLot> AuctionLots => Set<AuctionLot>();
+
+    public DbSet<AuctionSale> AuctionSales => Set<AuctionSale>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

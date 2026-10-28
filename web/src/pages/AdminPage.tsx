@@ -7,6 +7,7 @@ import { useMe } from '../api/me'
 import type { AppSnapshot, ScoringScheme } from '../api/types'
 import { CurrentEventCard } from '../admin/CurrentEventCard'
 import { Program } from '../admin/Program'
+import { AuctionLots } from '../admin/AuctionLots'
 import { NeuroPhotos } from '../admin/NeuroPhotos'
 import { TvControls } from '../admin/TvControls'
 import { Leaderboard } from '../components/Leaderboard'
@@ -189,6 +190,7 @@ export function AdminPage() {
           <ManualAward snapshot={snapshot} />
           <TvControls preload={snapshot.tvPreload} />
           <NeuroPhotos snapshot={snapshot} />
+          <AuctionLots />
           <ResetBlock />
         </>
       )}

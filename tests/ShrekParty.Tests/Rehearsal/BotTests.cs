@@ -120,6 +120,20 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_bid_in_auction()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(3);
+        var admin = await TestClients.AdminAsync(_factory);
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Кружка", startPrice = 10 })).EnsureSuccessStatusCode();
+        var id = await StartAsync(admin, "Auction");
+
+        (await admin.PostAsync($"/api/admin/auction/{id}/next", null)).EnsureSuccessStatusCode();
+
+        await WaitUntilAsync(async () => (await DetailsAsync(admin)).GetProperty("leader").ValueKind == JsonValueKind.Object);
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

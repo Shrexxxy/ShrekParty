@@ -1,7 +1,9 @@
 import type { ActiveEventDto } from '../api/types'
 import { CeremonyView } from './CeremonyView'
 import { DaysView } from './DaysView'
+import { AuctionView } from './AuctionView'
 import type {
+  AuctionDetails,
   CeremonyDetails,
   DaysDetails,
   HideDetails,
@@ -46,6 +48,8 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return <TapperView eventId={event.id} details={details as TapperDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Days':
       return <DaysView eventId={event.id} details={details as DaysDetails} serverTime={serverTime} tv={tv} />
+    case 'Auction':
+      return <AuctionView eventId={event.id} details={details as AuctionDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Quiz':
       return <QuizView eventId={event.id} details={details as QuizDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'NeuroPhoto':

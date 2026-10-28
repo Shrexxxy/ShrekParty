@@ -5,7 +5,8 @@ namespace ShrekParty.Api.Donkeys;
 /// <summary>
 /// Строка таблицы лидеров.
 /// </summary>
-public record LeaderboardRowDto(Guid UserId, string Login, string? AvatarUrl, int Donkeys, int Place);
+/// <param name="Cash">«На руках»: ослики минус покупки на аукционе; места считаются по <paramref name="Donkeys"/>.</param>
+public record LeaderboardRowDto(Guid UserId, string Login, string? AvatarUrl, int Donkeys, int Place, int Cash);
 
 /// <summary>
 /// Ивент для вкладок таблицы.

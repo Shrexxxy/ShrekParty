@@ -16,6 +16,7 @@ export type EventType =
   | 'Days'
   | 'NeuroPhoto'
   | 'Quiz'
+  | 'Auction'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
 export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 
@@ -32,6 +33,8 @@ export interface LeaderboardRowDto {
   avatarUrl: string | null
   donkeys: number
   place: number
+  /** «На руках»: ослики минус покупки на аукционе (места — по donkeys). */
+  cash: number
 }
 
 export interface EventDto {

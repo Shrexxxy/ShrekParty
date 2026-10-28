@@ -213,3 +213,24 @@ export interface QuizDetails {
   mediaCommand: { action: 'Play' | 'Pause'; seq: number } | null
   final: { themeName: string; finalists: QuizFinalist[]; iAmFinalist: boolean; myBet: number | null; myAnswer: string | null } | null
 }
+
+export interface AuctionLot {
+  id: string
+  order: number
+  name: string
+  startPrice: number
+  photoUrl: string | null
+}
+
+export interface AuctionDetails {
+  phase: 'Idle' | 'Bidding' | 'Sold' | 'Unsold' | 'Done'
+  lot: AuctionLot | null
+  price: number | null
+  leader: { userId: string; login: string; avatarUrl: string | null } | null
+  deadline: string | null
+  left: number
+  last: { lotName: string; login: string | null; price: number | null; sold: boolean } | null
+  balances: { userId: string; login: string; avatarUrl: string | null; balance: number }[]
+  myBalance: number | null
+  sales: { lotName: string; login: string; price: number }[]
+}

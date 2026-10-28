@@ -52,6 +52,7 @@ export function Leaderboard({ snapshot, highlightUserId }: { snapshot: AppSnapsh
               <Avatar url={r.avatarUrl} login={r.login} />
               <span className="login">{r.login}</span>
               <Donkeys value={r.donkeys} />
+              {r.cash !== r.donkeys && <span className="cash">на руках {r.cash}</span>}
             </li>
           ))}
         </ol>

@@ -2206,3 +2206,114 @@ details summary {
   padding: 8px;
   border-radius: 8px;
 }
+
+/* Аукцион */
+.cash {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.auction {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.auction-lot-name {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.auction.tv .auction-lot-name {
+  font-size: clamp(32px, 4vw, 72px);
+}
+
+.auction-photo {
+  max-width: 100%;
+  max-height: 40vh;
+  border-radius: 12px;
+  justify-self: center;
+}
+
+.auction.tv .auction-photo {
+  max-height: 55vh;
+}
+
+.auction-price {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ogre-bright);
+}
+
+.auction.tv .auction-price {
+  font-size: clamp(40px, 6vw, 100px);
+}
+
+.auction-leader {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.6em;
+  color: var(--text);
+}
+
+.auction-clock {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.auction.tv .auction-clock {
+  font-size: clamp(28px, 4vw, 64px);
+}
+
+.auction-call {
+  font-size: clamp(48px, 8vw, 140px);
+  font-weight: 900;
+  color: #ffb74d;
+}
+
+.auction-result {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.auction.tv .auction-result {
+  font-size: clamp(32px, 5vw, 90px);
+}
+
+.auction-result.sold {
+  color: var(--ogre-bright);
+}
+
+.auction-bids button {
+  font-size: 18px;
+}
+
+.auction-lot-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px auto auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.auction-lot-row img,
+.auction-lot-nophoto {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: var(--card);
+}
+
+.auction-lot-row input {
+  min-width: 0;
+}

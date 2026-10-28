@@ -71,6 +71,11 @@ public class DonkeyService(AppDbContext db, TimeProvider time, ILiveNotifier liv
             .ToDictionaryAsync(x => x.UserId, x => x.Total);
 
         var ranked = DenseRanking.Rank(players, p => sums.GetValueOrDefault(p.Id), descending: true);
+        // Покупки на аукционе не меняют места — только «на руках» в общей таблице.
+        var spent = eventId is null
+            ? await db.AuctionSales.AsNoTracking().GroupBy(s => s.UserId).Select(g => new { UserId = g.Key, Sum = g.Sum(s => s.Price) })
+                .ToDictionaryAsync(x => x.UserId, x => x.Sum)
+            : [];
 
         return ranked
             .Select(r => new LeaderboardRowDto(
@@ -78,7 +83,8 @@ public class DonkeyService(AppDbContext db, TimeProvider time, ILiveNotifier liv
                 r.Item.Login,
                 r.Item.ToMe().AvatarUrl,
                 sums.GetValueOrDefault(r.Item.Id),
-                r.Place))
+                r.Place,
+                sums.GetValueOrDefault(r.Item.Id) - spent.GetValueOrDefault(r.Item.Id)))
             .OrderBy(r => r.Place)
             .ThenBy(r => r.Login, StringComparer.OrdinalIgnoreCase)
             .ToList();

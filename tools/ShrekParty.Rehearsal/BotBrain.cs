@@ -17,6 +17,9 @@ public static class BotBrain
     private const int MaxBet = 10;
     private const double FalseStartChance = 0.1;
     private const double QuizPressChance = 0.8;
+    private const double AuctionBidChance = 0.4;
+
+    private static readonly int[] AuctionSteps = [5, 10, 25];
 
     /// <summary>
     /// Новые действия по снапшоту ивента.
@@ -41,8 +44,35 @@ public static class BotBrain
             "Days" => Days(id, details, random, done),
             "NeuroPhoto" => Neuro(id, details, random, done),
             "Quiz" => Quiz(id, details, me, random, done),
+            "Auction" => Auction(id, details, me, random, done),
             _ => [],
         };
+    }
+
+    private static IEnumerable<BotAction> Auction(string id, JsonElement details, Guid me, Random random, ISet<string> done)
+    {
+        if (details.GetProperty("phase").GetString() != "Bidding"
+            || details.GetProperty("lot") is not { ValueKind: JsonValueKind.Object } lot
+            || details.GetProperty("myBalance") is not { ValueKind: JsonValueKind.Number } balanceElement
+            || details.GetProperty("leader") is { ValueKind: JsonValueKind.Object } leader && leader.GetProperty("userId").GetGuid() == me)
+        {
+            yield break;
+        }
+
+        var price = details.GetProperty("price") is { ValueKind: JsonValueKind.Number } p ? p.GetInt32() : (int?)null;
+        // Решаем один раз на каждое состояние торгов: срок сдвигается с каждой ставкой и с новым выходом лота
+        // (после отмены продажи он выходит снова). Стартовую берём всегда — чтобы лот не уходил без ставок.
+        if (!done.Add($"auction:{id}:{lot.GetProperty("id").GetString()}:{details.GetProperty("deadline").GetString()}") || (price is not null && random.NextDouble() >= AuctionBidChance))
+        {
+            yield break;
+        }
+
+        var step = price is null ? 0 : AuctionSteps[random.Next(AuctionSteps.Length)];
+        var amount = price is null ? lot.GetProperty("startPrice").GetInt32() : price.Value + step;
+        if (amount <= balanceElement.GetInt32())
+        {
+            yield return new BotAction($"ставлю {amount} на «{lot.GetProperty("name").GetString()}»", HttpMethod.Post, $"/api/auction/{id}/bid", new { step, expected = price });
+        }
     }
 
     private static IEnumerable<BotAction> Quiz(string id, JsonElement details, Guid me, Random random, ISet<string> done)

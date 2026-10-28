@@ -45,6 +45,7 @@ public class ResetService(AppDbContext db, MediaStorage storage, ILiveNotifier l
         await db.QuizPresses.ExecuteDeleteAsync();
         await db.QuizScoreEntries.ExecuteDeleteAsync();
         await db.QuizFinalAnswers.ExecuteDeleteAsync();
+        await db.AuctionSales.ExecuteDeleteAsync();
         // Нейрофото — контент, остаются; отметки игроков снимаем (игроки удаляются), именинник остаётся.
         await db.NeuroPhotos.Where(p => db.Users.Any(u => u.Id == p.SubjectId && u.Role == UserRole.Player))
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.SubjectId, (Guid?)null));
