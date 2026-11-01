@@ -2984,3 +2984,14 @@ details summary {
   gap: 8px;
   font-size: 28px;
 }
+
+.boss-prizes {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 22px;
+}
+
+.boss-prizes .locked {
+  opacity: 0.5;
+}

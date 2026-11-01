@@ -63,6 +63,10 @@ public record BossName(string Login, string Name);
 public record BossFighterDto(
     Guid UserId, string Login, string Name, PetClass Class, int Hp, int MaxHp, int Mana, int MaxMana, bool Alive, bool Stunned, FighterAction? Choice);
 
+/// <summary>Приз босса на экране итога.</summary>
+/// <param name="Open">Медаль боя его открыла.</param>
+public record BossPrizeDto(string Name, Medal Medal, bool Open, bool Sold);
+
 /// <summary>Действие и почему его сейчас нельзя (null — можно).</summary>
 public record BossOptionDto(FighterAction Action, string? Unavailable);
 
@@ -70,6 +74,7 @@ public record BossOptionDto(FighterAction Action, string? Unavailable);
 /// <param name="Rage">Множитель ярости босса сейчас (1 — без ярости).</param>
 /// <param name="MyOptions">Действия зрителя-участника; остальным — пусто.</param>
 /// <param name="Survivors">Сколько питомцев ещё в бою.</param>
+/// <param name="Prizes">Призы этого босса — на экране итога.</param>
 public record BossDetails(
     BossPhase Phase,
     int Turn,
@@ -88,13 +93,17 @@ public record BossDetails(
     int CheerBonus,
     bool ICheered,
     Medal? Medal,
-    int Survivors);
+    int Survivors,
+    IReadOnlyList<BossPrizeDto> Prizes);
 
 /// <summary>
 /// Бой с боссом: появление → [выбор → разыгрывание] × N → победа или поражение. Ходов без ограничения, после 8-го — ярость.
 /// </summary>
 public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Random random) : IEventModule
 {
+    /// <summary>Штраф каждому участнику за поражение (не больше осликов на руках).</summary>
+    public const int LossPenalty = 25;
+
     /// <summary>Появление босса.</summary>
     public static readonly TimeSpan IntroTime = TimeSpan.FromSeconds(8);
 
@@ -120,6 +129,9 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     {
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
+
+    // Призы одинаковы для всех зрителей рассылки — читаем один раз на область (снапшот собирается в одной).
+    private IReadOnlyList<BossPrizeDto>? _prizes;
 
     /// <inheritdoc/>
     public EventType Type => EventType.BossFight;
@@ -151,14 +163,15 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     }
 
     /// <inheritdoc/>
-    public Task<object?> GetDetailsAsync(Event ev, Guid? viewerId, bool isAdmin)
+    public async Task<object?> GetDetailsAsync(Event ev, Guid? viewerId, bool isAdmin)
     {
         var state = StateOf(ev);
+        var prizes = state.Phase is BossPhase.Won or BossPhase.Lost ? _prizes ??= await PrizesAsync(state) : [];
         var names = state.Names;
         var me = state.Fighters.FirstOrDefault(f => f.UserId == viewerId);
         var showChoices = state.Phase == BossPhase.Choosing;
 
-        return Task.FromResult<object?>(new BossDetails(
+        return new BossDetails(
             state.Phase,
             state.Turn,
             state.Step,
@@ -181,7 +194,8 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
             state.CheerBonus,
             me is not null && state.Cheers.Contains(me.UserId),
             state.Medal,
-            state.Fighters.Count(f => f.Alive)));
+            state.Fighters.Count(f => f.Alive),
+            prizes);
     }
 
     /// <inheritdoc/>
@@ -213,6 +227,45 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     /// <remarks>Мест нет: награда и штраф — отдельно (аукцион и штраф за поражение).</remarks>
     public Task<IReadOnlyList<Ranked<Guid>>> RankAsync(Event ev) => Task.FromResult<IReadOnlyList<Ranked<Guid>>>([]);
 
+    /// <inheritdoc/>
+    /// <remarks>Поражение — минус 25 каждому участнику, но не больше, чем у него на руках.</remarks>
+    public async Task AfterFinishAsync(Event ev)
+    {
+        // Движок прочитал ивент до завершения — ход мог успеть после; берём последнее состояние под блокировкой.
+        await Lock.WaitAsync();
+        try
+        {
+            await db.Entry(ev).ReloadAsync();
+        }
+        finally
+        {
+            Lock.Release();
+        }
+
+        var state = StateOf(ev);
+        if (state.Phase != BossPhase.Lost)
+        {
+            return;
+        }
+
+        var ids = state.Fighters.Select(f => f.UserId).ToList();
+        var awarded = await db.DonkeyAwards.Where(a => ids.Contains(a.UserId)).GroupBy(a => a.UserId)
+            .Select(g => new { g.Key, Sum = g.Sum(a => a.Amount) }).ToDictionaryAsync(x => x.Key, x => x.Sum);
+        var spent = await db.AuctionSales.Where(s => ids.Contains(s.UserId)).GroupBy(s => s.UserId)
+            .Select(g => new { g.Key, Sum = g.Sum(s => s.Price) }).ToDictionaryAsync(x => x.Key, x => x.Sum);
+        foreach (var id in ids)
+        {
+            var penalty = Math.Min(LossPenalty, awarded.GetValueOrDefault(id) - spent.GetValueOrDefault(id));
+            if (penalty > 0)
+            {
+                db.DonkeyAwards.Add(new DonkeyAward
+                {
+                    Id = Guid.NewGuid(), UserId = id, EventId = ev.Id, Amount = -penalty, Reason = $"{ev.Title}: поражение", CreatedAt = ev.FinishedAt ?? DateTimeOffset.UtcNow,
+                });
+            }
+        }
+    }
+
     internal static BossState StateOf(Event ev) => JsonSerializer.Deserialize<BossState>(ev.StateJson!, Json)!;
 
     internal static void SetState(Event ev, BossState state) => ev.StateJson = JsonSerializer.Serialize(state, Json);
@@ -234,6 +287,15 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     /// Следующая фаза — по таймеру, по «Дальше» ведущего или когда все выбрали.
     /// </summary>
     internal static BossState Advance(BossState state, DateTimeOffset now, Random random) => Next(state, now, random) with { Step = state.Step + 1 };
+
+    private async Task<IReadOnlyList<BossPrizeDto>> PrizesAsync(BossState state)
+    {
+        var opened = state.Medal is { } medal ? BossRules.Opened(medal) : [];
+        // Медаль в базе — строкой: сортируем уже в памяти, по значению, а не по алфавиту.
+        var lots = (await db.AuctionLots.AsNoTracking().Where(l => l.Boss == state.Boss && l.Medal != null).ToListAsync()).OrderBy(l => l.Medal).ToList();
+        var sold = await db.AuctionSales.Select(s => s.LotId).ToListAsync();
+        return lots.Select(l => new BossPrizeDto(l.Name, l.Medal!.Value, opened.Contains(l.Medal!.Value), sold.Contains(l.Id))).ToList();
+    }
 
     private static BossState Next(BossState state, DateTimeOffset now, Random random) => state.Phase switch
     {

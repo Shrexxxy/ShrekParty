@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ShrekParty.Api.Auth;
+using ShrekParty.Api.Bosses;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Events;
@@ -92,7 +93,7 @@ public class AuctionModule(AppDbContext db, ILiveNotifier live) : IEventModule
     /// <inheritdoc/>
     public async Task StartAsync(Event ev)
     {
-        var lots = (await db.AuctionLots.ToListAsync()).OrderBy(l => l.Order).Select(l => l.Id).ToList();
+        var lots = (await LotsForAsync(ev)).OrderBy(l => l.Order).Select(l => l.Id).ToList();
         if (lots.Count == 0)
         {
             throw new EventRuleException("no_lots");
@@ -165,6 +166,24 @@ public class AuctionModule(AppDbContext db, ILiveNotifier live) : IEventModule
     /// <summary>
     /// «На руках» у каждого игрока: ослики минус покупки на аукционах.
     /// </summary>
+    /// <summary>
+    /// Аукцион боя — открытые медалью непроданные лоты этого босса; финальный — все непроданные (в т. ч. неоткрытые призы боссов).
+    /// </summary>
+    internal static async Task<IReadOnlyList<Guid>> OpenPrizesAsync(AppDbContext db, Event boss)
+    {
+        var state = BossModule.StateOf(boss);
+        if (state.Medal is not { } medal)
+        {
+            return [];
+        }
+
+        var medals = BossRules.Opened(medal).Cast<Medal?>().ToList();
+        return await db.AuctionLots
+            .Where(l => l.Boss == state.Boss && medals.Contains(l.Medal) && !db.AuctionSales.Any(s => s.LotId == l.Id))
+            .Select(l => l.Id)
+            .ToListAsync();
+    }
+
     internal static async Task<IReadOnlyList<AuctionBalanceDto>> BalancesAsync(AppDbContext db)
     {
         var donkeys = await db.DonkeyAwards.GroupBy(a => a.UserId).Select(g => new { UserId = g.Key, Sum = g.Sum(a => a.Amount) })
@@ -201,5 +220,16 @@ public class AuctionModule(AppDbContext db, ILiveNotifier live) : IEventModule
             Skipped = again ? [.. state.Skipped, lotId] : state.Skipped,
             Last = new AuctionLast(lotId, null, null),
         };
+    }
+
+    private async Task<List<AuctionLot>> LotsForAsync(Event ev)
+    {
+        if (ev.ParentId is { } parentId && await db.Events.FindAsync(parentId) is { Type: EventType.BossFight } boss)
+        {
+            var open = await OpenPrizesAsync(db, boss);
+            return await db.AuctionLots.Where(l => open.Contains(l.Id)).ToListAsync();
+        }
+
+        return await db.AuctionLots.Where(l => !db.AuctionSales.Any(s => s.LotId == l.Id)).ToListAsync();
     }
 }

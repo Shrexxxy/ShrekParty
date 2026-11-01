@@ -115,11 +115,20 @@ function Result({ details }: { details: BossDetails }) {
         <span>
           🐉 {details.survivors} / {details.fighters.length}
         </span>
+        <div className="boss-prizes">
+          {details.prizes
+            .filter((p) => !p.sold)
+            .map((p) => (
+              <span key={p.medal} className={p.open ? 'open' : 'locked'}>
+                {MEDAL_ICONS[p.medal]} {p.open ? `🎁 ${p.name}` : '🔒'}
+              </span>
+            ))}
+        </div>
       </div>
     )
   }
 
-  return details.phase === 'Lost' ? <div className="boss-result boss-fx-lost">💀</div> : null
+  return details.phase === 'Lost' ? <div className="boss-result boss-fx-lost">💀 до −25 🫏</div> : null
 }
 
 /** Действия на телефоне: кнопки с иконками; недоступные — серые с причиной. */

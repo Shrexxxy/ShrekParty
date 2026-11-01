@@ -49,25 +49,35 @@ public class EventEngine(
     /// <summary>
     /// Добавляет ивент в конец программы.
     /// </summary>
-    public async Task<(EngineOutcome Outcome, ProgramItemDto? Item)> CreateAsync(CreateEventRequest request)
+    /// <param name="parentId">Ивент, к которому привязан этот (аукцион боя — к бою).</param>
+    public async Task<(EngineOutcome Outcome, ProgramItemDto? Item)> CreateAsync(CreateEventRequest request, Guid? parentId = null)
     {
         if (NotInProgram.Contains(request.Type) || ModuleFor(request.Type) is null)
         {
             return (EngineOutcome.Unsupported, null);
         }
 
-        var lastOrder = await db.Events.Where(e => !NotInProgram.Contains(e.Type)).MaxAsync(e => (int?)e.Order) ?? -1;
+        var order = (await db.Events.Where(e => !NotInProgram.Contains(e.Type)).MaxAsync(e => (int?)e.Order) ?? -1) + 1;
+        if (parentId is { } p && await db.Events.FindAsync(p) is { } parent)
+        {
+            // Привязанный ивент — сразу за родителем: остальные сдвигаются на одно место.
+            order = parent.Order + 1;
+            await db.Events.Where(e => !NotInProgram.Contains(e.Type) && e.Order >= order)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.Order, e => e.Order + 1));
+        }
+
         var ev = new Event
         {
             Id = Guid.NewGuid(),
             Type = request.Type,
             Title = request.Title.Trim(),
             Status = EventStatus.Draft,
-            Order = lastOrder + 1,
+            Order = order,
             MaxDonkeys = request.MaxDonkeys ?? DefaultMaxDonkeys(request.Type),
             Scheme = request.Scheme,
             CustomTableJson = request.CustomTable is null ? null : JsonSerializer.Serialize(request.CustomTable),
             SettingsJson = request.Settings?.GetRawText(),
+            ParentId = parentId,
         };
         db.Events.Add(ev);
         await db.SaveChangesAsync();

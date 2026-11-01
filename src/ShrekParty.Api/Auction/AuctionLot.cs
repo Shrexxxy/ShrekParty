@@ -1,3 +1,5 @@
+using ShrekParty.Api.Bosses;
+
 namespace ShrekParty.Api.Auction;
 
 /// <summary>
@@ -16,6 +18,12 @@ public class AuctionLot
     public Guid? MediaId { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Приз за победу над этим боссом; null — финальный аукцион.</summary>
+    public BossKind? Boss { get; set; }
+
+    /// <summary>С какой медали боя лот открывается; задан вместе с боссом.</summary>
+    public Medal? Medal { get; set; }
 }
 
 /// <summary>

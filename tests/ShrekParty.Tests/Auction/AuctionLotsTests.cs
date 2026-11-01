@@ -73,6 +73,73 @@ public class AuctionLotsTests : IDisposable
         (await ann.GetAsync("/api/admin/auction/lots")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    #region Призы боссов
+
+    [Fact]
+    public async Task Lot_with_boss_and_medal_saved()
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Вилы", startPrice = 10, boss = "Peasant", medal = "Gold" })).EnsureSuccessStatusCode();
+
+        var lot = (await LotsAsync(admin)).Single();
+        lot.GetProperty("boss").GetString().Should().Be("Peasant");
+        lot.GetProperty("medal").GetString().Should().Be("Gold");
+    }
+
+    [Fact]
+    public async Task Second_lot_same_boss_medal_conflicts()
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Вилы", startPrice = 10, boss = "Peasant", medal = "Gold" })).EnsureSuccessStatusCode();
+
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Грабли", startPrice = 10, boss = "Peasant", medal = "Gold" }))
+            .StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Корона", startPrice = 10, boss = "Farquaad", medal = "Gold" }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Theory]
+    [InlineData("Peasant", null)]
+    [InlineData(null, "Gold")]
+    public async Task Boss_without_medal_bad_request(string? boss, string? medal)
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Вилы", startPrice = 10, boss, medal })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Moving_lot_to_final_frees_medal()
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+        var first = await LotAsync(admin, "Вилы", 10);
+        (await admin.PutAsJsonAsync($"/api/admin/auction/lots/{first}/prize", new { boss = "Peasant", medal = "Gold" })).EnsureSuccessStatusCode();
+
+        (await admin.PutAsJsonAsync($"/api/admin/auction/lots/{first}/prize", new { boss = (string?)null, medal = (string?)null })).EnsureSuccessStatusCode();
+
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Грабли", startPrice = 10, boss = "Peasant", medal = "Gold" }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+        (await LotsAsync(admin)).First().GetProperty("boss").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Price_edit_keeps_prize()
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+        var created = await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Вилы", startPrice = 10, boss = "Peasant", medal = "Gold" });
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        (await admin.PutAsJsonAsync($"/api/admin/auction/lots/{id}", new { name = "Золотые вилы", startPrice = 30 })).EnsureSuccessStatusCode();
+
+        var lot = (await LotsAsync(admin)).Single();
+        lot.GetProperty("name").GetString().Should().Be("Золотые вилы");
+        lot.GetProperty("boss").GetString().Should().Be("Peasant");
+        lot.GetProperty("medal").GetString().Should().Be("Gold");
+    }
+
+    #endregion
+
     public void Dispose() => _factory.Dispose();
 
     internal static async Task<Guid> LotAsync(HttpClient admin, string name, int startPrice)

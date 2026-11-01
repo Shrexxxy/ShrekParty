@@ -4,7 +4,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using ShrekParty.Api.Bosses;
 using ShrekParty.Api.Data;
+using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Events;
 using ShrekParty.Api.Pets;
 using ShrekParty.Tests.Infrastructure;
@@ -295,6 +297,190 @@ public class BossFightTests : IDisposable
 
     #endregion
 
+    #region Награда
+
+    [Fact]
+    public async Task Silver_opens_bronze_and_silver_only()
+    {
+        await PlayersAsync();
+        var prizes = await PrizesAsync("Peasant");
+        var (id, admin) = await WonAsync(Medal.Silver);
+
+        var opened = await admin.PostAsync($"/api/admin/boss/{id}/auction", null);
+
+        opened.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auctionId = (await opened.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var active = await admin.GetFromJsonAsync<JsonElement>("/api/events/active");
+        active.GetProperty("id").GetGuid().Should().Be(auctionId);
+        (await QueueAsync(auctionId)).Should().BeEquivalentTo([prizes["Bronze"], prizes["Silver"]]);
+        (await StatusAsync(id)).Should().Be(EventStatus.Finished);
+        (await ParentAsync(auctionId)).Should().Be(id);
+    }
+
+    [Fact]
+    public async Task Boss_auction_goes_right_after_fight()
+    {
+        await PlayersAsync();
+        await PrizesAsync("Peasant");
+        var (id, admin) = await WonAsync(Medal.Gold);
+        (await admin.PostAsJsonAsync("/api/admin/events", new { type = "Auction", title = "Финал" }, TestClients.Json)).EnsureSuccessStatusCode();
+
+        (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).EnsureSuccessStatusCode();
+
+        var program = (await admin.GetFromJsonAsync<List<ProgramItemDto>>("/api/admin/events", TestClients.Json))!.OrderBy(e => e.Order).Select(e => e.Title).ToList();
+        program.Should().ContainInConsecutiveOrder("Битва", "Битва: аукцион", "Финал");
+    }
+
+    [Fact]
+    public async Task Twice_conflicts()
+    {
+        await PlayersAsync();
+        await PrizesAsync("Peasant");
+        var (id, admin) = await WonAsync(Medal.Gold);
+        (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).EnsureSuccessStatusCode();
+
+        (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<AppDbContext>().Events.Count(e => e.Type == EventType.Auction).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task No_lots_for_medal()
+    {
+        await PlayersAsync();
+        var admin = await TestClients.AdminAsync(_factory);
+        (await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Вилы", startPrice = 10, boss = "Peasant", medal = "Gold" })).EnsureSuccessStatusCode();
+        var (id, _) = await WonAsync(Medal.Bronze);
+
+        (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await StatusAsync(id)).Should().Be(EventStatus.Active);
+    }
+
+    [Fact]
+    public async Task Sold_lot_skipped()
+    {
+        await PlayersAsync();
+        var prizes = await PrizesAsync("Peasant");
+        await SellAsync(prizes["Bronze"]);
+        var (id, admin) = await WonAsync(Medal.Silver);
+
+        var opened = await admin.PostAsync($"/api/admin/boss/{id}/auction", null);
+
+        var auctionId = (await opened.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        (await QueueAsync(auctionId)).Should().Equal(prizes["Silver"]);
+    }
+
+    [Fact]
+    public async Task Final_takes_unsold_only()
+    {
+        await PlayersAsync();
+        var prizes = await PrizesAsync("Peasant");
+        var admin = await TestClients.AdminAsync(_factory);
+        var created = await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = "Финальный лот", startPrice = 10 });
+        var final = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var (id, _) = await WonAsync(Medal.Silver);
+        var bossAuction = (await (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await SellAsync(prizes["Bronze"]);
+        (await admin.PostAsync($"/api/admin/events/{bossAuction}/finish", null)).EnsureSuccessStatusCode();
+
+        var finalAuction = await admin.PostAsJsonAsync("/api/admin/events", new { type = "Auction", title = "Финал" }, TestClients.Json);
+        var finalId = (await finalAuction.Content.ReadFromJsonAsync<ProgramItemDto>(TestClients.Json))!.Id;
+        (await admin.PostAsync($"/api/admin/events/{finalId}/start", null)).EnsureSuccessStatusCode();
+
+        (await QueueAsync(finalId)).Should().BeEquivalentTo([prizes["Silver"], prizes["Gold"], final]);
+    }
+
+    [Fact]
+    public async Task Prizes_in_details_after_win()
+    {
+        await PlayersAsync();
+        await PrizesAsync("Peasant");
+        var (_, admin) = await WonAsync(Medal.Silver);
+
+        var prizes = (await DetailsAsync(admin)).GetProperty("prizes").EnumerateArray()
+            .ToDictionary(p => p.GetProperty("medal").GetString()!, p => p.GetProperty("open").GetBoolean());
+
+        prizes.Should().BeEquivalentTo(new Dictionary<string, bool> { ["Bronze"] = true, ["Silver"] = true, ["Gold"] = false });
+        (await DetailsAsync(admin)).GetProperty("prizes").EnumerateArray().Select(p => p.GetProperty("medal").GetString())
+            .Should().Equal("Bronze", "Silver", "Gold");
+    }
+
+    [Fact]
+    public async Task Loss_takes_25_each()
+    {
+        await PlayersAsync();
+        foreach (var login in Six)
+        {
+            await AwardAsync(login, 100);
+        }
+
+        var (id, admin) = await LostAsync();
+        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
+
+        var rows = await PenaltiesAsync(id);
+        rows.Should().HaveCount(6).And.OnlyContain(r => r.Amount == -25 && r.Reason == "Битва: поражение");
+    }
+
+    [Fact]
+    public async Task Loss_capped_by_balance()
+    {
+        await PlayersAsync();
+        await AwardAsync("Ann", 10);
+        foreach (var login in Six.Skip(2))
+        {
+            await AwardAsync(login, 100);
+        }
+
+        var (id, admin) = await LostAsync();
+        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
+
+        var rows = await PenaltiesAsync(id);
+        rows.Should().Contain(r => r.Login == "Ann" && r.Amount == -10);
+        rows.Should().NotContain(r => r.Login == "Bob");
+        rows.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task Won_or_unfinished_no_penalty()
+    {
+        await PlayersAsync();
+        await AwardAsync("Ann", 100);
+        var (won, admin) = await WonAsync(Medal.Gold);
+        (await admin.PostAsync($"/api/admin/events/{won}/finish", null)).EnsureSuccessStatusCode();
+        (await PenaltiesAsync(won)).Should().BeEmpty();
+
+        var (midway, _) = await ToChoosingAsync();
+        (await admin.PostAsync($"/api/admin/events/{midway}/finish", null)).EnsureSuccessStatusCode();
+        (await PenaltiesAsync(midway)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Penalty_keeps_pet_level()
+    {
+        await PlayersAsync();
+        await AwardAsync("Ann", 60);
+        var (id, admin) = await LostAsync();
+
+        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
+
+        IReadOnlyList<PetDto> pets = [];
+        await _factory.WithServiceAsync<PetService>(async p => pets = await p.AllAsync());
+        pets.Single(p => p.Login == "Ann").Level.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Not_won_conflicts()
+    {
+        await PlayersAsync();
+        await PrizesAsync("Peasant");
+        var (id, admin) = await ToChoosingAsync();
+
+        (await admin.PostAsync($"/api/admin/boss/{id}/auction", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    #endregion
+
     public void Dispose() => _factory.Dispose();
 
     private async Task PlayersAsync()
@@ -325,6 +511,96 @@ public class BossFightTests : IDisposable
         var id = await CreateAsync(admin, boss);
         (await admin.PostAsync($"/api/admin/events/{id}/start", null)).EnsureSuccessStatusCode();
         return (id, admin);
+    }
+
+    /// <summary>Лоты босса 🥉🥈🥇 — id по медали.</summary>
+    private async Task<Dictionary<string, Guid>> PrizesAsync(string boss)
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+        var ids = new Dictionary<string, Guid>();
+        foreach (var medal in new[] { "Bronze", "Silver", "Gold" })
+        {
+            var created = await admin.PostAsJsonAsync("/api/admin/auction/lots", new { name = $"Приз {medal}", startPrice = 10, boss, medal });
+            created.EnsureSuccessStatusCode();
+            ids[medal] = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        }
+
+        return ids;
+    }
+
+    /// <summary>Бой с крестьянином, сразу выигранный с нужной медалью (состояние подкручено).</summary>
+    private async Task<(Guid Id, HttpClient Admin)> WonAsync(Medal medal)
+    {
+        var started = await ToChoosingAsync();
+        await PatchStateAsync(started.Id, s =>
+        {
+            s["phase"] = (int)ShrekParty.Api.Bosses.BossPhase.Won;
+            s["medal"] = (int)medal;
+            s["deadline"] = null;
+        });
+        return started;
+    }
+
+    /// <summary>Бой, сразу проигранный (состояние подкручено).</summary>
+    private async Task<(Guid Id, HttpClient Admin)> LostAsync()
+    {
+        var started = await ToChoosingAsync();
+        await PatchStateAsync(started.Id, s =>
+        {
+            s["phase"] = (int)BossPhase.Lost;
+            s["deadline"] = null;
+        });
+        return started;
+    }
+
+    private async Task AwardAsync(string login, int amount)
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+        using var scope = _factory.Services.CreateScope();
+        var userId = scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.Single(u => u.Login == login).Id;
+        (await admin.PostAsJsonAsync("/api/admin/awards", new { userId, amount, reason = "Ивент" })).EnsureSuccessStatusCode();
+    }
+
+    private async Task<List<(string Login, int Amount, string Reason)>> PenaltiesAsync(Guid eventId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return db.DonkeyAwards.Where(a => a.EventId == eventId)
+            .Join(db.Users, a => a.UserId, u => u.Id, (a, u) => new { u.Login, a.Amount, a.Reason })
+            .AsEnumerable()
+            .Select(r => (r.Login, r.Amount, r.Reason))
+            .ToList();
+    }
+
+    private async Task SellAsync(Guid lotId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var buyer = db.Users.First(u => u.Role == ShrekParty.Api.Data.Entities.UserRole.Player).Id;
+        db.AuctionSales.Add(new ShrekParty.Api.Auction.AuctionSale
+        {
+            Id = Guid.NewGuid(), EventId = Guid.NewGuid(), LotId = lotId, UserId = buyer, Price = 10, CreatedAt = _factory.Time.GetUtcNow(),
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<List<Guid>> QueueAsync(Guid auctionId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ev = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Events.FindAsync(auctionId);
+        return JsonNode.Parse(ev!.StateJson!)!["queue"]!.AsArray().Select(n => n!.GetValue<Guid>()).ToList();
+    }
+
+    private async Task<EventStatus> StatusAsync(Guid id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Events.FindAsync(id))!.Status;
+    }
+
+    private async Task<Guid?> ParentAsync(Guid id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Events.FindAsync(id))!.ParentId;
     }
 
     private async Task<(Guid Id, HttpClient Admin)> ToChoosingAsync()

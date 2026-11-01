@@ -215,6 +215,9 @@ export interface QuizDetails {
 }
 
 export interface AuctionLot {
+  /** Приз за босса; null — финальный аукцион. */
+  boss?: import('./boss').BossKind | null
+  medal?: import('./boss').Medal | null
   id: string
   order: number
   name: string

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using ShrekParty.Api.Auth;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
@@ -13,8 +14,48 @@ public record BossActRequest(FighterAction Action, Guid? TargetId);
 /// <summary>
 /// Бой с боссом: выбор действия и поддержка с того света (игроки), «Дальше» (ведущий).
 /// </summary>
-public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time, Random random)
+public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time, Random random, EventEngine engine)
 {
+    /// <summary>
+    /// Ведущий после победы: бой завершается, сразу стартует привязанный к нему аукцион с открытыми медалью лотами.
+    /// </summary>
+    /// <returns>Id аукциона.</returns>
+    public async Task<Guid> OpenAuctionAsync(Guid bossEventId)
+    {
+        var boss = await db.ActiveOfTypeAsync(bossEventId, EventType.BossFight, tracking: false);
+        if (BossModule.StateOf(boss).Phase != BossPhase.Won)
+        {
+            throw new EventRuleException("not_won");
+        }
+
+        if ((await Auction.AuctionModule.OpenPrizesAsync(db, boss)).Count == 0)
+        {
+            throw new EventRuleException("no_lots");
+        }
+
+        // Завершение атомарно: второе нажатие сюда не дойдёт — бой уже не идёт.
+        if (await engine.FinishAsync(bossEventId) != EngineOutcome.Ok)
+        {
+            throw new EventRuleException("not_active");
+        }
+
+        var (_, item) = await engine.CreateAsync(new CreateEventRequest(EventType.Auction, $"{boss.Title}: аукцион"), parentId: bossEventId);
+        try
+        {
+            if (await engine.StartAsync(item!.Id) == EngineOutcome.Ok)
+            {
+                return item.Id;
+            }
+        }
+        catch (EventRuleException)
+        {
+            // Лоты успели уйти между проверкой и стартом — ниже уберём черновик.
+        }
+
+        await db.Events.Where(e => e.Id == item.Id).ExecuteDeleteAsync();
+        throw new EventRuleException("no_lots");
+    }
+
     /// <summary>
     /// Выбор действия на ход; можно менять до конца хода. Все живые выбрали — ход разыгрывается сразу.
     /// </summary>
@@ -120,6 +161,9 @@ public static class BossEndpoints
             await boss.CheerAsync(id, user.UserId()!.Value);
             return Results.NoContent();
         });
+
+        routes.MapPost("/api/admin/boss/{id:guid}/auction", async (Guid id, BossService boss) => Results.Ok(new { id = await boss.OpenAuctionAsync(id) }))
+            .RequireAuthorization(AuthEndpoints.AdminPolicy);
 
         routes.MapPost("/api/admin/boss/{id:guid}/next", async (Guid id, int? step, BossService boss) =>
             {

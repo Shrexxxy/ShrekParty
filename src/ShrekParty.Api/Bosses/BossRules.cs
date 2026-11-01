@@ -258,6 +258,9 @@ public static class BossRules
         _ => null,
     };
 
+    /// <summary>Какие призы открывает медаль: свою и все ниже.</summary>
+    public static IReadOnlyList<Medal> Opened(Medal medal) => Enum.GetValues<Medal>().Where(m => m <= medal).ToList();
+
     /// <summary>Медаль: 🥇 выжило не меньше ⅔, 🥈 не меньше ⅓, иначе 🥉.</summary>
     public static Medal MedalFor(int alive, int total) =>
         alive * 3 >= total * 2 ? Medal.Gold : alive * 3 >= total ? Medal.Silver : Medal.Bronze;

@@ -74,6 +74,8 @@ export interface BossDetails {
   iCheered: boolean
   medal: 'Bronze' | 'Silver' | 'Gold' | null
   survivors: number
+  /** Призы этого босса — на экране итога. */
+  prizes: BossPrize[]
 }
 
 export const BOSS_NAMES: Record<BossKind, string> = {
@@ -108,6 +110,40 @@ export const MOVE_ICONS: Record<BossMoveKind, string> = {
 }
 
 export const MEDAL_ICONS = { Gold: '🥇', Silver: '🥈', Bronze: '🥉' } as const
+
+export type Medal = keyof typeof MEDAL_ICONS
+
+/** Приз босса на экране итога. */
+export interface BossPrize {
+  name: string
+  medal: Medal
+  /** Медаль боя его открыла. */
+  open: boolean
+  sold: boolean
+}
+
+const MEDALS: Medal[] = ['Bronze', 'Silver', 'Gold']
+
+/** Значение поля «Куда» у лота: '' — финальный аукцион, иначе «Босс:Медаль». */
+export function prizeKey(boss: BossKind | null, medal: Medal | null): string {
+  return boss && medal ? `${boss}:${medal}` : ''
+}
+
+export function parsePrize(key: string): { boss: BossKind | null; medal: Medal | null } {
+  const [boss, medal] = key.split(':')
+  return boss && medal ? { boss: boss as BossKind, medal: medal as Medal } : { boss: null, medal: null }
+}
+
+/** Варианты поля «Куда»: финальный и каждый босс × медаль. */
+export const PRIZE_OPTIONS: { key: string; label: string }[] = [
+  { key: '', label: 'Финальный аукцион' },
+  ...(Object.keys(BOSS_NAMES) as BossKind[]).flatMap((b) => MEDALS.map((m) => ({ key: prizeKey(b, m), label: `${BOSS_NAMES[b]} ${MEDAL_ICONS[m]}` }))),
+]
+
+/** Сколько лотов уйдёт на аукцион боя: открытые медалью и непроданные. */
+export function openLots(prizes: BossPrize[]): number {
+  return prizes.filter((p) => p.open && !p.sold).length
+}
 
 const FX_MS = 600
 

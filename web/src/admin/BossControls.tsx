@@ -1,5 +1,5 @@
 import type { ActiveEventDto } from '../api/types'
-import { ACTION_ICONS, BOSS_NAMES, type BossDetails, MEDAL_ICONS, MOVE_ICONS } from '../events/boss'
+import { ACTION_ICONS, BOSS_NAMES, type BossDetails, MEDAL_ICONS, MOVE_ICONS, openLots } from '../events/boss'
 import { formatClock } from '../events/countdown'
 import { useCountdown } from '../events/useCountdown'
 import { CLASS_NAMES } from '../pets/pets'
@@ -46,9 +46,16 @@ export function BossControls({ event, details, serverTime }: { event: ActiveEven
           </div>
         ))}
       </div>
-      {ended ? (
-        <p className="muted">{details.phase === 'Won' ? 'Победа' : 'Поражение'} — «⏹ Завершить», когда всё покажете.</p>
-      ) : (
+      {details.phase === 'Won' &&
+        (openLots(details.prizes) > 0 ? (
+          <button className="primary" disabled={busy} onClick={() => void run(`/api/admin/boss/${event.id}/auction`)}>
+            ▶ Аукцион: {openLots(details.prizes)} лот(а)
+          </button>
+        ) : (
+          <p className="muted">Открытых лотов нет — «⏹ Завершить»; призы босса уйдут в финальный аукцион.</p>
+        ))}
+      {details.phase === 'Lost' && <p className="muted">«⏹ Завершить» снимет до 25 🫏 с каждого участника.</p>}
+      {ended ? null : (
         <button className="primary" disabled={busy} onClick={() => void run(`/api/admin/boss/${event.id}/next?step=${details.step}`)}>
           ▶ Дальше
         </button>

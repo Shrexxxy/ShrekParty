@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api } from '../api/http'
 import { photoForm } from '../components/imageUpload'
+import { parsePrize, PRIZE_OPTIONS, prizeKey } from '../events/boss'
 import type { AuctionLot } from '../events/details'
 import { useAdminAction } from './useAdminAction'
 
@@ -10,12 +11,18 @@ const MAX_SIDE = 1600
 function LotRow({ lot, run, reload, busy }: { lot: AuctionLot; run: ReturnType<typeof useAdminAction>['run']; reload: () => void; busy: boolean }) {
   const [name, setName] = useState(lot.name)
   const [price, setPrice] = useState(String(lot.startPrice))
+  const prize = prizeKey(lot.boss ?? null, lot.medal ?? null)
 
   async function save() {
     if (name !== lot.name || Number(price) !== lot.startPrice) {
       await run(`/api/admin/auction/lots/${lot.id}`, { method: 'PUT', body: { name, startPrice: Number(price) } })
       reload()
     }
+  }
+
+  async function setPrize(key: string) {
+    await run(`/api/admin/auction/lots/${lot.id}/prize`, { method: 'PUT', body: parsePrize(key) })
+    reload()
   }
 
   async function upload(e: ChangeEvent<HTMLInputElement>) {
@@ -32,6 +39,13 @@ function LotRow({ lot, run, reload, busy }: { lot: AuctionLot; run: ReturnType<t
       {lot.photoUrl ? <img src={lot.photoUrl} alt="" /> : <span className="auction-lot-nophoto">🎁</span>}
       <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => void save()} />
       <input type="number" inputMode="numeric" min={1} value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => void save()} />
+      <select value={prize} disabled={busy} onChange={(e) => void setPrize(e.target.value)} aria-label="Куда">
+        {PRIZE_OPTIONS.map((o) => (
+          <option key={o.key} value={o.key}>
+            {o.label}
+          </option>
+        ))}
+      </select>
       <label className="button-like">
         📷
         <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => void upload(e)} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFighter, BOSS_NAMES, feedStep, fxClass, hitsBoss, hpPercent, type Fx } from './boss'
+import { activeFighter, BOSS_NAMES, feedStep, fxClass, hitsBoss, hpPercent, openLots, parsePrize, PRIZE_OPTIONS, prizeKey, type Fx } from './boss'
 
 const fx = (kind: Fx['kind'], actorId: string | null = null, targetId: string | null = null, amount = 0): Fx => ({ kind, actorId, targetId, amount })
 
@@ -49,5 +49,24 @@ describe('hitsBoss', () => {
   it('по боссу — только удары игроков; заслон, лечение, тыква — нет', () => {
     expect(['Attack', 'Weak', 'Power', 'Fire'].every((k) => hitsBoss(fx(k as Fx['kind'], 'a', null, 5)))).toBe(true)
     expect(['Covered', 'Cover', 'Heal', 'Stunned', 'BossHit'].some((k) => hitsBoss(fx(k as Fx['kind'], 'a', 'b', 5)))).toBe(false)
+  })
+})
+
+describe('призы', () => {
+  it('ключ «Куда»: финальный или босс × медаль, туда и обратно', () => {
+    expect(prizeKey(null, null)).toBe('')
+    expect(prizeKey('Peasant', 'Gold')).toBe('Peasant:Gold')
+    expect(parsePrize('Peasant:Gold')).toEqual({ boss: 'Peasant', medal: 'Gold' })
+    expect(parsePrize('')).toEqual({ boss: null, medal: null })
+    expect(PRIZE_OPTIONS).toHaveLength(1 + 3 * 3)
+  })
+
+  it('сколько лотов уйдёт на аукцион боя — открытые и непроданные', () => {
+    const prizes = [
+      { name: 'а', medal: 'Bronze' as const, open: true, sold: true },
+      { name: 'б', medal: 'Silver' as const, open: true, sold: false },
+      { name: 'в', medal: 'Gold' as const, open: false, sold: false },
+    ]
+    expect(openLots(prizes)).toBe(1)
   })
 })
