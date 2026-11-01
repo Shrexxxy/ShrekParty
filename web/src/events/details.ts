@@ -1,13 +1,5 @@
 // Формы activeEvent.details по типам ивентов — зеркало DTO бэкенда.
 
-export interface PollDetails {
-  options: { name: string; votes: number }[]
-  myVote: string | null
-  closed: boolean
-  winner: string | null
-  tie: boolean
-}
-
 export type TournamentRound = 'Qualifier' | 'Quarter' | 'Semi' | 'ThirdPlace' | 'Final' | 'Challenge'
 export type MatchStatus = 'Pending' | 'Live' | 'Done'
 export type ChallengeState = 'None' | 'Offered' | 'Declined' | 'Accepted'

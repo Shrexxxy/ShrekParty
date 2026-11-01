@@ -2,8 +2,7 @@ import type { EventType, ProgramItemDto } from '../api/types'
 
 /** Названия типов в админке. */
 export const EVENT_TYPE_LABELS: Partial<Record<EventType, string>> = {
-  FightPoll: 'Голосование за файтинг',
-  Tournament: 'Турнир',
+  Tournament: 'The Avatar Fighting Game',
   Laugh: 'Смехлыст',
   HideAndSeek: 'Прятки',
   PhotoHunt: 'Фотоохота',

@@ -51,7 +51,6 @@ public static class BotBrain
 
         return activeEvent.GetProperty("type").GetString() switch
         {
-            "FightPoll" => Poll(id, details, random, done),
             "Tournament" => Tournament(id, details, me, random, done),
             "PhotoHunt" => PhotoHunt(id, details, me, random, done),
             "HideAndSeek" => Hide(id, details, random, done),
@@ -335,18 +334,6 @@ public static class BotBrain
         var pick = options[random.Next(options.Count)];
         yield return new BotAction($"на фото {pick.GetProperty("login").GetString()}", HttpMethod.Post, $"/api/neuro/{id}/guess",
             new { userId = pick.GetProperty("userId").GetGuid() });
-    }
-
-    private static IEnumerable<BotAction> Poll(string id, JsonElement details, Random random, ISet<string> done)
-    {
-        if (details.GetProperty("closed").GetBoolean() || details.GetProperty("myVote").ValueKind != JsonValueKind.Null || !done.Add($"poll:{id}"))
-        {
-            yield break;
-        }
-
-        var options = details.GetProperty("options").EnumerateArray().Select(o => o.GetProperty("name").GetString()!).ToList();
-        var option = options[random.Next(options.Count)];
-        yield return new BotAction($"голосую за «{option}»", HttpMethod.Post, $"/api/events/{id}/vote", new { option });
     }
 
     private static IEnumerable<BotAction> Tournament(string id, JsonElement details, Guid me, Random random, ISet<string> done)

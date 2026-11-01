@@ -8,19 +8,17 @@ namespace ShrekParty.Api.Events;
 /// Новый пункт программы вечера.
 /// </summary>
 /// <param name="MaxDonkeys">null — значение по умолчанию для типа.</param>
-/// <param name="Settings">Настройки типа (задание фотоохоты, варианты голосования…).</param>
+/// <param name="Settings">Настройки типа (задание фотоохоты, босс…).</param>
 public record CreateEventRequest(
     EventType Type,
     string Title,
-    ScoringScheme Scheme = ScoringScheme.Linear,
-    Dictionary<int, int>? CustomTable = null,
     int? MaxDonkeys = null,
     JsonElement? Settings = null);
 
 /// <summary>
 /// Пункт программы вечера.
 /// </summary>
-public record ProgramItemDto(Guid Id, EventType Type, string Title, EventStatus Status, int Order, int MaxDonkeys, ScoringScheme Scheme);
+public record ProgramItemDto(Guid Id, EventType Type, string Title, EventStatus Status, int Order, int MaxDonkeys);
 
 /// <summary>
 /// Перестановка в программе.

@@ -23,15 +23,13 @@ public class DonkeyService(AppDbContext db, TimeProvider time, ILiveNotifier liv
     }
 
     /// <summary>
-    /// Переводит места рейтинга в ослики по схеме и начисляет. Нулевые награды не пишутся.
+    /// Переводит места рейтинга в ослики (линейно) и начисляет. Нулевые награды не пишутся.
     /// </summary>
     public async Task AwardRankingAsync(
         Guid eventId,
         IReadOnlyList<Ranked<Guid>> ranking,
-        ScoringScheme scheme,
         int maxDonkeys,
-        string reason,
-        IReadOnlyDictionary<int, int>? customTable = null)
+        string reason)
     {
         if (ranking.Count == 0)
         {
@@ -41,7 +39,7 @@ public class DonkeyService(AppDbContext db, TimeProvider time, ILiveNotifier liv
         var distinctPlaces = ranking.Max(r => r.Place);
         foreach (var (userId, place) in ranking)
         {
-            var amount = PointsCalculator.ForPlace(scheme, place, distinctPlaces, maxDonkeys, customTable);
+            var amount = PointsCalculator.ForPlace(place, distinctPlaces, maxDonkeys);
             if (amount != 0)
             {
                 Add(userId, amount, reason, eventId);

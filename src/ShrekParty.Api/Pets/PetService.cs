@@ -125,7 +125,7 @@ public class PetService(AppDbContext db, ILiveNotifier live, Random random, Time
             counts[petClass] = counts.GetValueOrDefault(petClass) + 1;
             var start = PetRules.Roll(petClass, random);
             var taken = variants.TryGetValue(petClass, out var list) ? list : variants[petClass] = [];
-            var variant = PetRules.PickVariant(taken, random);
+            var variant = PetRules.PickVariant(petClass, taken, random);
             taken.Add(variant);
             db.Pets.Add(new Pet
             {

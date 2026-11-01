@@ -10,9 +10,6 @@ public enum EventType
     /// <summary>Регистрация-ловушка.</summary>
     Registration,
 
-    /// <summary>Голосование за игру файтинг-турнира, ослики не даёт.</summary>
-    FightPoll,
-
     /// <summary>Турнир на PS5.</summary>
     Tournament,
 
@@ -83,11 +80,6 @@ public class Event
     public int Order { get; set; }
 
     public int MaxDonkeys { get; set; }
-
-    public ScoringScheme Scheme { get; set; }
-
-    /// <summary>Таблица «место → ослики» для ручной схемы, JSON.</summary>
-    public string? CustomTableJson { get; set; }
 
     /// <summary>Настройки типа (задание фотоохоты, игра турнира…), JSON.</summary>
     public string? SettingsJson { get; set; }

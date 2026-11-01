@@ -15,8 +15,8 @@ interface MemeDto {
   caption: string | null
 }
 
-/** Сообщение на весь экран ТВ: текст, сколько держать, необязательно картинка. */
-function MessageForm() {
+/** Объявление на весь экран ТВ: текст, сколько держать, необязательно фото. Показали — окно закрывается. */
+export function AnnounceForm({ onDone }: { onDone: () => void }) {
   const { run, error, busy } = useAdminAction()
   const [text, setText] = useState('')
   const [seconds, setSeconds] = useState('15')
@@ -28,30 +28,30 @@ function MessageForm() {
     return data
   }
 
+  async function show(body: FormData) {
+    if (await run('/api/admin/tv/message', { method: 'POST', body })) {
+      setText('')
+      onDone()
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (await run('/api/admin/tv/message', { method: 'POST', body: form() })) {
-      setText('')
-    }
+    await show(form())
   }
 
   return (
     <form className="form" onSubmit={submit}>
       <label>
-        Сообщение на ТВ
+        Текст
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Торт через 5 минут!" />
       </label>
-      <div className="row-2">
-        <label>
-          Секунд
-          <input type="number" inputMode="numeric" value={seconds} onChange={(e) => setSeconds(e.target.value)} />
-        </label>
-        <button type="submit" className="primary" disabled={busy || !text.trim()}>
-          📺 Показать
-        </button>
-      </div>
+      <label>
+        Сколько секунд держать
+        <input type="number" inputMode="numeric" value={seconds} onChange={(e) => setSeconds(e.target.value)} />
+      </label>
       <div className="control-row">
-        <CameraButton disabled={busy || !text.trim()} onPhoto={(photo) => void run('/api/admin/tv/message', { method: 'POST', body: form(photo) })}>
+        <CameraButton disabled={busy || !text.trim()} onPhoto={(photo) => void show(form(photo))}>
           📸 С фото
         </CameraButton>
         <button type="button" disabled={busy} onClick={() => void run('/api/admin/tv/message', { method: 'DELETE' })}>
@@ -59,6 +59,9 @@ function MessageForm() {
         </button>
       </div>
       {error && <p className="error">{error}</p>}
+      <button type="submit" className="primary" disabled={busy || !text.trim()}>
+        Показать
+      </button>
     </form>
   )
 }
@@ -147,17 +150,15 @@ function Captions() {
   )
 }
 
-/** Блок «ТВ» в админке. */
+/** Страница «Экран ТВ»: скачаны ли медиа, мемы, подписи. */
 export function TvControls({ preload }: { preload: AppSnapshot['tvPreload'] }) {
   return (
     <section className="card admin-block">
-      <h2>ТВ</h2>
       <p className="muted">
         {preload
           ? `Медиа Своей игры на ТВ: ${preload.loaded} из ${preload.total} ${preload.loaded === preload.total ? '✅' : '⏳'}`
           : 'ТВ ещё не сообщало, скачаны ли медиа Своей игры'}
       </p>
-      <MessageForm />
       <details>
         <summary>Мемы для карусели</summary>
         <Memes />

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/http'
-import type { EventType, ProgramItemDto, ScoringScheme } from '../api/types'
+import type { EventType, ProgramItemDto } from '../api/types'
 import { BOSS_NAMES, type BossKind } from '../events/boss'
 import { errorText } from './errors'
 import { EVENT_TYPE_LABELS, moveOrder, nextDraft } from './programOrder'
 
-const CREATABLE: EventType[] = ['FightPoll', 'Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'BossFight', 'Ceremony', 'Auction']
+const CREATABLE: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'BossFight', 'Ceremony', 'Auction']
 const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia']
 const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Tournament: 100,
@@ -24,12 +24,11 @@ const STATUS_LABELS = { Draft: '⏳', Active: '▶️ идёт', Finished: '✅'
 /** Форма нового пункта программы: общие поля + настройки типа. */
 function AddEventForm({ onAdded }: { onAdded: () => void }) {
   const [type, setType] = useState<EventType>('PhotoHunt')
-  const [title, setTitle] = useState('')
-  const [scheme, setScheme] = useState<ScoringScheme>('Linear')
+  // Название сразу по типу — правится руками; ручную правку смена типа не затирает.
+  const [title, setTitle] = useState(EVENT_TYPE_LABELS.PhotoHunt ?? '')
   const [maxDonkeys, setMaxDonkeys] = useState('')
   const [task, setTask] = useState('')
   const [duration, setDuration] = useState('180')
-  const [options, setOptions] = useState('Mortal Kombat, UFC')
   const [boss, setBoss] = useState<BossKind>('Peasant')
   const [error, setError] = useState<string | null>(null)
 
@@ -40,10 +39,14 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
     if (type === 'BossFight') {
       return { boss }
     }
-    if (type === 'FightPoll') {
-      return { options: options.split(',').map((o) => o.trim()).filter(Boolean) }
-    }
     return undefined
+  }
+
+  function changeType(next: EventType) {
+    if (title === (EVENT_TYPE_LABELS[type] ?? '')) {
+      setTitle(EVENT_TYPE_LABELS[next] ?? '')
+    }
+    setType(next)
   }
 
   async function submit(e: FormEvent) {
@@ -55,12 +58,10 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
         body: {
           type,
           title: title.trim() || EVENT_TYPE_LABELS[type],
-          scheme,
           maxDonkeys: maxDonkeys ? Number(maxDonkeys) : undefined,
           settings: settings(),
         },
       })
-      setTitle('')
       setTask('')
       onAdded()
     } catch (err) {
@@ -72,7 +73,7 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
     <form className="form add-event" onSubmit={submit}>
       <label>
         Что
-        <select value={type} onChange={(e) => setType(e.target.value as EventType)}>
+        <select value={type} onChange={(e) => changeType(e.target.value as EventType)}>
           {CREATABLE.map((t) => (
             <option key={t} value={t}>
               {EVENT_TYPE_LABELS[t]}
@@ -108,24 +109,9 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
           </select>
         </label>
       )}
-      {type === 'FightPoll' && (
-        <label>
-          Варианты через запятую
-          <input value={options} onChange={(e) => setOptions(e.target.value)} />
-        </label>
-      )}
       {WITH_DONKEYS.includes(type) && (
         <div className="row-2">
           {/* В мафии мест нет: поле — сколько каждому победителю, бонусы считаются сами. */}
-          {type !== 'Mafia' && (
-            <label>
-              Схема
-              <select value={scheme} onChange={(e) => setScheme(e.target.value as ScoringScheme)}>
-                <option value="Linear">Линейная</option>
-                <option value="Podium">Призёры</option>
-              </select>
-            </label>
-          )}
           <label>
             {type === 'Mafia' ? 'За победу (каждому) 🫏' : 'Макс. 🫏'}
             <input
@@ -173,7 +159,6 @@ export function Program({ version }: { version?: string }) {
 
   return (
     <section className="card admin-block">
-      <h2>Программа вечера</h2>
       {items.length === 0 && <p className="muted">Пусто — добавь первый ивент</p>}
       <ol className="program">
         {items.map((item) => (

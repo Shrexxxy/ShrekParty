@@ -151,16 +151,20 @@ public class PetTests : IDisposable
     [Fact]
     public async Task Variants_unique_within_class_while_possible()
     {
-        await SeedAsync(Enumerable.Range(1, 15).Select(i => $"Гость{i}").ToArray());
+        // Рисунков: танков и магов по 4, бойцов 5. Двенадцать гостей — по четыре на класс.
+        await SeedAsync(Enumerable.Range(1, 12).Select(i => $"Гость{i}").ToArray());
 
         await CloseRegistrationAsync();
 
-        var pets = await AllAsync();
-        pets.GroupBy(p => p.Class).Should().OnlyContain(g => g.Select(p => p.Variant).Order().SequenceEqual(new[] { 1, 2, 3, 4, 5 }));
+        var pets = (await AllAsync()).ToLookup(p => p.Class, p => p.Variant);
+        pets[PetClass.Tank].Order().Should().Equal(1, 2, 3, 4);
+        pets[PetClass.Mage].Order().Should().Equal(1, 2, 3, 4);
+        pets[PetClass.Fighter].Should().OnlyHaveUniqueItems().And.OnlyContain(v => v >= 1 && v <= 5);
 
         await _factory.RegisterAsync("Опоздун");
 
-        (await AllAsync()).Single(p => p.Login == "Опоздун").Variant.Should().BeInRange(1, 5);
+        var late = (await AllAsync()).Single(p => p.Login == "Опоздун");
+        late.Variant.Should().BeInRange(1, late.Class == PetClass.Fighter ? 5 : 4);
     }
 
     [Fact]

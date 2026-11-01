@@ -4,7 +4,6 @@ export type UserRole = 'Player' | 'Admin' | 'Viewer'
 export type RegistrationState = 'Closed' | 'Open' | 'Finished'
 export type EventType =
   | 'Registration'
-  | 'FightPoll'
   | 'BossFight'
   | 'Tournament'
   | 'Tote'
@@ -20,7 +19,6 @@ export type EventType =
   | 'Auction'
   | 'Mafia'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
-export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 
 export interface MeDto {
   id: string
@@ -123,7 +121,6 @@ export interface ProgramItemDto {
   status: EventStatus
   order: number
   maxDonkeys: number
-  scheme: ScoringScheme
 }
 
 export interface FactDto {

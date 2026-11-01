@@ -54,8 +54,8 @@ public static class PetRules
     /// <summary>Тапов, чтобы вылупился.</summary>
     public const int EggTaps = 15;
 
-    /// <summary>Рисунков на класс.</summary>
-    public const int Variants = 5;
+    /// <summary>Сколько рисунков у класса: лишние Дмитрий отбраковал.</summary>
+    public static int VariantsOf(PetClass petClass) => petClass == PetClass.Fighter ? 5 : 4;
 
     private const int LeadStart = 6;
     private const int StartSum = 12;
@@ -73,10 +73,10 @@ public static class PetRules
     /// <summary>
     /// Рисунок для нового питомца класса: из реже занятых, при ничьей — случайный. Пока рисунков хватает, повторов нет.
     /// </summary>
-    public static int PickVariant(IEnumerable<int> taken, Random random)
+    public static int PickVariant(PetClass petClass, IEnumerable<int> taken, Random random)
     {
         var counts = taken.CountBy(v => v).ToDictionary();
-        var all = Enumerable.Range(1, Variants).ToArray();
+        var all = Enumerable.Range(1, VariantsOf(petClass)).ToArray();
         var least = all.Min(v => counts.GetValueOrDefault(v));
         var candidates = all.Where(v => counts.GetValueOrDefault(v) == least).ToArray();
         return candidates[random.Next(candidates.Length)];

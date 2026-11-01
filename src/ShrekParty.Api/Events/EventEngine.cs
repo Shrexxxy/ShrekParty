@@ -74,8 +74,6 @@ public class EventEngine(
             Status = EventStatus.Draft,
             Order = order,
             MaxDonkeys = request.MaxDonkeys ?? DefaultMaxDonkeys(request.Type),
-            Scheme = request.Scheme,
-            CustomTableJson = request.CustomTable is null ? null : JsonSerializer.Serialize(request.CustomTable),
             SettingsJson = request.Settings?.GetRawText(),
             ParentId = parentId,
         };
@@ -200,8 +198,7 @@ public class EventEngine(
 
         if (ev.MaxDonkeys > 0)
         {
-            var customTable = ev.CustomTableJson is null ? null : JsonSerializer.Deserialize<Dictionary<int, int>>(ev.CustomTableJson);
-            await donkeys.AwardRankingAsync(ev.Id, ranking, ev.Scheme, ev.MaxDonkeys, ev.Title, customTable);
+            await donkeys.AwardRankingAsync(ev.Id, ranking, ev.MaxDonkeys, ev.Title);
         }
 
         await module.AfterFinishAsync(ev);
@@ -264,5 +261,5 @@ public class EventEngine(
     // Последний зарегистрированный модуль типа выигрывает — так тесты подменяют модуль.
     private IEventModule? ModuleFor(EventType type) => modules.LastOrDefault(m => m.Type == type);
 
-    private static ProgramItemDto ToDto(Event e) => new(e.Id, e.Type, e.Title, e.Status, e.Order, e.MaxDonkeys, e.Scheme);
+    private static ProgramItemDto ToDto(Event e) => new(e.Id, e.Type, e.Title, e.Status, e.Order, e.MaxDonkeys);
 }

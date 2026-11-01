@@ -86,7 +86,6 @@ export function AuctionLots() {
 
   return (
     <section className="card admin-block">
-      <h2>Лоты аукциона</h2>
       {lots.map((lot) => (
         <LotRow key={lot.id} lot={lot} run={run} reload={() => void load()} busy={busy} />
       ))}

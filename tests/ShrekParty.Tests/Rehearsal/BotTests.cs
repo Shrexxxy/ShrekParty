@@ -28,18 +28,6 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Bots_vote_in_poll()
-    {
-        await _factory.OpenRegistrationAsync();
-        await RunBotsAsync(3);
-        var admin = await TestClients.AdminAsync(_factory);
-
-        await StartAsync(admin, "FightPoll");
-
-        await WaitUntilAsync(async () => (await DetailsAsync(admin)).GetProperty("options").EnumerateArray().Sum(o => o.GetProperty("votes").GetInt32()) == 3);
-    }
-
-    [Fact]
     public async Task Bots_upload_photo_in_hunt()
     {
         await _factory.OpenRegistrationAsync();

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActiveEventDto } from '../api/types'
 import { Avatar } from '../components/Avatar'
-import type { AuctionDetails, CeremonyDetails, MafiaDetails, DaysDetails, HideDetails, QuizDetails, LaughDetails, MatchDto, PhotoHuntDetails, PollDetails, TournamentDetails } from '../events/details'
+import type { AuctionDetails, CeremonyDetails, MafiaDetails, DaysDetails, HideDetails, QuizDetails, LaughDetails, MatchDto, PhotoHuntDetails, TournamentDetails } from '../events/details'
 import { formatClock } from '../events/countdown'
 import { EventView } from '../events/EventView'
 import { PhotoView } from '../events/PhotoView'
@@ -14,30 +14,6 @@ import { CameraButton } from './CameraButton'
 import { MafiaControls } from './MafiaControls'
 import { QuizControls } from './QuizControls'
 import { useAdminAction } from './useAdminAction'
-
-function PollControls({ event, details }: { event: ActiveEventDto; details: PollDetails }) {
-  const { run, error, busy } = useAdminAction()
-  return (
-    <div className="controls">
-      {details.options.map((o) => (
-        <div key={o.name} className="control-row">
-          <span>{o.name}</span>
-          <b>{o.votes}</b>
-        </div>
-      ))}
-      {details.closed ? (
-        <p>
-          Итог: <b>{details.winner}</b> {details.tie && '(монетка)'}
-        </p>
-      ) : (
-        <button className="primary" disabled={busy} onClick={() => void run(`/api/admin/poll/${event.id}/close`)}>
-          🔒 Закрыть голосование
-        </button>
-      )}
-      {error && <p className="error">{error}</p>}
-    </div>
-  )
-}
 
 /** Карточка матча в пульте: начать, победитель со счётом, отмена, фото. */
 function MatchControl({ match }: { match: MatchDto }) {
@@ -360,8 +336,6 @@ function CeremonyControls({ event, details }: { event: ActiveEventDto; details: 
 export function EventControls({ event, serverTime }: { event: ActiveEventDto; serverTime: string }) {
   const details = event.details
   switch (event.type) {
-    case 'FightPoll':
-      return <PollControls event={event} details={details as PollDetails} />
     case 'Tournament':
       return <TournamentControls details={details as TournamentDetails} />
     case 'Laugh':

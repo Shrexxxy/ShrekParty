@@ -161,7 +161,6 @@ public partial class RegistrationService(
             Title = "Регистрация",
             Status = EventStatus.Active,
             MaxDonkeys = 20,
-            Scheme = ScoringScheme.Linear,
             StartedAt = time.GetUtcNow(),
         });
         await db.SaveChangesAsync();
@@ -170,11 +169,10 @@ public partial class RegistrationService(
     }
 
     /// <summary>
-    /// Закрывает регистрацию и начисляет очки по линейной схеме: скорость и сложность пароля, по 10 осликов максимум.
+    /// Закрывает регистрацию и начисляет очки: скорость и сложность пароля, по 10 осликов максимум.
     /// </summary>
     public async Task<bool> CloseAsync()
     {
-        const ScoringScheme scheme = ScoringScheme.Linear;
         var ev = await CurrentEventAsync();
         if (ToState(ev) != RegistrationState.Open)
         {
@@ -183,7 +181,6 @@ public partial class RegistrationService(
 
         ev!.Status = EventStatus.Finished;
         ev.FinishedAt = time.GetUtcNow();
-        ev.Scheme = scheme;
         await db.SaveChangesAsync();
 
         var completed = await db.RegistrationAttempts.AsNoTracking()
@@ -194,8 +191,8 @@ public partial class RegistrationService(
         var speed = DenseRanking.Rank(completed, a => a.CompletedAt!.Value - openedAt, descending: false);
         var strength = DenseRanking.Rank(completed, a => a.SecondGuessesLog10 ?? 0, descending: true);
 
-        await donkeys.AwardRankingAsync(ev.Id, ToUsers(speed), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationSpeed);
-        await donkeys.AwardRankingAsync(ev.Id, ToUsers(strength), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationPassword);
+        await donkeys.AwardRankingAsync(ev.Id, ToUsers(speed), PartMaxDonkeys, DonkeyReasons.RegistrationSpeed);
+        await donkeys.AwardRankingAsync(ev.Id, ToUsers(strength), PartMaxDonkeys, DonkeyReasons.RegistrationPassword);
         await pets.EnsureAsync();
         return true;
     }

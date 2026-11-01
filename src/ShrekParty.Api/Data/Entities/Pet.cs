@@ -19,7 +19,7 @@ public class Pet
     /// <summary>Класс — по ведущей характеристике.</summary>
     public PetClass Class { get; set; }
 
-    /// <summary>Рисунок внутри класса, 1–<see cref="PetRules.Variants"/>: картинка питомца и цвет яйца.</summary>
+    /// <summary>Рисунок внутри класса, 1–<see cref="PetRules.VariantsOf"/>: картинка питомца и цвет яйца.</summary>
     public int Variant { get; set; }
 
     /// <summary>Сила при вылуплении.</summary>

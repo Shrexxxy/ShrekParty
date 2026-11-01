@@ -66,7 +66,7 @@ public class EventEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Finish_awards_by_scheme()
+    public async Task Finish_awards_linear()
     {
         await _factory.SeedPlayerAsync("Ann");
         await _factory.SeedPlayerAsync("Bob");
@@ -81,6 +81,32 @@ public class EventEngineTests : IDisposable
         tab!.Select(r => (r.Login, r.Donkeys)).Should().Equal(("Ann", 100), ("Bob", 50));
         var program = await admin.GetFromJsonAsync<List<ProgramItemDto>>("/api/admin/events", TestClients.Json);
         program!.Single().Status.Should().Be(EventStatus.Finished);
+    }
+
+    [Fact]
+    public async Task Requested_scheme_ignored_always_linear()
+    {
+        await _factory.SeedPlayerAsync("Ann");
+        await _factory.SeedPlayerAsync("Bob");
+        var admin = await TestClients.AdminAsync(_factory);
+        var created = await admin.PostAsJsonAsync("/api/admin/events", new { type = "Laugh", title = "Смехлыст", scheme = "Podium" }, TestClients.Json);
+        var ev = (await created.Content.ReadFromJsonAsync<ProgramItemDto>(TestClients.Json))!;
+        (await admin.PostAsync($"/api/admin/events/{ev.Id}/start", null)).EnsureSuccessStatusCode();
+
+        (await admin.PostAsync($"/api/admin/events/{ev.Id}/finish", null)).EnsureSuccessStatusCode();
+
+        var tab = await admin.GetFromJsonAsync<List<LeaderboardRowDto>>($"/api/leaderboard?eventId={ev.Id}", TestClients.Json);
+        tab!.Select(r => (r.Login, r.Donkeys)).Should().Equal(("Ann", 100), ("Bob", 50));
+    }
+
+    [Fact]
+    public async Task Fight_poll_no_longer_exists()
+    {
+        var admin = await TestClients.AdminAsync(_factory);
+
+        var response = await admin.PostAsJsonAsync("/api/admin/events", new { type = "FightPoll", title = "Опрос" }, TestClients.Json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

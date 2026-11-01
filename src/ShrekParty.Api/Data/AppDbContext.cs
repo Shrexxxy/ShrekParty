@@ -7,7 +7,6 @@ using ShrekParty.Api.HideAndSeek;
 using ShrekParty.Api.Laugh;
 using ShrekParty.Api.Neuro;
 using ShrekParty.Api.PhotoHunt;
-using ShrekParty.Api.Poll;
 using ShrekParty.Api.Quiz;
 using ShrekParty.Api.Reaction;
 using ShrekParty.Api.Tapper;
@@ -32,7 +31,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<RegistrationAttempt> RegistrationAttempts => Set<RegistrationAttempt>();
 
-    public DbSet<PollVote> PollVotes => Set<PollVote>();
 
     public DbSet<TournamentMatch> TournamentMatches => Set<TournamentMatch>();
 
@@ -86,7 +84,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Pet>().HasKey(p => p.UserId);
         modelBuilder.Entity<RegistrationAttempt>().HasIndex(a => a.LoginNormalized).IsUnique();
         modelBuilder.Entity<DonkeyAward>().HasIndex(a => a.UserId);
-        modelBuilder.Entity<PollVote>().HasIndex(v => new { v.EventId, v.UserId }).IsUnique();
         modelBuilder.Entity<TournamentMatch>().HasIndex(m => new { m.EventId, m.Index }).IsUnique();
         modelBuilder.Entity<Bet>().HasIndex(b => new { b.MatchId, b.UserId }).IsUnique();
         modelBuilder.Entity<LaughScore>().HasIndex(s => new { s.EventId, s.UserId, s.Game }).IsUnique();

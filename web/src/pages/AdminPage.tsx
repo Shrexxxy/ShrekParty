@@ -1,17 +1,16 @@
 import { useWakeLock } from '../events/useWakeLock'
-import { useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError, api } from '../api/http'
 import { useSnapshot } from '../api/live'
 import { useMe } from '../api/me'
 import type { AppSnapshot } from '../api/types'
+import { AdminDialog } from '../admin/AdminDialog'
 import { CurrentEventCard } from '../admin/CurrentEventCard'
-import { Program } from '../admin/Program'
-import { AuctionLots } from '../admin/AuctionLots'
-import { NeuroPhotos } from '../admin/NeuroPhotos'
 import { Pets } from '../admin/Pets'
-import { TvControls } from '../admin/TvControls'
+import { AnnounceForm } from '../admin/TvControls'
 import { DonkeyIcon } from '../components/DonkeyIcon'
+import { Icon } from '../components/Icon'
 import { Leaderboard } from '../components/Leaderboard'
 
 const STATE_LABELS = { Closed: 'закрыта, гости ждут', Open: 'открыта', Finished: 'закрыта, очки начислены' } as const
@@ -52,18 +51,12 @@ function RegistrationControl({ snapshot }: { snapshot: AppSnapshot }) {
   )
 }
 
-/** Ручные ослики: квадратная кнопка открывает окно — игрок, ± число, причина. */
-function AwardDialog({ snapshot }: { snapshot: AppSnapshot }) {
-  const dialog = useRef<HTMLDialogElement>(null)
+/** Ручные ослики: игрок, ± число, причина. */
+function AwardForm({ snapshot, onDone }: { snapshot: AppSnapshot; onDone: () => void }) {
   const [userId, setUserId] = useState('')
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
-
-  function open() {
-    setError(null)
-    dialog.current?.showModal()
-  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -73,81 +66,69 @@ function AwardDialog({ snapshot }: { snapshot: AppSnapshot }) {
       setUserId('')
       setAmount('')
       setReason('')
-      dialog.current?.close()
+      onDone()
     } catch {
       setError('Не получилось')
     }
   }
 
   return (
-    <>
-      <button className="award-open" onClick={open}>
-        <DonkeyIcon size="30px" />
+    <form className="form" onSubmit={submit}>
+      <label>
+        Кому
+        <select value={userId} onChange={(e) => setUserId(e.target.value)} required>
+          <option value="">— выбери —</option>
+          {snapshot.leaderboard.map((r) => (
+            <option key={r.userId} value={r.userId}>
+              {r.login} ({r.donkeys})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Сколько (минус — штраф)
+        <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+      </label>
+      <label>
+        За что
+        <input value={reason} onChange={(e) => setReason(e.target.value)} required />
+      </label>
+      {error && <p className="error">{error}</p>}
+      <button type="submit" className="primary">
         Начислить
       </button>
-      <dialog ref={dialog} className="award-dialog" onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
-        <form className="form" onSubmit={submit}>
-          <h2>Начислить ослики</h2>
-          <label>
-            Кому
-            <select value={userId} onChange={(e) => setUserId(e.target.value)} required>
-              <option value="">— выбери —</option>
-              {snapshot.leaderboard.map((r) => (
-                <option key={r.userId} value={r.userId}>
-                  {r.login} ({r.donkeys})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Сколько (минус — штраф)
-            <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-          </label>
-          <label>
-            За что
-            <input value={reason} onChange={(e) => setReason(e.target.value)} required />
-          </label>
-          {error && <p className="error">{error}</p>}
-          <button type="submit" className="primary">
-            Начислить
-          </button>
-          <button type="button" onClick={() => dialog.current?.close()}>
-            Отмена
-          </button>
-        </form>
-      </dialog>
-    </>
+    </form>
   )
 }
 
 /** Сброс перед праздником — с подтверждением словом. */
-function ResetBlock() {
+function ResetForm({ onDone }: { onDone: () => void }) {
   const [confirm, setConfirm] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function reset() {
+    setError(null)
     try {
       await api('/api/admin/reset', { method: 'POST' })
       setConfirm('')
-      setMessage('Всё сброшено')
+      onDone()
     } catch {
-      setMessage('Не получилось')
+      setError('Не получилось')
     }
   }
 
   return (
-    <section className="card admin-block danger-zone">
-      <h2>Сбросить всё</h2>
+    <div className="form">
       <p className="muted">Удалит игроков, ослики, ивенты и аватарки. Админ и ТВ останутся.</p>
       <label>
         Напиши «СБРОС»
         <input value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </label>
+      {error && <p className="error">{error}</p>}
       <button className="danger" disabled={confirm !== 'СБРОС'} onClick={() => void reset()}>
-        Сбросить
+        Сбросить всё
       </button>
-      {message && <p className="muted">{message}</p>}
-    </section>
+    </div>
   )
 }
 
@@ -159,25 +140,53 @@ export function AdminPage() {
 
   return (
     <main className="page">
-      <header className="admin-header">
-        <h1>Админка</h1>
-        {snapshot && <AwardDialog snapshot={snapshot} />}
-        <Link to="/admin/quiz">✏️ Своя игра</Link>
-        <button onClick={() => void logout()}>Выйти</button>
-      </header>
+      <h1>Админка</h1>
+      <nav className="admin-tiles">
+        <Link to="/admin/program" className="admin-tile mint">
+          <Icon name="list" size="28px" />
+          <span>Программа</span>
+        </Link>
+        {snapshot && (
+          <AdminDialog icon={<DonkeyIcon size="28px" />} label="Начислить" title="Начислить ослики" tileClassName="lamp">
+            {(close) => <AwardForm snapshot={snapshot} onDone={close} />}
+          </AdminDialog>
+        )}
+        <AdminDialog icon={<Icon name="megaphone" size="28px" />} label="Объявить" title="Объявление на ТВ">
+          {(close) => <AnnounceForm onDone={close} />}
+        </AdminDialog>
+        <Link to="/admin/quiz" className="admin-tile">
+          <Icon name="question" size="28px" />
+          <span>Своя игра</span>
+        </Link>
+        <Link to="/admin/tv" className="admin-tile">
+          <Icon name="tv" size="28px" />
+          <span>Экран ТВ</span>
+        </Link>
+        <Link to="/admin/neuro" className="admin-tile">
+          <Icon name="photo" size="28px" />
+          <span>Нейрофото</span>
+        </Link>
+        <Link to="/admin/auction" className="admin-tile">
+          <Icon name="gavel" size="28px" />
+          <span>Лоты</span>
+        </Link>
+      </nav>
       {snapshot === null ? (
         <p className="muted">Подключаюсь…</p>
       ) : (
         <>
           <CurrentEventCard event={snapshot.activeEvent} serverTime={snapshot.serverTime} />
           <RegistrationControl snapshot={snapshot} />
-          <Program version={snapshot.serverTime} />
           <Leaderboard snapshot={snapshot} />
-          <TvControls preload={snapshot.tvPreload} />
           <Pets overview={snapshot.pets} />
-          <NeuroPhotos snapshot={snapshot} />
-          <AuctionLots />
-          <ResetBlock />
+          <div className="admin-danger">
+            <AdminDialog icon={null} label="Сбросить всё" title="Сбросить всё" tileClassName="danger">
+              {(close) => <ResetForm onDone={close} />}
+            </AdminDialog>
+            <button className="admin-logout" onClick={() => void logout()}>
+              Выйти
+            </button>
+          </div>
         </>
       )}
     </main>

@@ -102,7 +102,7 @@ public class LeaderboardTests : IDisposable
         Ranked<Guid>[] ranking = [new(a, 1), new(b, 1), new(c, 2)];
 
         await _factory.WithServiceAsync<DonkeyService>(s =>
-            s.AwardRankingAsync(ev, ranking, ScoringScheme.Linear, 10, "тест"));
+            s.AwardRankingAsync(ev, ranking, 10, "тест"));
 
         var rows = await GetLeaderboardAsync(await TestClients.AdminAsync(_factory), ev);
         rows.Select(r => (r.Login, r.Donkeys)).Should().Equal(("A", 10), ("B", 10), ("C", 5));

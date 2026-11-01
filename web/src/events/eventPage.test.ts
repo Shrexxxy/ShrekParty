@@ -5,7 +5,7 @@ import { eventPageState } from './eventPage'
 const active = { id: 'a', type: 'Quiz', title: 'Своя игра', startedAt: null, details: null } as ActiveEventDto
 const events = [
   { id: 'a', type: 'Quiz', title: 'Своя игра', status: 'Active', maxDonkeys: 100 },
-  { id: 'f', type: 'FightPoll', title: 'Опрос', status: 'Finished', maxDonkeys: 0 },
+  { id: 'f', type: 'Ceremony', title: 'Церемония', status: 'Finished', maxDonkeys: 0 },
   { id: 'd', type: 'Mafia', title: 'Мафия', status: 'Draft', maxDonkeys: 25 },
 ] as EventDto[]
 
@@ -17,7 +17,7 @@ describe('eventPageState', () => {
     expect(eventPageState('x', active, events)).toBe('unknown')
   })
 
-  it('ивент без осликов (опрос) не попадает в программу — если страница видела его идущим, он закончился', () => {
+  it('ивент без осликов (церемония) не попадает в программу — если страница видела его идущим, он закончился', () => {
     expect(eventPageState('p', null, events, true)).toBe('finished')
     expect(eventPageState('p', null, events, false)).toBe('unknown')
   })

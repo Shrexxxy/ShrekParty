@@ -3,7 +3,7 @@ import type { ProgramItemDto } from '../api/types'
 import { moveOrder, nextDraft } from './programOrder'
 
 function item(id: string, order: number, status: ProgramItemDto['status']): ProgramItemDto {
-  return { id, type: 'Laugh', title: id, status, order, maxDonkeys: 100, scheme: 'Linear' }
+  return { id, type: 'Laugh', title: id, status, order, maxDonkeys: 100 }
 }
 
 describe('nextDraft', () => {

@@ -31,6 +31,50 @@ const PATHS = {
       <path d="M13.5 7l3.5 3.5" />
     </>
   ),
+  list: (
+    <>
+      <path d="M9 6h11" />
+      <path d="M9 12h11" />
+      <path d="M9 18h11" />
+      <path d="M4.5 6h.01" />
+      <path d="M4.5 12h.01" />
+      <path d="M4.5 18h.01" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="M4 10v4h3l8 4.5v-13L7 10z" />
+      <path d="M18.5 9a4 4 0 0 1 0 6" />
+    </>
+  ),
+  tv: (
+    <>
+      <rect x="3" y="5.5" width="18" height="12" rx="2" />
+      <path d="M8.5 21h7" />
+    </>
+  ),
+  question: (
+    <>
+      <path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.9v.8" />
+      <path d="M12 18.5v.01" />
+    </>
+  ),
+  photo: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="M21 16l-5-5-8 8" />
+    </>
+  ),
+  gavel: (
+    <>
+      <path d="M13.5 4.5l6 6" />
+      <path d="M10.5 7.5l6 6" />
+      <path d="M12 6l4.5 4.5" />
+      <path d="M13.5 12L5 20.5" />
+      <path d="M12 21h8" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof PATHS

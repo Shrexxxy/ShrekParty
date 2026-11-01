@@ -45,7 +45,7 @@ public class PetSnapshotTests : IDisposable
         var tv = new SnapshotAudience(SignedIn: true);
         (await SnapshotAsync(tv)).Pets!.BeforeFirstEvent.Should().BeTrue();
         var admin = await TestClients.AdminAsync(_factory);
-        var created = await admin.PostAsJsonAsync("/api/admin/events", new { type = "FightPoll", title = "Опрос", options = new[] { "А", "Б" } }, TestClients.Json);
+        var created = await admin.PostAsJsonAsync("/api/admin/events", new { type = "Laugh", title = "Смехлыст" }, TestClients.Json);
         var id = (await created.Content.ReadFromJsonAsync<ShrekParty.Api.Events.ProgramItemDto>(TestClients.Json))!.Id;
 
         (await admin.PostAsync($"/api/admin/events/{id}/start", null)).EnsureSuccessStatusCode();

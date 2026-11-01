@@ -46,7 +46,6 @@ public static class TestData
             Title = title,
             Status = EventStatus.Finished,
             MaxDonkeys = 100,
-            Scheme = ScoringScheme.Linear,
             StartedAt = factory.Time.GetUtcNow(),
         };
         db.Events.Add(ev);

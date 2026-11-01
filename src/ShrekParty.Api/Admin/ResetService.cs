@@ -30,7 +30,6 @@ public class ResetService(AppDbContext db, MediaStorage storage, ILiveNotifier l
         await db.SaveChangesAsync();
 
         await db.DonkeyAwards.ExecuteDeleteAsync();
-        await db.PollVotes.ExecuteDeleteAsync();
         await db.Bets.ExecuteDeleteAsync();
         await db.LaughScores.ExecuteDeleteAsync();
         await db.HideVotes.ExecuteDeleteAsync();

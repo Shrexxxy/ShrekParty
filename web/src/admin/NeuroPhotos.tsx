@@ -54,7 +54,6 @@ export function NeuroPhotos({ snapshot }: { snapshot: AppSnapshot }) {
   const unmarked = photos.filter((p) => p.subjectId === null).length
   return (
     <section className="card admin-block">
-      <h2>Нейрофото</h2>
       <p className="muted">
         {photos.length} фото{unmarked > 0 && ` · не отмечено ${unmarked}`}. Порядок показа — порядок загрузки.
       </p>
