@@ -180,6 +180,31 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_fight_boss()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(6);
+        var admin = await TestClients.AdminAsync(_factory);
+        (await admin.PostAsJsonAsync("/api/admin/registration/close", new { })).EnsureSuccessStatusCode();
+        var created = await admin.PostAsJsonAsync("/api/admin/events", new { type = "BossFight", title = "Бой", settings = new { boss = "Peasant" } }, TestClients.Json);
+        var id = (await created.Content.ReadFromJsonAsync<ProgramItemDto>(TestClients.Json))!.Id;
+        (await admin.PostAsync($"/api/admin/events/{id}/start", null)).EnsureSuccessStatusCode();
+        _factory.Time.Advance(TimeSpan.FromSeconds(8));
+        await _factory.WithServiceAsync<EventEngine>(e => e.TickAsync());
+
+        // Боты сами выбирают действия — ход разыгрывается раньше таймера.
+        await WaitUntilAsync(async () => (await DetailsAsync(admin)).GetProperty("phase").GetString() != "Choosing");
+
+        // Дальше двигаем время — бой доходит до конца.
+        await WaitUntilAsync(async () =>
+        {
+            _factory.Time.Advance(TimeSpan.FromSeconds(5));
+            await _factory.WithServiceAsync<EventEngine>(e => e.TickAsync());
+            return (await DetailsAsync(admin)).GetProperty("phase").GetString() is "Won" or "Lost";
+        }, timeoutMs: 30_000);
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

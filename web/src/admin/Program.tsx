@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/http'
 import type { EventType, ProgramItemDto, ScoringScheme } from '../api/types'
+import { BOSS_NAMES, type BossKind } from '../events/boss'
 import { errorText } from './errors'
 import { EVENT_TYPE_LABELS, moveOrder, nextDraft } from './programOrder'
 
-const CREATABLE: EventType[] = ['FightPoll', 'Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'Ceremony', 'Auction']
+const CREATABLE: EventType[] = ['FightPoll', 'Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'BossFight', 'Ceremony', 'Auction']
 const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia']
 const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Tournament: 100,
@@ -29,11 +30,15 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
   const [task, setTask] = useState('')
   const [duration, setDuration] = useState('180')
   const [options, setOptions] = useState('Mortal Kombat, UFC')
+  const [boss, setBoss] = useState<BossKind>('Peasant')
   const [error, setError] = useState<string | null>(null)
 
   function settings() {
     if (type === 'PhotoHunt') {
       return { task: task.trim() || null, durationSec: Number(duration) || 180 }
+    }
+    if (type === 'BossFight') {
+      return { boss }
     }
     if (type === 'FightPoll') {
       return { options: options.split(',').map((o) => o.trim()).filter(Boolean) }
@@ -90,6 +95,18 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
             <input type="number" inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} />
           </label>
         </>
+      )}
+      {type === 'BossFight' && (
+        <label>
+          Босс
+          <select value={boss} onChange={(e) => setBoss(e.target.value as BossKind)}>
+            {(Object.keys(BOSS_NAMES) as BossKind[]).map((b) => (
+              <option key={b} value={b}>
+                {BOSS_NAMES[b]}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       {type === 'FightPoll' && (
         <label>

@@ -62,8 +62,70 @@ public static class BotBrain
             "Quiz" => Quiz(id, details, me, random, done),
             "Auction" => Auction(id, details, me, random, done),
             "Mafia" => Mafia(id, details, me, random, done),
+            "BossFight" => Boss(id, details, me, done),
             _ => [],
         };
+    }
+
+    /// <summary>
+    /// Бой с боссом по-простому, но с умом: под объявленный удар — уклон, танк прикрывает, маг лечит и жжёт, боец бьёт мощно.
+    /// Выбывший поддерживает раз за ход. Выбор — без ключа в done: пока сервер его не увидел, следующий снапшот попробует снова.
+    /// </summary>
+    private static IEnumerable<BotAction> Boss(string id, JsonElement details, Guid me, ISet<string> done)
+    {
+        if (details.GetProperty("phase").GetString() != "Choosing" || details.GetProperty("myId").ValueKind != JsonValueKind.String)
+        {
+            yield break;
+        }
+
+        var fighters = details.GetProperty("fighters").EnumerateArray().ToList();
+        var self = fighters.Single(f => f.GetProperty("userId").GetGuid() == me);
+        if (!self.GetProperty("alive").GetBoolean())
+        {
+            // Пока снапшот не догнал, iCheered ещё false — ключ хода не даёт жать повторно.
+            if (!details.GetProperty("iCheered").GetBoolean() && done.Add($"boss-cheer:{id}:{details.GetProperty("turn").GetInt32()}"))
+            {
+                yield return new BotAction("поддерживаю с того света", HttpMethod.Post, $"/api/boss/{id}/cheer");
+            }
+
+            yield break;
+        }
+
+        if (details.GetProperty("myChoice").ValueKind == JsonValueKind.Object)
+        {
+            yield break;
+        }
+
+        var can = details.GetProperty("myOptions").EnumerateArray()
+            .Where(o => o.GetProperty("unavailable").ValueKind == JsonValueKind.Null)
+            .Select(o => o.GetProperty("action").GetString()!)
+            .ToHashSet();
+        if (can.Count == 0)
+        {
+            // Тыква — ход пропускается, жать нечего.
+            yield break;
+        }
+
+        var targets = details.GetProperty("intent") is { ValueKind: JsonValueKind.Object } intent
+            ? intent.GetProperty("targets").EnumerateArray().Select(t => t.GetGuid()).ToList()
+            : [];
+        var targeted = targets.Contains(me);
+        var hurt = fighters
+            .Where(f => f.GetProperty("alive").GetBoolean() && f.GetProperty("hp").GetInt32() * 2 < f.GetProperty("maxHp").GetInt32())
+            .OrderBy(f => f.GetProperty("hp").GetInt32())
+            .Select(f => f.GetProperty("userId").GetGuid())
+            .FirstOrDefault();
+
+        var (action, target) = true switch
+        {
+            _ when targeted && targets.Count < fighters.Count && can.Contains("Dodge") => ("Dodge", (Guid?)null),
+            _ when can.Contains("Cover") && targets.Any(t => t != me) => ("Cover", null),
+            _ when can.Contains("Heal") && hurt != Guid.Empty => ("Heal", hurt),
+            _ when can.Contains("Fire") => ("Fire", null),
+            _ when can.Contains("Power") && !targeted => ("Power", null),
+            _ => ("Attack", null),
+        };
+        yield return new BotAction($"в бою: {action}", HttpMethod.Post, $"/api/boss/{id}/act", new { action, targetId = target });
     }
 
     private static IEnumerable<BotAction> Mafia(string id, JsonElement details, Guid me, Random random, ISet<string> done)

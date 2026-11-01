@@ -17,6 +17,8 @@ import type {
   TapperDetails,
   TournamentDetails,
 } from './details'
+import type { BossDetails } from './boss'
+import { BossView } from './BossView'
 import { HideView } from './HideView'
 import { LaughView } from './LaughView'
 import { MafiaView } from './MafiaView'
@@ -50,6 +52,8 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return <TapperView eventId={event.id} details={details as TapperDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Days':
       return <DaysView eventId={event.id} details={details as DaysDetails} serverTime={serverTime} tv={tv} />
+    case 'BossFight':
+      return <BossView eventId={event.id} details={details as BossDetails} serverTime={serverTime} tv={tv} />
     case 'Mafia':
       return <MafiaView eventId={event.id} details={details as MafiaDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Auction':

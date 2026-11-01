@@ -50,6 +50,13 @@ public class PetService(AppDbContext db, ILiveNotifier live, Random random, Time
         await live.BroadcastAsync();
     }
 
+    /// <summary>Вылупить все оставшиеся яйца — перед боем с боссом в бой идут все.</summary>
+    public async Task HatchAllAsync()
+    {
+        var now = time.GetUtcNow();
+        await db.Pets.Where(p => p.HatchedAt == null).ExecuteUpdateAsync(s => s.SetProperty(p => p.HatchedAt, now));
+    }
+
     /// <summary>Новая кличка: без пробелов по краям, 1–20 символов.</summary>
     public async Task RenameAsync(Guid userId, string? name)
     {

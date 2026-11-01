@@ -2680,3 +2680,307 @@ details summary {
   font-size: clamp(20px, 2.4vw, 40px);
   font-weight: 800;
 }
+
+/* Бой с боссом. Анимации boss-fx-* — заглушки: в слое красоты заменим на арт. */
+.boss {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.boss-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+}
+
+.boss-boss {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.boss-face {
+  font-size: 96px;
+  line-height: 1;
+}
+
+.boss.tv .boss-face {
+  font-size: clamp(120px, 16vw, 260px);
+}
+
+.boss-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.boss-bar span {
+  display: block;
+  height: 100%;
+  transition: width 0.4s;
+}
+
+.boss-bar.hp span {
+  background: var(--danger);
+}
+
+.boss-bar.mana span {
+  background: #4fa3ff;
+}
+
+.boss-bar.boss {
+  height: 14px;
+}
+
+.boss-bar.boss span {
+  background: var(--ogre);
+}
+
+.boss-rage {
+  font-weight: 800;
+  color: var(--danger);
+}
+
+.boss-intent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 800;
+  animation: boss-pulse 1s ease-in-out infinite;
+}
+
+.boss-intent-icon {
+  font-size: 40px;
+}
+
+.boss-team {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.boss-fighter {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 96px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.boss-fighter.big {
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.boss-fighter.big .boss-pet {
+  font-size: 96px;
+}
+
+.boss-fighter.targeted {
+  outline: 3px solid var(--danger);
+}
+
+.boss-fighter.dead {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.boss-pet {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.boss-fighter-name {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.boss-choice {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 22px;
+}
+
+.boss-number {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--cream);
+  animation: boss-float 0.6s ease-out forwards;
+}
+
+.boss-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.boss-actions button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 72px;
+}
+
+.boss-action-icon {
+  font-size: 32px;
+}
+
+.boss-heal-pick {
+  display: grid;
+  gap: 6px;
+}
+
+.boss-cheer {
+  font-size: 40px;
+  min-height: 96px;
+}
+
+.boss-cheer-bonus {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.boss-result {
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.boss-medal {
+  display: block;
+  font-size: 120px;
+  line-height: 1;
+}
+
+.boss-fx-enter {
+  animation: boss-enter 0.8s ease-out;
+}
+
+.boss-fx-attack,
+.boss-fx-weak,
+.boss-fx-power,
+.boss-fx-fire {
+  animation: boss-lunge 0.6s ease-in-out;
+}
+
+.boss-fx-boss-hurt,
+.boss-fx-boss-hit,
+.boss-fx-covered {
+  animation: boss-shake 0.6s ease-in-out;
+}
+
+.boss-fx-heal,
+.boss-fx-boss-heal {
+  animation: boss-glow 0.6s ease-in-out;
+}
+
+.boss-fx-cover,
+.boss-fx-boss-shield,
+.boss-fx-boss-windup {
+  animation: boss-pulse 0.6s ease-in-out;
+}
+
+.boss-fx-dodged {
+  animation: boss-dodge 0.6s ease-in-out;
+}
+
+.boss-fx-stunned,
+.boss-fx-knockout {
+  animation: boss-fade 0.6s ease-in-out;
+}
+
+.boss-fx-defeated {
+  animation: boss-defeat 1.2s ease-in forwards;
+}
+
+.boss-fx-medal {
+  animation: boss-enter 0.8s ease-out;
+}
+
+@keyframes boss-enter {
+  from {
+    opacity: 0;
+    translate: 0 -40px;
+    scale: 0.6;
+  }
+}
+
+@keyframes boss-lunge {
+  50% {
+    translate: 0 -16px;
+    scale: 1.1;
+  }
+}
+
+@keyframes boss-shake {
+  20%,
+  60% {
+    translate: -8px 0;
+  }
+  40%,
+  80% {
+    translate: 8px 0;
+  }
+}
+
+@keyframes boss-glow {
+  50% {
+    filter: drop-shadow(0 0 16px var(--ogre-bright));
+  }
+}
+
+@keyframes boss-pulse {
+  50% {
+    scale: 1.08;
+  }
+}
+
+@keyframes boss-dodge {
+  50% {
+    translate: 24px 0;
+    opacity: 0.5;
+  }
+}
+
+@keyframes boss-fade {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes boss-float {
+  to {
+    translate: -50% -40px;
+    opacity: 0;
+  }
+}
+
+@keyframes boss-defeat {
+  to {
+    translate: 0 40px;
+    opacity: 0.2;
+    filter: grayscale(1);
+  }
+}
+
+.boss-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 28px;
+}

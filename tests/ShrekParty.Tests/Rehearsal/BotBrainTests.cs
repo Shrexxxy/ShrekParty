@@ -36,6 +36,41 @@ public class BotBrainTests
         BotBrain.Pet(JsonSerializer.SerializeToElement(new { myPet = new { hatched = true } }), done).Should().BeEmpty();
     }
 
+    [Fact]
+    public void Boss_pumpkin_bot_does_nothing()
+    {
+        var stunned = Boss(alive: true, options: ["Attack", "Dodge"], unavailable: "stunned");
+
+        BotBrain.Decide(stunned, Me, new Random(1), new HashSet<string>()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Boss_dead_bot_cheers_once_per_turn()
+    {
+        var dead = Boss(alive: false, options: [], unavailable: null);
+        var done = new HashSet<string>();
+
+        BotBrain.Decide(dead, Me, new Random(1), done).Should().ContainSingle(a => a.Path.EndsWith("/cheer"));
+        BotBrain.Decide(dead, Me, new Random(1), done).Should().BeEmpty();
+    }
+
+    private static JsonElement Boss(bool alive, string[] options, string? unavailable) => JsonSerializer.SerializeToElement(new
+    {
+        id = Guid.NewGuid().ToString(),
+        type = "BossFight",
+        details = new
+        {
+            phase = "Choosing",
+            turn = 2,
+            myId = Me,
+            myChoice = (object?)null,
+            iCheered = false,
+            intent = new { move = "Poke", targets = new[] { Me } },
+            fighters = new[] { new { userId = Me, alive, hp = alive ? 30 : 0, maxHp = 50 } },
+            myOptions = options.Select(o => new { action = o, unavailable }).ToArray(),
+        },
+    });
+
     private static JsonElement Night(int tasksDone) => JsonSerializer.SerializeToElement(new
     {
         id = Guid.NewGuid().ToString(),

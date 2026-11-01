@@ -5,6 +5,7 @@ export type RegistrationState = 'Closed' | 'Open' | 'Finished'
 export type EventType =
   | 'Registration'
   | 'FightPoll'
+  | 'BossFight'
   | 'Tournament'
   | 'Tote'
   | 'Laugh'

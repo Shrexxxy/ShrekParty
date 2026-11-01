@@ -51,6 +51,9 @@ public enum EventType
 
     /// <summary>Мафия; ведёт именинник.</summary>
     Mafia,
+
+    /// <summary>Битва драконоосликов с боссом.</summary>
+    BossFight,
 }
 
 /// <summary>

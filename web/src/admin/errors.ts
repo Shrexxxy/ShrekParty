@@ -52,6 +52,14 @@ const MESSAGES: Record<string, string> = {
   tasks_done: 'Все задания на эту ночь сделаны',
   too_fast: 'Слишком быстро — подожди секунду',
   bad_pet_name: 'Кличка — от 1 до 20 символов',
+  turn_over: 'Ход уже разыгрывается',
+  dodge_twice: 'Два раза подряд не увернуться',
+  no_mana: 'Мало маны',
+  bad_action: 'Это не твой приём',
+  stunned: 'Ты тыква — пропускаешь ход',
+  alive: 'Поддерживать можно только с того света',
+  bad_boss: 'Выбери босса',
+  no_pets: 'Нет ни одного драконоослика',
   phase_changed: 'Фаза уже сменилась — посмотри и жми ещё раз',
   lot_sold: 'Лот уже продан — удалить нельзя',
   price_changed: 'Кто-то успел раньше — цена уже другая, жми ещё раз',
@@ -76,6 +84,11 @@ const MESSAGES: Record<string, string> = {
 /**
  * Понятный текст ошибки для админки.
  */
+/** Текст по коду ошибки — для причин, которые приходят не ошибкой, а полем (недоступное действие). */
+export function codeText(code: string): string {
+  return MESSAGES[code] ?? code
+}
+
 export function errorText(e: unknown): string {
   if (e instanceof ApiError) {
     if (e.code) {
