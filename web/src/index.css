@@ -63,6 +63,61 @@ h1 {
   text-shadow: 0 3px 0 var(--ink);
 }
 
+/* Плашка «Сейчас идёт → перейти» на главной. */
+.now-playing {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--lamp);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 6px 0 var(--lamp-deep);
+}
+
+.now-playing small {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.now-playing b {
+  font: 900 26px/1.05 var(--font-display);
+}
+
+.now-playing-go {
+  justify-self: end;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--lamp);
+  font: 900 14px var(--font-display);
+  text-transform: uppercase;
+}
+
+.now-playing:active {
+  translate: 0 3px;
+  box-shadow: 0 3px 0 var(--lamp-deep);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.event-title {
+  margin-bottom: 14px;
+}
+
+.page > .stamp {
+  margin: 0 0 18px 4px;
+}
+
 /* Гирлянда флажков — верх каждого экрана ярмарки. */
 .bunting {
   height: 30px;

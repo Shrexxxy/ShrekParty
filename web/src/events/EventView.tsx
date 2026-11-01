@@ -66,13 +66,3 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return null
   }
 }
-
-/** Карточка ивента на главной игрока — над таблицей лидеров. */
-export function ActiveEventPanel({ event, serverTime, myId }: { event: ActiveEventDto; serverTime: string; myId?: string }) {
-  return (
-    <section className="card active-event">
-      <h2>{event.title}</h2>
-      <EventView event={event} serverTime={serverTime} myId={myId} />
-    </section>
-  )
-}

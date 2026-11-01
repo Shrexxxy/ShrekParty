@@ -1,26 +1,24 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useSnapshot } from '../api/live'
 import { useMe } from '../api/me'
 import { Avatar } from '../components/Avatar'
 import { Donkeys } from '../components/DonkeyIcon'
 import { Leaderboard } from '../components/Leaderboard'
-import { ActiveEventPanel } from '../events/EventView'
 import { isDarkPhase } from '../events/hide'
 import { selfieAllowed } from '../events/layer3'
 import { HideDark } from '../events/HideView'
-import { useWakeLock } from '../events/useWakeLock'
 import { LevelUpToast } from '../pets/LevelUpToast'
 import { markPetOpened, petOpened, switchToGame } from '../pets/pets'
 import { PetTab } from '../pets/PetTab'
 import { AvatarUpload } from './AvatarUpload'
 
-/** Главная игрока: сверху — текущий ивент, ниже — таблица лидеров. */
+/** Главная игрока: место и ослики, плашка «сейчас идёт → перейти», питомец и таблица лидеров. Сам ивент — на своей странице. */
 export function HomePage() {
   const { me } = useMe()
   const snapshot = useSnapshot()
+  // В темноте пряток гаснут все телефоны, даже на главной — иначе светящийся экран выдаст.
   const dark = isDarkPhase(snapshot?.activeEvent)
-  // В темноте экран должен гаснуть сам, как обычно.
-  useWakeLock(Boolean(snapshot?.activeEvent) && !dark)
   const myRow = snapshot?.leaderboard.find((r) => r.userId === me?.id)
   const canUploadAvatar = snapshot ? selfieAllowed(snapshot.registration.state, snapshot.activeEvent) : false
   const pet = snapshot?.myPet ?? null
@@ -30,10 +28,11 @@ export function HomePage() {
   const eventId = snapshot?.activeEvent?.id ?? null
   const [lastEventId, setLastEventId] = useState(eventId)
 
-  // Ивент начался, пока гость смотрел на питомца, — возвращаем на «Игру».
+  // Ивент начался — возвращаем на «Игру» к плашке и коротко вибрируем, чтобы гость заметил.
   if (eventId !== lastEventId) {
     if (switchToGame(lastEventId, eventId)) {
       setTab('game')
+      navigator.vibrate?.(200)
     }
     setLastEventId(eventId)
   }
@@ -84,7 +83,13 @@ export function HomePage() {
         <PetTab pet={pet} />
       ) : (
         <>
-          {snapshot?.activeEvent && <ActiveEventPanel event={snapshot.activeEvent} serverTime={snapshot.serverTime} myId={me?.id} />}
+          {snapshot?.activeEvent && (
+            <Link to={`/event/${snapshot.activeEvent.id}`} className="now-playing">
+              <small>Сейчас идёт</small>
+              <b>{snapshot.activeEvent.title}</b>
+              <span className="now-playing-go">Перейти →</span>
+            </Link>
+          )}
           {canUploadAvatar && <AvatarUpload />}
           <Leaderboard snapshot={snapshot} highlightUserId={me?.id} />
         </>

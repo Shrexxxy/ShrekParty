@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { homeOf, MeProvider, useMe } from './api/me'
 import type { UserRole } from './api/types'
 import { AdminPage } from './pages/AdminPage'
+import { EventPage } from './pages/EventPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -26,6 +27,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Only role="Player"><HomePage /></Only>} />
+          <Route path="/event/:id" element={<Only role="Player"><EventPage /></Only>} />
           <Route path="/register" element={<Only role={null}><RegisterPage /></Only>} />
           <Route path="/login" element={<Only role={null}><LoginPage /></Only>} />
           <Route path="/tv" element={<Only role="Viewer"><TvPage /></Only>} />
