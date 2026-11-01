@@ -96,17 +96,80 @@ public class PetTests : IDisposable
     }
 
     [Fact]
-    public async Task Rename()
+    public async Task Player_names_once_after_hatch()
+    {
+        await SeedAsync("Ann");
+        await CloseRegistrationAsync();
+        var ann = await PlayerAsync("Ann");
+        (await ann.PostAsync("/api/pets/hatch", null)).EnsureSuccessStatusCode();
+
+        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "   " })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ann.PutAsJsonAsync("/api/pets/name", new { name = new string('я', 21) })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await AllAsync()).Single().Named.Should().BeFalse();
+
+        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "  Искорка  " })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var again = await ann.PutAsJsonAsync("/api/pets/name", new { name = "Огонёк" });
+
+        again.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorAsync(again)).Should().Be("already_named");
+        var pet = (await AllAsync()).Single();
+        pet.Name.Should().Be("Искорка");
+        pet.Named.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Player_cannot_name_egg()
+    {
+        await SeedAsync("Ann");
+        await CloseRegistrationAsync();
+        var ann = await PlayerAsync("Ann");
+
+        var response = await ann.PutAsJsonAsync("/api/pets/name", new { name = "Искорка" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorAsync(response)).Should().Be("not_hatched");
+        (await NameOfAsync("Ann")).Should().Be("Дракоша Ann");
+    }
+
+    [Fact]
+    public async Task Admin_renames_any_time_player_still_locked()
+    {
+        await SeedAsync("Ann");
+        await CloseRegistrationAsync();
+        var ann = await PlayerAsync("Ann");
+        var admin = await TestClients.AdminAsync(_factory);
+        (await ann.PostAsync("/api/pets/hatch", null)).EnsureSuccessStatusCode();
+        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "Искорка" })).EnsureSuccessStatusCode();
+        var id = await IdAsync("Ann");
+
+        (await admin.PutAsJsonAsync($"/api/admin/pets/{id}/name", new { name = "Пушок" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await NameOfAsync("Ann")).Should().Be("Пушок");
+        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "Огонёк" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Variants_unique_within_class_while_possible()
+    {
+        await SeedAsync(Enumerable.Range(1, 15).Select(i => $"Гость{i}").ToArray());
+
+        await CloseRegistrationAsync();
+
+        var pets = await AllAsync();
+        pets.GroupBy(p => p.Class).Should().OnlyContain(g => g.Select(p => p.Variant).Order().SequenceEqual(new[] { 1, 2, 3, 4, 5 }));
+
+        await _factory.RegisterAsync("Опоздун");
+
+        (await AllAsync()).Single(p => p.Login == "Опоздун").Variant.Should().BeInRange(1, 5);
+    }
+
+    [Fact]
+    public async Task Admin_renames_egg()
     {
         await SeedAsync("Ann", "Bob");
         await CloseRegistrationAsync();
         var ann = await PlayerAsync("Ann");
         var admin = await TestClients.AdminAsync(_factory);
-
-        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "  Огонёк  " })).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await ann.PutAsJsonAsync("/api/pets/name", new { name = "   " })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ann.PutAsJsonAsync("/api/pets/name", new { name = new string('я', 21) })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await NameOfAsync("Ann")).Should().Be("Огонёк");
 
         var bob = await IdAsync("Bob");
         (await admin.PutAsJsonAsync($"/api/admin/pets/{bob}/name", new { name = "Пушок" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -175,6 +238,9 @@ public class PetTests : IDisposable
     private async Task<Guid> IdAsync(string login) => (await AllAsync()).Single(p => p.Login == login).UserId;
 
     private async Task<string> NameOfAsync(string login) => (await AllAsync()).Single(p => p.Login == login).Name;
+
+    private static async Task<string?> ErrorAsync(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("error").GetString();
 
     private async Task SeedSaleAsync(Guid userId, int price)
     {

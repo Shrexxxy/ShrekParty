@@ -46,6 +46,8 @@
 
 * {
   box-sizing: border-box;
+  /* Синий квадрат при тапе на телефоне — у нас своя реакция на нажатие. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -602,6 +604,44 @@ button.danger {
 
 .admin-block p {
   margin-top: 0;
+}
+
+/* Ручные ослики — всегда под рукой, квадрат вверху админки. */
+.award-open {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 76px;
+  height: 76px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--lamp);
+  color: var(--ink);
+  font: 900 11px var(--font-display);
+  text-transform: uppercase;
+  box-shadow: 0 4px 0 var(--lamp-deep);
+}
+
+.award-open:active {
+  translate: 0 2px;
+  box-shadow: 0 2px 0 var(--lamp-deep);
+}
+
+.award-dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--night-panel);
+  color: var(--text);
+}
+
+.award-dialog::backdrop {
+  background: rgba(10, 24, 36, 0.75);
+}
+
+.award-dialog h2 {
+  margin: 0;
 }
 
 .custom-table {
@@ -2731,9 +2771,27 @@ details summary {
 }
 
 .pet-egg-art {
-  width: 150px;
+  position: relative;
+  width: 220px;
+  aspect-ratio: 1;
   filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.35));
   transition: transform 0.1s;
+}
+
+.pet-egg-img,
+.pet-egg-cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Запасное SVG-яйцо уже квадрата — по центру, как картинка. */
+span.pet-egg-img {
+  display: grid;
+  place-items: center;
+  padding: 15% 20%;
 }
 
 .pet-egg:active .pet-egg-art {
@@ -2812,31 +2870,30 @@ details summary {
   text-align: center;
 }
 
-.pet-rename-btn {
+.pet-art {
+  width: 240px;
+  max-width: 80%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.3));
+}
+
+span.pet-art {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--night-raised);
-  color: var(--lamp);
+  width: auto;
+  aspect-ratio: auto;
 }
 
-.pet-rename {
-  display: flex;
+.pet-name-form {
+  display: grid;
   gap: 8px;
   width: 100%;
+  text-align: center;
 }
 
-.pet-rename input {
-  flex: 1;
-  min-width: 0;
-}
-
-.pet-rename .primary {
-  width: auto;
-  padding: 12px 16px;
+.pet-name-form b {
+  font: 900 22px var(--font-display);
 }
 
 .pet-class {

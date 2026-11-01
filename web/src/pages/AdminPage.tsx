@@ -1,43 +1,34 @@
 import { useWakeLock } from '../events/useWakeLock'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError, api } from '../api/http'
 import { useSnapshot } from '../api/live'
 import { useMe } from '../api/me'
-import type { AppSnapshot, ScoringScheme } from '../api/types'
+import type { AppSnapshot } from '../api/types'
 import { CurrentEventCard } from '../admin/CurrentEventCard'
 import { Program } from '../admin/Program'
 import { AuctionLots } from '../admin/AuctionLots'
 import { NeuroPhotos } from '../admin/NeuroPhotos'
 import { Pets } from '../admin/Pets'
 import { TvControls } from '../admin/TvControls'
+import { DonkeyIcon } from '../components/DonkeyIcon'
 import { Leaderboard } from '../components/Leaderboard'
 
 const STATE_LABELS = { Closed: 'закрыта, гости ждут', Open: 'открыта', Finished: 'закрыта, очки начислены' } as const
 
-/** Пульт регистрации: открыть, закрыть со схемой очков. */
+/** Пульт регистрации: открыть, закрыть — очки всегда по линейной схеме. */
 function RegistrationControl({ snapshot }: { snapshot: AppSnapshot }) {
-  const [scheme, setScheme] = useState<ScoringScheme>('Linear')
-  const [custom, setCustom] = useState<Record<number, string>>({})
   const [error, setError] = useState<string | null>(null)
   const { state, waitingCount } = snapshot.registration
   const players = snapshot.leaderboard.length
 
-  async function call(path: string, body?: unknown) {
+  async function call(path: string) {
     setError(null)
     try {
-      await api(path, { method: 'POST', body })
+      await api(path, { method: 'POST' })
     } catch (e) {
       setError(e instanceof ApiError && e.status === 409 ? 'Уже сделано — обнови страницу' : 'Не получилось')
     }
-  }
-
-  function close() {
-    const customTable =
-      scheme === 'Custom'
-        ? Object.fromEntries(Object.entries(custom).filter(([, v]) => v !== '').map(([k, v]) => [k, Number(v)]))
-        : undefined
-    void call('/api/admin/registration/close', { scheme, customTable })
   }
 
   return (
@@ -52,87 +43,80 @@ function RegistrationControl({ snapshot }: { snapshot: AppSnapshot }) {
         </button>
       )}
       {state === 'Open' && (
-        <div className="form">
-          <label>
-            Схема очков (по 10 🫏 за скорость и за пароль)
-            <select value={scheme} onChange={(e) => setScheme(e.target.value as ScoringScheme)}>
-              <option value="Linear">Линейная</option>
-              <option value="Podium">С упором на призёров</option>
-              <option value="Custom">Своя таблица</option>
-            </select>
-          </label>
-          {scheme === 'Custom' && (
-            <div className="custom-table">
-              {Array.from({ length: Math.max(players, 1) }, (_, i) => i + 1).map((place) => (
-                <label key={place}>
-                  {place}-е место
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={custom[place] ?? ''}
-                    onChange={(e) => setCustom({ ...custom, [place]: e.target.value })}
-                  />
-                </label>
-              ))}
-            </div>
-          )}
-          <button className="primary" onClick={close}>
-            🏁 Закрыть и начислить очки
-          </button>
-        </div>
+        <button className="primary" onClick={() => void call('/api/admin/registration/close')}>
+          🏁 Закрыть и начислить очки
+        </button>
       )}
       {error && <p className="error">{error}</p>}
     </section>
   )
 }
 
-/** Ручные ослики: игрок, ± число, причина. */
-function ManualAward({ snapshot }: { snapshot: AppSnapshot }) {
+/** Ручные ослики: квадратная кнопка открывает окно — игрок, ± число, причина. */
+function AwardDialog({ snapshot }: { snapshot: AppSnapshot }) {
+  const dialog = useRef<HTMLDialogElement>(null)
   const [userId, setUserId] = useState('')
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  function open() {
+    setError(null)
+    dialog.current?.showModal()
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    setMessage(null)
+    setError(null)
     try {
       await api('/api/admin/awards', { method: 'POST', body: { userId, amount: Number(amount), reason } })
+      setUserId('')
       setAmount('')
       setReason('')
-      setMessage('Готово ✅')
+      dialog.current?.close()
     } catch {
-      setMessage('Не получилось')
+      setError('Не получилось')
     }
   }
 
   return (
-    <form className="card admin-block form" onSubmit={submit}>
-      <h2>Ручные ослики</h2>
-      <label>
-        Игрок
-        <select value={userId} onChange={(e) => setUserId(e.target.value)} required>
-          <option value="">— выбери —</option>
-          {snapshot.leaderboard.map((r) => (
-            <option key={r.userId} value={r.userId}>
-              {r.login} ({r.donkeys} 🫏)
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Сколько (минус — штраф)
-        <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-      </label>
-      <label>
-        За что
-        <input value={reason} onChange={(e) => setReason(e.target.value)} required />
-      </label>
-      <button type="submit" className="primary">
+    <>
+      <button className="award-open" onClick={open}>
+        <DonkeyIcon size="30px" />
         Начислить
       </button>
-      {message && <p className="muted">{message}</p>}
-    </form>
+      <dialog ref={dialog} className="award-dialog" onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
+        <form className="form" onSubmit={submit}>
+          <h2>Начислить ослики</h2>
+          <label>
+            Кому
+            <select value={userId} onChange={(e) => setUserId(e.target.value)} required>
+              <option value="">— выбери —</option>
+              {snapshot.leaderboard.map((r) => (
+                <option key={r.userId} value={r.userId}>
+                  {r.login} ({r.donkeys})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Сколько (минус — штраф)
+            <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          </label>
+          <label>
+            За что
+            <input value={reason} onChange={(e) => setReason(e.target.value)} required />
+          </label>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" className="primary">
+            Начислить
+          </button>
+          <button type="button" onClick={() => dialog.current?.close()}>
+            Отмена
+          </button>
+        </form>
+      </dialog>
+    </>
   )
 }
 
@@ -177,6 +161,7 @@ export function AdminPage() {
     <main className="page">
       <header className="admin-header">
         <h1>Админка</h1>
+        {snapshot && <AwardDialog snapshot={snapshot} />}
         <Link to="/admin/quiz">✏️ Своя игра</Link>
         <button onClick={() => void logout()}>Выйти</button>
       </header>
@@ -188,7 +173,6 @@ export function AdminPage() {
           <RegistrationControl snapshot={snapshot} />
           <Program version={snapshot.serverTime} />
           <Leaderboard snapshot={snapshot} />
-          <ManualAward snapshot={snapshot} />
           <TvControls preload={snapshot.tvPreload} />
           <Pets overview={snapshot.pets} />
           <NeuroPhotos snapshot={snapshot} />

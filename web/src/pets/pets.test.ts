@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { PetDto } from '../api/types'
-import { CLASS_ICONS, CLASS_NAMES, eggStage, levelUpText, switchToGame, xpProgress } from './pets'
+import { CLASS_ICONS, CLASS_NAMES, eggArt, eggStage, levelUpText, petArt, switchToGame, xpProgress } from './pets'
 
 function pet(over: Partial<PetDto>): PetDto {
   return {
     userId: 'u',
     login: 'Кот',
     name: 'Дракоша Кот',
+    named: false,
+    variant: 1,
     class: 'Mage',
     hatched: true,
     level: 1,
@@ -26,6 +28,13 @@ describe('CLASS_NAMES', () => {
   it('классы по-русски', () => {
     expect(CLASS_NAMES).toEqual({ Tank: 'Танк', Fighter: 'Боец', Mage: 'Маг' })
     expect(CLASS_ICONS).toEqual({ Tank: 'shield', Fighter: 'sword', Mage: 'spark' })
+  })
+})
+
+describe('petArt / eggArt', () => {
+  it('картинка по классу и рисунку', () => {
+    expect(petArt(pet({ class: 'Tank', variant: 3 }))).toBe('/assets/pets/tank-3.png')
+    expect(eggArt(pet({ class: 'Mage', variant: 1 }))).toBe('/assets/pets/egg-mage-1.png')
   })
 })
 

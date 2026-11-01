@@ -1,37 +1,42 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { api } from '../api/http'
 import type { PetDto } from '../api/types'
 import { errorText } from '../admin/errors'
 import { DonkeyIcon } from '../components/DonkeyIcon'
 import { Icon } from '../components/Icon'
-import { CLASS_ICONS, CLASS_NAMES, EGG_TAPS, eggStage, STATS, xpProgress } from './pets'
+import { Sprite } from '../components/Sprite'
+import { CLASS_ICONS, CLASS_NAMES, EGG_TAPS, eggArt, eggStage, petArt, STATS, xpProgress } from './pets'
 
-/** Трещины по стадиям: с каждой стадией их больше. */
-const CRACK_PATHS = ['M44 62l10 9-6 9 11 8', 'M76 48l-8 11 9 7-7 12', 'M50 104l12-7 4 10 12-6']
+/** Трещины по стадиям: с каждой стадией их больше. Координаты — в квадрате 100×100 поверх картинки яйца. */
+const CRACK_PATHS = ['M38 40l7 6-4 6 8 6', 'M62 32l-5 8 6 5-4 9', 'M40 72l8-5 3 7 8-4']
 
-/** Яйцо в крапинку; трещины проступают с тапами. */
-function EggArt({ stage }: { stage: number }) {
+/** Запасное яйцо, пока нет картинки своего цвета. */
+function EggFallback() {
   return (
-    <svg className="pet-egg-art" viewBox="0 0 120 150" aria-hidden>
+    <svg viewBox="0 0 120 150" width="100%" height="100%" aria-hidden>
       <path d="M60 6C88 6 110 52 110 92a50 50 0 0 1-100 0C10 52 32 6 60 6z" fill="#fff6df" stroke="#0a1824" strokeWidth="5" />
-      <g fill="#9cc3e6">
-        <circle cx="42" cy="44" r="6" />
-        <circle cx="78" cy="78" r="8" />
-        <circle cx="36" cy="100" r="7" />
-        <circle cx="86" cy="116" r="5" />
-        <circle cx="62" cy="128" r="4" />
-      </g>
-      <g fill="none" stroke="#0a1824" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-        {CRACK_PATHS.slice(0, stage).map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </g>
     </svg>
   )
 }
 
+/** Яйцо цвета будущего питомца; трещины проступают с тапами. */
+function EggArt({ pet, stage }: { pet: PetDto; stage: number }) {
+  return (
+    <div className="pet-egg-art">
+      <Sprite src={eggArt(pet)} fallback={<EggFallback />} className="pet-egg-img" />
+      <svg className="pet-egg-cracks" viewBox="0 0 100 100" aria-hidden>
+        <g fill="none" stroke="#0a1824" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          {CRACK_PATHS.slice(0, stage).map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+      </svg>
+    </div>
+  )
+}
+
 /** Яйцо: тапы считает телефон, на последнем — «вылупился» серверу; не дошло — ещё один тап. */
-function Egg({ onHatched }: { onHatched: () => Promise<boolean> }) {
+function Egg({ pet, onHatched }: { pet: PetDto; onHatched: () => Promise<boolean> }) {
   const [taps, setTaps] = useState(0)
   const [failed, setFailed] = useState(false)
   const stage = eggStage(taps)
@@ -48,60 +53,63 @@ function Egg({ onHatched }: { onHatched: () => Promise<boolean> }) {
 
   return (
     <button className={`pet-egg stage-${stage}`} onClick={() => void tap()} disabled={stage === 3}>
-      <EggArt stage={stage} />
-      <span className="pet-egg-hint">{stage === 3 ? 'Вылупляется…' : `Тапай! Ещё ${EGG_TAPS - taps}`}</span>
+      <EggArt pet={pet} stage={stage} />
+      <span className="pet-egg-hint">{stage === 3 ? 'Вылупляется…' : 'Тапай!'}</span>
       {failed && <small className="error">Не получилось — проверь интернет и тапни ещё раз</small>}
     </button>
   )
 }
 
-/** Карточка: класс, уровень, опыт, характеристики и что они дают в бою. */
-function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(pet.name)
+/** Кличка — один раз, сразу после вылупления; потом поменять может только ведущий. */
+function NameForm({ pet }: { pet: PetDto }) {
+  const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const xp = xpProgress(pet)
+  const [busy, setBusy] = useState(false)
 
-  async function save() {
+  async function save(e: FormEvent) {
+    e.preventDefault()
     setError(null)
+    setBusy(true)
     try {
       await api('/api/pets/name', { method: 'PUT', body: { name } })
-      setEditing(false)
-    } catch (e) {
-      setError(errorText(e))
+    } catch (err) {
+      setError(errorText(err))
+    } finally {
+      setBusy(false)
     }
   }
 
   return (
+    <form className="pet-name-form" onSubmit={(e) => void save(e)}>
+      <b>Как назовёшь?</b>
+      <input value={name} maxLength={20} placeholder={pet.name} onChange={(e) => setName(e.target.value)} autoFocus />
+      <small className="muted">Кличку дают один раз — подумай</small>
+      <button type="submit" className="primary" disabled={busy || name.trim() === ''}>
+        Назвать
+      </button>
+      {error && <p className="error">{error}</p>}
+    </form>
+  )
+}
+
+/** Карточка: класс, уровень, опыт, характеристики и что они дают в бою. */
+function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
+  const xp = xpProgress(pet)
+
+  return (
     <div className={`pet-card class-${pet.class.toLowerCase()}`}>
       {fresh && <div className="stamp">Знакомься!</div>}
-      {/* Пока нет арта драконоослика — медальон класса. */}
-      <div className="pet-medallion">
-        <Icon name={CLASS_ICONS[pet.class]} size="64px" />
-      </div>
-      {editing ? (
-        <div className="pet-rename">
-          <input value={name} maxLength={20} onChange={(e) => setName(e.target.value)} autoFocus />
-          <button className="primary" onClick={() => void save()}>
-            Сохранить
-          </button>
-        </div>
-      ) : (
-        <h2 className="pet-name">
-          {pet.name}
-          <button
-            className="pet-rename-btn"
-            onClick={() => {
-              // Ведущий мог переименовать — правим текущую кличку.
-              setName(pet.name)
-              setEditing(true)
-            }}
-            aria-label="Переименовать"
-          >
-            <Icon name="pencil" />
-          </button>
-        </h2>
-      )}
+      <Sprite
+        src={petArt(pet)}
+        alt={pet.name}
+        className="pet-art"
+        fallback={
+          <span className="pet-medallion">
+            <Icon name={CLASS_ICONS[pet.class]} size="64px" />
+          </span>
+        }
+      />
+      {pet.named ? <h2 className="pet-name">{pet.name}</h2> : <NameForm pet={pet} />}
       <div className="pet-class">
         <span className="class-chip">
           <Icon name={CLASS_ICONS[pet.class]} />
@@ -140,7 +148,6 @@ function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
       <small className="muted">
         Сила даёт здоровье, ловкость — урон, интеллект — ману. Растёт от заработанных осликов: 50 <DonkeyIcon /> — уровень.
       </small>
-      {error && <p className="error">{error}</p>}
     </div>
   )
 }
@@ -159,5 +166,5 @@ export function PetTab({ pet }: { pet: PetDto }) {
     }
   }
 
-  return <section className="card pet-tab">{pet.hatched ? <PetCard pet={pet} fresh={fresh} /> : <Egg onHatched={hatch} />}</section>
+  return <section className="card pet-tab">{pet.hatched ? <PetCard pet={pet} fresh={fresh} /> : <Egg pet={pet} onHatched={hatch} />}</section>
 }

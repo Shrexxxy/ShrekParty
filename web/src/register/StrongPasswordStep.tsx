@@ -1,39 +1,13 @@
-import type { ZxcvbnFactory } from '@zxcvbn-ts/core'
-import { useEffect, useState, type FormEvent } from 'react'
-import { StrengthBar } from '../components/StrengthBar'
+import { useState, type FormEvent } from 'react'
 
-/** Минимальная оценка — та же, что требует сервер (он и решает окончательно). */
-export const MIN_SCORE = 3
-
-const LABELS = ['Очень слабый', 'Слабый', 'Так себе', 'Сложный', 'Очень сложный']
-
-/** Словари тяжёлые — грузим только на этом шаге. */
-async function loadZxcvbn(): Promise<ZxcvbnFactory> {
-  const [core, common, en] = await Promise.all([
-    import('@zxcvbn-ts/core'),
-    import('@zxcvbn-ts/language-common'),
-    import('@zxcvbn-ts/language-en'),
-  ])
-  return new core.ZxcvbnFactory({
-    translations: en.translations,
-    graphs: common.adjacencyGraphs,
-    dictionary: { ...common.dictionary, ...en.dictionary },
-  })
-}
-
-/** Фейковая ошибка «пароль слишком простой» и ввод нового — обязательно сложного. */
+/**
+ * Фейковая ошибка «пароль слишком простой» и ввод нового. Сложность не показываем и не требуем:
+ * увидев шкалу, все бы дотянули до максимума, а так ослики за пароль честно различаются.
+ */
 export function StrongPasswordStep({ error, busy, onSubmit }: { error: string | null; busy: boolean; onSubmit: (password: string) => void }) {
-  const [zxcvbn, setZxcvbn] = useState<ZxcvbnFactory | null>(null)
   const [password, setPassword] = useState('')
   const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    loadZxcvbn().then(setZxcvbn).catch(() => undefined)
-  }, [])
-
-  const score = zxcvbn && password ? zxcvbn.check(password).score : null
-  // Словари не загрузились — пускаем: сервер всё равно проверит.
-  const canSubmit = password.length > 0 && !busy && (score === null ? zxcvbn === null : score >= MIN_SCORE)
+  const canSubmit = password.length > 0 && !busy
 
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -63,7 +37,7 @@ export function StrongPasswordStep({ error, busy, onSubmit }: { error: string | 
           </button>
         </div>
       </label>
-      {score !== null && <StrengthBar score={score} label={LABELS[score]} />}
+      <small className="muted">Сложный — длинный, из разных слов, с цифрами и символами</small>
       {error && <p className="error">{error}</p>}
       <button type="submit" className="primary" disabled={!canSubmit}>
         {busy ? 'Проверяю…' : 'Готово'}

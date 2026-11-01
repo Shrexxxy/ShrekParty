@@ -45,6 +45,19 @@ public class RegistrationScoringTests : IDisposable
     }
 
     [Fact]
+    public async Task Weak_password_gets_fewer_donkeys()
+    {
+        await _factory.OpenRegistrationAsync();
+        await _factory.RegisterAsync("Ann", second: Strong);
+        await _factory.RegisterAsync("Bob", second: "qwerty123");
+
+        await CloseAsync();
+
+        var password = await AwardsByReasonAsync(DonkeyReasons.RegistrationPassword);
+        password.Should().BeEquivalentTo(new Dictionary<string, int> { ["Ann"] = 10, ["Bob"] = 5 });
+    }
+
+    [Fact]
     public async Task Registration_event_tab_shows_both_parts()
     {
         await _factory.OpenRegistrationAsync();
@@ -112,24 +125,7 @@ public class RegistrationScoringTests : IDisposable
     }
 
     [Fact]
-    public async Task Podium_scheme_applied()
-    {
-        await _factory.OpenRegistrationAsync();
-        _factory.Time.Advance(TimeSpan.FromSeconds(1));
-        await _factory.RegisterAsync("Ann");
-        _factory.Time.Advance(TimeSpan.FromSeconds(1));
-        await _factory.RegisterAsync("Bob");
-        _factory.Time.Advance(TimeSpan.FromSeconds(1));
-        await _factory.RegisterAsync("Cid");
-
-        await CloseAsync("Podium");
-
-        var speed = await AwardsByReasonAsync(DonkeyReasons.RegistrationSpeed);
-        speed.Should().BeEquivalentTo(new Dictionary<string, int> { ["Ann"] = 10, ["Bob"] = 7, ["Cid"] = 5 });
-    }
-
-    [Fact]
-    public async Task Custom_scheme_applied()
+    public async Task Requested_scheme_ignored_always_linear()
     {
         await _factory.OpenRegistrationAsync();
         _factory.Time.Advance(TimeSpan.FromSeconds(1));
@@ -140,7 +136,7 @@ public class RegistrationScoringTests : IDisposable
         await CloseAsync("Custom", new Dictionary<int, int> { [1] = 8, [2] = 3 });
 
         var speed = await AwardsByReasonAsync(DonkeyReasons.RegistrationSpeed);
-        speed.Should().BeEquivalentTo(new Dictionary<string, int> { ["Ann"] = 8, ["Bob"] = 3 });
+        speed.Should().BeEquivalentTo(new Dictionary<string, int> { ["Ann"] = 10, ["Bob"] = 5 });
     }
 
     [Fact]

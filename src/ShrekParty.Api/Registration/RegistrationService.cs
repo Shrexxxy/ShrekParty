@@ -24,11 +24,10 @@ public enum RegistrationOutcome
     AttemptNotFound,
     AlreadyCompleted,
     SamePassword,
-    WeakPassword,
 }
 
 /// <summary>
-/// Регистрация-ловушка: открытие, старт с первым паролем, завершение со сложным.
+/// Регистрация-ловушка: открытие, старт с первым паролем, завершение со вторым (любым, но не тем же).
 /// </summary>
 public partial class RegistrationService(
     AppDbContext db,
@@ -41,9 +40,6 @@ public partial class RegistrationService(
     ILiveNotifier live,
     PetService pets)
 {
-    /// <summary>Минимальная оценка zxcvbn для «сложного» пароля.</summary>
-    public const int MinStrongScore = 3;
-
     /// <summary>До этой оценки первый пароль считается слабым — его маску можно показывать на ТВ.</summary>
     public const int MaxWeakScore = 1;
 
@@ -174,10 +170,11 @@ public partial class RegistrationService(
     }
 
     /// <summary>
-    /// Закрывает регистрацию и начисляет очки: скорость и сложность пароля, по 10 осликов максимум.
+    /// Закрывает регистрацию и начисляет очки по линейной схеме: скорость и сложность пароля, по 10 осликов максимум.
     /// </summary>
-    public async Task<bool> CloseAsync(ScoringScheme scheme, IReadOnlyDictionary<int, int>? customTable)
+    public async Task<bool> CloseAsync()
     {
+        const ScoringScheme scheme = ScoringScheme.Linear;
         var ev = await CurrentEventAsync();
         if (ToState(ev) != RegistrationState.Open)
         {
@@ -187,7 +184,6 @@ public partial class RegistrationService(
         ev!.Status = EventStatus.Finished;
         ev.FinishedAt = time.GetUtcNow();
         ev.Scheme = scheme;
-        ev.CustomTableJson = customTable is null ? null : JsonSerializer.Serialize(customTable);
         await db.SaveChangesAsync();
 
         var completed = await db.RegistrationAttempts.AsNoTracking()
@@ -198,8 +194,8 @@ public partial class RegistrationService(
         var speed = DenseRanking.Rank(completed, a => a.CompletedAt!.Value - openedAt, descending: false);
         var strength = DenseRanking.Rank(completed, a => a.SecondGuessesLog10 ?? 0, descending: true);
 
-        await donkeys.AwardRankingAsync(ev.Id, ToUsers(speed), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationSpeed, customTable);
-        await donkeys.AwardRankingAsync(ev.Id, ToUsers(strength), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationPassword, customTable);
+        await donkeys.AwardRankingAsync(ev.Id, ToUsers(speed), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationSpeed);
+        await donkeys.AwardRankingAsync(ev.Id, ToUsers(strength), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationPassword);
         await pets.EnsureAsync();
         return true;
     }
@@ -264,7 +260,7 @@ public partial class RegistrationService(
     }
 
     /// <summary>
-    /// Шаг 2. Создаёт игрока со сложным паролем и стартовым капиталом.
+    /// Шаг 2. Создаёт игрока со вторым паролем и стартовым капиталом.
     /// </summary>
     public async Task<(RegistrationOutcome Outcome, User? User)> CompleteAsync(Guid attemptId, string? newPassword)
     {
@@ -290,11 +286,8 @@ public partial class RegistrationService(
             return (RegistrationOutcome.SamePassword, null);
         }
 
+        // Слабый тоже принимаем: гость просто получит меньше осликов за пароль.
         var analysis = analyzer.Analyze(newPassword);
-        if (analysis.Score < MinStrongScore)
-        {
-            return (RegistrationOutcome.WeakPassword, null);
-        }
 
         var now = time.GetUtcNow();
         var user = new User

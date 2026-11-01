@@ -89,6 +89,10 @@ export interface PetDto {
   userId: string
   login: string
   name: string
+  /** Игрок уже дал кличку — второй раз нельзя. */
+  named: boolean
+  /** Рисунок внутри класса, 1–5: картинка питомца и цвет яйца. */
+  variant: number
   class: PetClass
   hatched: boolean
   level: number

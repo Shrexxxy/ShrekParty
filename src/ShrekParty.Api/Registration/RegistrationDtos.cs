@@ -1,5 +1,3 @@
-using ShrekParty.Api.Scoring;
-
 namespace ShrekParty.Api.Registration;
 
 /// <summary>
@@ -44,11 +42,6 @@ public record RegistrationResultRowDto(
     int PasswordDonkeys,
     int TotalDonkeys,
     bool IsLate = false);
-
-/// <summary>
-/// Закрытие регистрации: схема очков (по умолчанию — линейная).
-/// </summary>
-public record CloseRegistrationRequest(ScoringScheme Scheme = ScoringScheme.Linear, Dictionary<int, int>? CustomTable = null);
 
 /// <summary>
 /// Шаг 1: логин и первый пароль.

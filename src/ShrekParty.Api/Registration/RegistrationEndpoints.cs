@@ -44,13 +44,8 @@ public static class RegistrationEndpoints
         admin.MapPost("/open", async (RegistrationService registration) =>
             await registration.OpenAsync() ? Results.NoContent() : Results.Conflict());
 
-        admin.MapPost("/close", async (CloseRegistrationRequest? request, RegistrationService registration) =>
-        {
-            request ??= new CloseRegistrationRequest();
-            return await registration.CloseAsync(request.Scheme, request.CustomTable)
-                ? Results.NoContent()
-                : Results.Conflict();
-        });
+        admin.MapPost("/close", async (RegistrationService registration) =>
+            await registration.CloseAsync() ? Results.NoContent() : Results.Conflict());
 
         return app;
     }
@@ -63,7 +58,6 @@ public static class RegistrationEndpoints
         RegistrationOutcome.AttemptNotFound => Results.NotFound(),
         RegistrationOutcome.AlreadyCompleted => Results.Conflict(new { error = "completed" }),
         RegistrationOutcome.SamePassword => Results.BadRequest(new { error = "same" }),
-        RegistrationOutcome.WeakPassword => Results.BadRequest(new { error = "weak" }),
         _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
     };
 }

@@ -57,15 +57,31 @@ public class PetService(AppDbContext db, ILiveNotifier live, Random random, Time
         await db.Pets.Where(p => p.HatchedAt == null).ExecuteUpdateAsync(s => s.SetProperty(p => p.HatchedAt, now));
     }
 
-    /// <summary>Новая кличка: без пробелов по краям, 1–20 символов.</summary>
-    public async Task RenameAsync(Guid userId, string? name)
+    /// <summary>Кличка от игрока: один раз и только после вылупления.</summary>
+    public async Task NameByPlayerAsync(Guid userId, string? name)
     {
-        var trimmed = name?.Trim() ?? "";
-        if (trimmed.Length is 0 or > MaxNameLength)
+        var trimmed = ValidName(name);
+        var pet = await db.Pets.FindAsync(userId) ?? throw new KeyNotFoundException();
+        if (pet.HatchedAt is null)
         {
-            throw new BadInputException("bad_pet_name");
+            throw new EventRuleException("not_hatched");
         }
 
+        if (pet.Named)
+        {
+            throw new EventRuleException("already_named");
+        }
+
+        pet.Name = trimmed;
+        pet.Named = true;
+        await db.SaveChangesAsync();
+        await live.BroadcastAsync();
+    }
+
+    /// <summary>Кличка от ведущего — в любой момент; права игрока не меняет.</summary>
+    public async Task RenameAsync(Guid userId, string? name)
+    {
+        var trimmed = ValidName(name);
         var pet = await db.Pets.FindAsync(userId) ?? throw new KeyNotFoundException();
         pet.Name = trimmed;
         await db.SaveChangesAsync();
@@ -99,18 +115,24 @@ public class PetService(AppDbContext db, ILiveNotifier live, Random random, Time
             return;
         }
 
-        var counts = await db.Pets.GroupBy(p => p.Class).ToDictionaryAsync(g => g.Key, g => g.Count());
+        var existing = await db.Pets.Select(p => new { p.Class, p.Variant }).ToListAsync();
+        var counts = existing.CountBy(p => p.Class).ToDictionary();
+        var variants = existing.GroupBy(p => p.Class).ToDictionary(g => g.Key, g => g.Select(p => p.Variant).ToList());
         var now = time.GetUtcNow();
         foreach (var user in players.OrderBy(_ => random.Next()))
         {
             var petClass = PetRules.PickClass(counts, random);
             counts[petClass] = counts.GetValueOrDefault(petClass) + 1;
             var start = PetRules.Roll(petClass, random);
+            var taken = variants.TryGetValue(petClass, out var list) ? list : variants[petClass] = [];
+            var variant = PetRules.PickVariant(taken, random);
+            taken.Add(variant);
             db.Pets.Add(new Pet
             {
                 UserId = user.Id,
                 Name = $"Дракоша {user.Login}",
                 Class = petClass,
+                Variant = variant,
                 Strength = start.Stats.Strength,
                 Agility = start.Stats.Agility,
                 Intellect = start.Stats.Intellect,
@@ -123,12 +145,19 @@ public class PetService(AppDbContext db, ILiveNotifier live, Random random, Time
         await live.BroadcastAsync();
     }
 
+    /// <summary>Кличка без пробелов по краям, 1–20 символов.</summary>
+    private static string ValidName(string? name)
+    {
+        var trimmed = name?.Trim() ?? "";
+        return trimmed.Length is 0 or > MaxNameLength ? throw new BadInputException("bad_pet_name") : trimmed;
+    }
+
     private static PetDto ToDto(Pet pet, string login, int earned)
     {
         var level = PetRules.Level(earned);
         var stats = PetRules.StatsAt(new PetStart(pet.Class, new PetStats(pet.Strength, pet.Agility, pet.Intellect), pet.FirstMinor), level);
         return new PetDto(
-            pet.UserId, login, pet.Name, pet.Class, pet.HatchedAt is not null, level, earned, PetRules.NextLevelAt(level),
+            pet.UserId, login, pet.Name, pet.Named, pet.Variant, pet.Class, pet.HatchedAt is not null, level, earned, PetRules.NextLevelAt(level),
             stats.Strength, stats.Agility, stats.Intellect, stats.Health, stats.Damage, stats.Mana);
     }
 }
@@ -154,7 +183,7 @@ public static class PetEndpoints
 
         player.MapPut("/name", async (PetNameRequest body, ClaimsPrincipal user, PetService pets) =>
         {
-            await pets.RenameAsync(user.UserId()!.Value, body.Name);
+            await pets.NameByPlayerAsync(user.UserId()!.Value, body.Name);
             return Results.NoContent();
         });
 

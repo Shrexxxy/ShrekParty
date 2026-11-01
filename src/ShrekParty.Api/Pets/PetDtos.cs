@@ -3,10 +3,14 @@ namespace ShrekParty.Api.Pets;
 /// <summary>Питомец с уровнем и характеристиками на сейчас.</summary>
 /// <param name="Earned">Заработано за вечер — это опыт.</param>
 /// <param name="NextLevelAt">Сколько всего надо заработать до следующего уровня.</param>
+/// <param name="Named">Игрок уже дал имя — второй раз нельзя.</param>
+/// <param name="Variant">Какой из 5 рисунков класса (1–5): по нему картинка питомца и цвет яйца.</param>
 public record PetDto(
     Guid UserId,
     string Login,
     string Name,
+    bool Named,
+    int Variant,
     PetClass Class,
     bool Hatched,
     int Level,

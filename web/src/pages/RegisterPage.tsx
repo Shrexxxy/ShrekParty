@@ -103,9 +103,7 @@ export function RegisterPage() {
       saveProgress(null)
       setMe(me)
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'weak') {
-        setError('Всё ещё слишком простой. Длиннее, разные слова, цифры и символы')
-      } else if (err instanceof ApiError && err.code === 'same') {
+      if (err instanceof ApiError && err.code === 'same') {
         setError('Это тот же пароль 🙂 Придумай новый')
       } else if (err instanceof ApiError && (err.status === 404 || err.status === 409)) {
         // Попытку стёрли (сброс) или она уже завершена — начинаем заново.

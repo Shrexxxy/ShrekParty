@@ -43,7 +43,7 @@ public class RegistrationFlowTests : IDisposable
     }
 
     [Fact]
-    public async Task Complete_with_weak_password_returns_weak()
+    public async Task Complete_with_weak_password_creates_player()
     {
         await _factory.OpenRegistrationAsync();
         var client = TestClients.Anonymous(_factory);
@@ -51,9 +51,8 @@ public class RegistrationFlowTests : IDisposable
 
         var complete = await CompleteAsync(client, attempt, "qwerty123");
 
-        complete.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ErrorAsync(complete)).Should().Be("weak");
-        (await PlayersCountAsync()).Should().Be(0);
+        complete.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PlayersCountAsync()).Should().Be(1);
     }
 
     [Fact]

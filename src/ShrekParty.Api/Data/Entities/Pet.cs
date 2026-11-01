@@ -13,8 +13,14 @@ public class Pet
     /// <summary>Кличка.</summary>
     public required string Name { get; set; }
 
+    /// <summary>Игрок уже дал кличку — второй раз нельзя (ведущий может всегда).</summary>
+    public bool Named { get; set; }
+
     /// <summary>Класс — по ведущей характеристике.</summary>
     public PetClass Class { get; set; }
+
+    /// <summary>Рисунок внутри класса, 1–<see cref="PetRules.Variants"/>: картинка питомца и цвет яйца.</summary>
+    public int Variant { get; set; }
 
     /// <summary>Сила при вылуплении.</summary>
     public int Strength { get; set; }

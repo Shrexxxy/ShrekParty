@@ -15,6 +15,16 @@ export const CLASS_ICONS: Record<PetClass, IconName> = {
   Mage: 'spark',
 }
 
+/** Картинка питомца: свой рисунок внутри класса. */
+export function petArt(pet: PetDto): string {
+  return `/assets/pets/${pet.class.toLowerCase()}-${pet.variant}.png`
+}
+
+/** Яйцо того же цвета, что и питомец из него. */
+export function eggArt(pet: PetDto): string {
+  return `/assets/pets/egg-${pet.class.toLowerCase()}-${pet.variant}.png`
+}
+
 /** Тапов, чтобы вылупился, — столько же ждёт сервер. */
 export const EGG_TAPS = 15
 
