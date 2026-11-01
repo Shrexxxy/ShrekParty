@@ -41,7 +41,7 @@ public class EventEngine(
         EventType.Tournament or EventType.Laugh or EventType.HideAndSeek or EventType.Quiz => 100,
         EventType.PhotoHunt => 20,
         EventType.Reaction or EventType.Tapper or EventType.Days => 30,
-        EventType.NeuroPhoto => 50,
+        EventType.NeuroPhoto or EventType.Mafia => 50,
         _ => 0,
     };
 

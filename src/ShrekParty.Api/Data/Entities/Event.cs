@@ -48,6 +48,9 @@ public enum EventType
 
     /// <summary>Аукцион после церемонии, ослики не даёт.</summary>
     Auction,
+
+    /// <summary>Мафия; ведёт именинник.</summary>
+    Mafia,
 }
 
 /// <summary>

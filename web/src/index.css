@@ -2317,3 +2317,104 @@ details summary {
 .auction-lot-row input {
   min-width: 0;
 }
+
+/* Мафия */
+.mafia {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.mafia-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.mafia.tv .mafia-head {
+  font-size: clamp(28px, 4vw, 64px);
+}
+
+.mafia-news {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mafia.tv .mafia-news {
+  font-size: clamp(28px, 3.6vw, 60px);
+}
+
+.mafia-table {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mafia-seat {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px;
+  min-width: 80px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.mafia.tv .mafia-seat {
+  font-size: clamp(16px, 1.8vw, 28px);
+}
+
+.mafia-seat.dead {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.mafia-seat.speaking {
+  outline: 3px solid var(--ogre-bright);
+}
+
+.mafia-role {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mafia-role.mafia {
+  background: rgba(255, 107, 91, 0.4);
+}
+
+.mafia-role.doctor,
+.mafia-role.commissar {
+  background: rgba(139, 195, 74, 0.35);
+}
+
+/* Роль видна только пока держишь палец — соседи не подсмотрят. */
+.mafia-role-card {
+  min-height: 120px;
+  font-size: 18px;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.mafia-role-card.shown {
+  background: var(--swamp);
+}
+
+.mafia-role-inside {
+  display: grid;
+  gap: 6px;
+}
+
+.mafia-role-inside b {
+  font-size: 28px;
+}
+
+.mafia-votes {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}

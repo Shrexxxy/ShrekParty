@@ -12,6 +12,7 @@ export const EVENT_TYPE_LABELS: Partial<Record<EventType, string>> = {
   Days: 'Сколько мне дней',
   NeuroPhoto: 'Угадай по нейрофото',
   Quiz: 'Своя игра',
+  Mafia: 'Мафия',
   Ceremony: 'Церемония',
   Auction: 'Аукцион',
 }

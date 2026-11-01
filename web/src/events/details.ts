@@ -234,3 +234,29 @@ export interface AuctionDetails {
   myBalance: number | null
   sales: { lotName: string; login: string; price: number }[]
 }
+
+export interface MafiaDetails {
+  phase: import('./mafia').MafiaPhase
+  day: number
+  /** Номер перехода — пульт шлёт его с «Дальше». */
+  step: number
+  deadline: string | null
+  players: { userId: string; login: string; avatarUrl: string | null; alive: boolean; role: import('./mafia').MafiaRole | null }[]
+  myRole: import('./mafia').MafiaRole | null
+  iAmAlive: boolean
+  partners: string[]
+  myNightTarget: string | null
+  /** Ведущему — все ходы, мафии — ходы напарников. */
+  nightActions: { userId: string; targetId: string }[]
+  checks: { day: number; targetId: string; isMafia: boolean }[]
+  lastHeal: string | null
+  speakerId: string | null
+  speechQueue: string[]
+  votedCount: number
+  iVoted: boolean
+  /** После голосования — всем, ведущему — сразу. */
+  votes: { voterId: string; targetId: string | null }[]
+  eliminated: { userId: string; role: import('./mafia').MafiaRole } | null
+  nightVictim: string | null
+  winner: 'Civilians' | 'Mafia' | null
+}

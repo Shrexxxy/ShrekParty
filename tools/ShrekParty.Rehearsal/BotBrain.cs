@@ -45,8 +45,74 @@ public static class BotBrain
             "NeuroPhoto" => Neuro(id, details, random, done),
             "Quiz" => Quiz(id, details, me, random, done),
             "Auction" => Auction(id, details, me, random, done),
+            "Mafia" => Mafia(id, details, me, random, done),
             _ => [],
         };
+    }
+
+    private static IEnumerable<BotAction> Mafia(string id, JsonElement details, Guid me, Random random, ISet<string> done)
+    {
+        var phase = details.GetProperty("phase").GetString();
+        var day = details.GetProperty("day").GetInt32();
+        if (!details.GetProperty("iAmAlive").GetBoolean())
+        {
+            yield break;
+        }
+
+        var players = details.GetProperty("players").EnumerateArray().ToList();
+        var others = players.Where(p => p.GetProperty("alive").GetBoolean() && p.GetProperty("userId").GetGuid() != me)
+            .Select(p => (Id: p.GetProperty("userId").GetGuid(), Login: p.GetProperty("login").GetString()))
+            .ToList();
+
+        if (phase == "Speech" && details.GetProperty("speakerId") is { ValueKind: JsonValueKind.String } speaker && speaker.GetGuid() == me
+            && done.Add($"mafia-speech:{id}:{day}"))
+        {
+            yield return new BotAction("закончил речь", HttpMethod.Post, $"/api/mafia/{id}/speech-done");
+        }
+
+        if (phase == "Voting" && !details.GetProperty("iVoted").GetBoolean() && others.Count > 0 && done.Add($"mafia-vote:{id}:{day}"))
+        {
+            var (targetId, login) = others[random.Next(others.Count)];
+            yield return new BotAction($"голосую против {login}", HttpMethod.Post, $"/api/mafia/{id}/vote", new { targetId });
+        }
+
+        if (phase != "Night" || others.Count == 0)
+        {
+            yield break;
+        }
+
+        var role = details.GetProperty("myRole").GetString();
+        var partners = details.GetProperty("partners").EnumerateArray().Select(p => p.GetGuid()).ToHashSet();
+        var mine = details.GetProperty("myNightTarget") is { ValueKind: JsonValueKind.String } t ? t.GetGuid() : (Guid?)null;
+        var candidates = role switch
+        {
+            "Mafia" => others.Where(o => !partners.Contains(o.Id)).ToList(),
+            "Doctor" => others.Where(o => !(details.GetProperty("lastHeal") is { ValueKind: JsonValueKind.String } h && h.GetGuid() == o.Id)).ToList(),
+            _ => others,
+        };
+        if (candidates.Count == 0)
+        {
+            yield break;
+        }
+
+        if (role == "Mafia")
+        {
+            // Чтобы не меняться жертвами по кругу: тот, у кого id больше, повторяет выбор напарника.
+            var partnerTarget = details.GetProperty("nightActions").EnumerateArray().Select(a => a.GetProperty("targetId").GetGuid()).Cast<Guid?>().FirstOrDefault();
+            var follower = partners.Any(p => p.CompareTo(me) < 0);
+            var target = follower && partnerTarget is { } pt ? pt : mine ?? candidates[random.Next(candidates.Count)].Id;
+            if (target != mine && done.Add($"mafia-night:{id}:{day}:{target}"))
+            {
+                yield return new BotAction("ночью выбираю жертву", HttpMethod.Post, $"/api/mafia/{id}/night", new { targetId = target });
+            }
+
+            yield break;
+        }
+
+        if (mine is null && done.Add($"mafia-night:{id}:{day}"))
+        {
+            yield return new BotAction("ночной ход", HttpMethod.Post, $"/api/mafia/{id}/night", new { targetId = candidates[random.Next(candidates.Count)].Id });
+        }
     }
 
     private static IEnumerable<BotAction> Auction(string id, JsonElement details, Guid me, Random random, ISet<string> done)

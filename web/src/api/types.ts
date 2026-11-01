@@ -17,6 +17,7 @@ export type EventType =
   | 'NeuroPhoto'
   | 'Quiz'
   | 'Auction'
+  | 'Mafia'
 export type EventStatus = 'Draft' | 'Active' | 'Finished'
 export type ScoringScheme = 'Linear' | 'Podium' | 'Custom'
 

@@ -134,6 +134,28 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_play_mafia_day_and_night()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(6);
+        var admin = await TestClients.AdminAsync(_factory);
+        var id = await StartAsync(admin, "Mafia");
+
+        // Ведущий жмёт «Дальше» только на знакомстве, утре и итогах; речи, голоса и ночь боты делают сами.
+        await WaitUntilAsync(async () =>
+        {
+            var details = await DetailsAsync(admin);
+            var phase = details.GetProperty("phase").GetString();
+            if (phase is "Intro" or "Morning" or "VoteResult" or "LastWord" && details.GetProperty("day").GetInt32() < 2)
+            {
+                await admin.PostAsync($"/api/admin/mafia/{id}/next", null);
+            }
+
+            return details.GetProperty("day").GetInt32() >= 2 || phase == "Ended";
+        }, timeoutMs: 20_000);
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

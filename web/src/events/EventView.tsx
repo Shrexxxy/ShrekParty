@@ -8,6 +8,7 @@ import type {
   DaysDetails,
   HideDetails,
   LaughDetails,
+  MafiaDetails,
   NeuroDetails,
   PhotoHuntDetails,
   PollDetails,
@@ -18,6 +19,7 @@ import type {
 } from './details'
 import { HideView } from './HideView'
 import { LaughView } from './LaughView'
+import { MafiaView } from './MafiaView'
 import { NeuroView } from './NeuroView'
 import { PhotoView } from './PhotoView'
 import { PollView } from './PollView'
@@ -48,6 +50,8 @@ export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventD
       return <TapperView eventId={event.id} details={details as TapperDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Days':
       return <DaysView eventId={event.id} details={details as DaysDetails} serverTime={serverTime} tv={tv} />
+    case 'Mafia':
+      return <MafiaView eventId={event.id} details={details as MafiaDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Auction':
       return <AuctionView eventId={event.id} details={details as AuctionDetails} serverTime={serverTime} myId={myId} tv={tv} />
     case 'Quiz':
