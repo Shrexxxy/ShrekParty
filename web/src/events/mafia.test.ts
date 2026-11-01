@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MafiaDetails } from './details'
-import { myStatus, nightLocked, nightOptions, phaseTitle, ROLE_NAMES, voteTally } from './mafia'
+import { bonusSheet, myStatus, nightOptions, phaseTitle, ROLE_NAMES, voteTally } from './mafia'
 
 const player = (userId: string, alive = true) => ({ userId, login: userId, avatarUrl: null, alive, role: null })
 
@@ -26,9 +26,47 @@ function details(over: Partial<MafiaDetails>): MafiaDetails {
     eliminated: null,
     nightVictim: null,
     winner: null,
+    myTasksDone: 0,
+    tasksTotal: 0,
+    tasks: [],
+    bonuses: [],
+    winDonkeys: 25,
     ...over,
   }
 }
+
+describe('bonusSheet', () => {
+  const players = [
+    { userId: 'm', login: 'Осёл', avatarUrl: null, alive: true, role: 'Mafia' as const },
+    { userId: 'c', login: 'Кот', avatarUrl: null, alive: false, role: 'Civilian' as const },
+    { userId: 'd', login: 'Фиона', avatarUrl: null, alive: true, role: 'Doctor' as const },
+  ]
+
+  it('по игроку: победа, бонусы строками «кол-во × цена = сумма», итог; больше — выше', () => {
+    const sheet = bonusSheet(
+      details({
+        players,
+        winner: 'Civilians',
+        winDonkeys: 25,
+        bonuses: [
+          { userId: 'm', kind: 'Kill', count: 2, amount: 20 },
+          { userId: 'c', kind: 'Tasks', count: 7, amount: 7 },
+          { userId: 'c', kind: 'Oust', count: 1, amount: 10 },
+        ],
+      }),
+    )
+
+    expect(sheet.map((r) => r.login)).toEqual(['Кот', 'Фиона', 'Осёл'])
+    expect(sheet[0]).toMatchObject({ role: 'Civilian', win: 25, total: 42 })
+    expect(sheet[0].lines).toEqual(['Задания: 7 × 1 = 7', 'Посадки: 1 × 10 = 10'])
+    expect(sheet[1]).toMatchObject({ win: 25, total: 25, lines: [] })
+    expect(sheet[2]).toMatchObject({ win: 0, total: 20, lines: ['Убийства: 2 × 10 = 20'] })
+  })
+
+  it('пока нет победителя — за победу 0', () => {
+    expect(bonusSheet(details({ players, winDonkeys: 25 })).every((r) => r.win === 0)).toBe(true)
+  })
+})
 
 describe('myStatus', () => {
   it('без роли — не в партии, иначе жив или выбыл', () => {
@@ -47,14 +85,6 @@ describe('nightOptions', () => {
     expect(ids(details({ myRole: 'Doctor', lastHeal: 'h' }))).toEqual(['p', 'x'])
   })
 
-})
-
-describe('nightLocked', () => {
-  it('комиссар после проверки больше не выбирает — список остаётся, но тапы молча игнорируются', () => {
-    expect(nightLocked(details({ myRole: 'Commissar', myNightTarget: 'x' }))).toBe(true)
-    expect(nightLocked(details({ myRole: 'Commissar' }))).toBe(false)
-    expect(nightLocked(details({ myRole: 'Doctor', myNightTarget: 'x' }))).toBe(false)
-  })
 })
 
 describe('phaseTitle', () => {

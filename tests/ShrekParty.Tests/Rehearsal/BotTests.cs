@@ -141,9 +141,11 @@ public class BotTests : IAsyncDisposable
         var admin = await TestClients.AdminAsync(_factory);
         var id = await StartAsync(admin, "Mafia");
 
-        // Ведущий жмёт «Дальше» только на знакомстве, утре и итогах; речи, голоса и ночь боты делают сами.
+        // Ведущий жмёт «Дальше» только на знакомстве, утре и итогах; речи, голоса и ночь (с заданиями) боты делают сами.
         await WaitUntilAsync(async () =>
         {
+            // Задания не чаще раза в 1,5 с по серверным часам — двигаем их; без тика фазы по таймеру не сменятся.
+            _factory.Time.Advance(TimeSpan.FromSeconds(2));
             var details = await DetailsAsync(admin);
             var phase = details.GetProperty("phase").GetString();
             if (phase is "Intro" or "Morning" or "VoteResult" or "LastWord" && details.GetProperty("day").GetInt32() < 2)
@@ -152,7 +154,11 @@ public class BotTests : IAsyncDisposable
             }
 
             return details.GetProperty("day").GetInt32() >= 2 || phase == "Ended";
-        }, timeoutMs: 20_000);
+        }, timeoutMs: 60_000);
+
+        // Ночь кончилась досрочно, потому что мирные боты сделали задания, — ослики за них в копилке.
+        (await DetailsAsync(admin)).GetProperty("bonuses").EnumerateArray()
+            .Should().Contain(b => b.GetProperty("kind").GetString() == "Tasks" && b.GetProperty("count").GetInt32() == 5);
     }
 
     [Fact]

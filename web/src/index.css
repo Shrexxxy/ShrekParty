@@ -2418,3 +2418,121 @@ details summary {
   gap: 4px;
   text-align: left;
 }
+
+/* Ночные задания мафии: одним пальцем, без звука. */
+.mafia-tasks {
+  display: grid;
+  gap: 8px;
+}
+
+.mafia-task {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  border-radius: var(--radius);
+  background: var(--card);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.task-onion-bulb {
+  font-size: 150px;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.task-fly {
+  position: absolute;
+  padding: 6px;
+  font-size: 32px;
+  background: none;
+  border: none;
+  transform: translate(-50%, -50%);
+  animation: task-fly-crawl 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes task-fly-crawl {
+  from {
+    translate: -14px -8px;
+  }
+  to {
+    translate: 14px 10px;
+  }
+}
+
+.task-flies-hint,
+.task-ginger-hint {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+}
+
+.task-ginger {
+  width: min(100%, 300px);
+  margin: 0 auto;
+  min-height: 0;
+}
+
+.task-ginger-body,
+.task-ginger-slot,
+.task-ginger-part {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.task-ginger-body {
+  font-size: 120px;
+  opacity: 0.35;
+}
+
+.task-ginger-slot {
+  width: 64px;
+  height: 40px;
+  border: 2px dashed var(--muted);
+  border-radius: 10px;
+}
+
+.task-ginger-part {
+  padding: 8px 6px;
+  font-size: 14px;
+  border-radius: 10px;
+  background: var(--mud);
+  font-weight: 800;
+  cursor: grab;
+}
+
+.task-ginger-part.placed {
+  background: var(--ogre);
+  color: var(--swamp-dark);
+}
+
+.mafia-bonuses {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.mafia-bonus-row {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.mafia.tv .mafia-bonus-row {
+  font-size: clamp(16px, 1.6vw, 26px);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ogre-bright);
+  text-decoration: underline;
+}

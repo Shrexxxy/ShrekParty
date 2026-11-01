@@ -146,6 +146,7 @@ public sealed class Bot(string login, BotOptions options, BotTransport transport
                 foreach (var action in BotBrain.Decide(active, UserId!.Value, random, _done))
                 {
                     await PauseAsync(ct);
+                    await Task.Delay(action.DelayMs, ct);
                     await DoAsync(http, action, ct);
                 }
             }

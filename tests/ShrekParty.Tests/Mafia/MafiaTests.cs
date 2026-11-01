@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AwesomeAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using ShrekParty.Api.Data;
 using ShrekParty.Api.Donkeys;
 using ShrekParty.Api.Events;
 using ShrekParty.Tests.Infrastructure;
@@ -182,41 +185,6 @@ public class MafiaTests : IDisposable
     }
 
     [Fact]
-    public async Task Civilian_pick_has_no_effect()
-    {
-        await SeedAsync(Six);
-        var (id, admin) = await ToNightAsync();
-        var roles = await RolesAsync(admin);
-        var civilians = roles.Where(r => r.Value.Role == "Civilian").Select(r => r.Key).ToList();
-
-        await NightOkAsync(civilians[0], id, roles[civilians[1]].Id);
-        await AdvanceAsync(TimeSpan.FromSeconds(60));
-
-        Alive(await DetailsAsync(admin)).Should().HaveCount(6);
-    }
-
-    [Fact]
-    public async Task Night_ends_early_when_all_acted()
-    {
-        await SeedAsync(Six);
-        var (id, admin) = await ToNightAsync();
-        var roles = await RolesAsync(admin);
-        var victim = roles[roles.Keys.First(k => roles[k].Role == "Civilian")].Id;
-        foreach (var (login, info) in roles)
-        {
-            var target = info.Role switch
-            {
-                "Mafia" => victim,
-                "Doctor" or "Commissar" => roles[roles.Keys.First(k => roles[k].Role == "Mafia")].Id,
-                _ => roles[roles.Keys.First(k => k != login)].Id,
-            };
-            await NightOkAsync(login, id, target);
-        }
-
-        (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Morning");
-    }
-
-    [Fact]
     public async Task Dead_cannot_act()
     {
         await SeedAsync(Six);
@@ -382,32 +350,6 @@ public class MafiaTests : IDisposable
     }
 
     [Fact]
-    public async Task Civilians_win_and_rank()
-    {
-        await SeedAsync(Six);
-        var (id, admin) = await ToVotingAsync();
-        var roles = await RolesAsync(admin);
-        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
-
-        // Голосование → последнее слово → ночь (никого не трогаем) → утро → речи → второе голосование.
-        await EliminateAsync(admin, id, mafia[0]);
-        await NextAsync(admin, id);
-        await NextAsync(admin, id);
-        await SkipSpeechesAsync(admin, id);
-        await EliminateAsync(admin, id, mafia[1]);
-
-        var details = await DetailsAsync(await TestClients.ViewerAsync(_factory));
-        details.GetProperty("phase").GetString().Should().Be("Ended");
-        details.GetProperty("winner").GetString().Should().Be("Civilians");
-        VisibleRoles(details).Should().HaveCount(6);
-
-        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
-        var tab = await TabAsync(admin, id);
-        mafia.Should().OnlyContain(m => tab[m] == 25);
-        Six.Except(mafia).Should().OnlyContain(c => tab[c] == 50);
-    }
-
-    [Fact]
     public async Task Mafia_win_when_equal_to_others()
     {
         await SeedAsync("Ann", "Bob", "Cid", "Dan", "Eve");
@@ -428,6 +370,286 @@ public class MafiaTests : IDisposable
         details.GetProperty("phase").GetString().Should().Be("Ended");
         details.GetProperty("winner").GetString().Should().Be("Mafia");
     }
+
+    #region Задания и ослики
+
+    [Fact]
+    public async Task Civilian_does_five_tasks_and_gets_one_each()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var civilian = Role(roles, "Civilian");
+
+        for (var i = 0; i < 5; i++)
+        {
+            await TaskOkAsync(civilian, id);
+        }
+
+        (await TaskAsync(civilian, id)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await DetailsAsync(await PlayerAsync(civilian))).GetProperty("myTasksDone").GetInt32().Should().Be(5);
+        await NextAsync(admin, id);
+        Bonus(await DetailsAsync(await PlayerAsync(civilian)), roles[civilian].Id, "Tasks").Should().Be((5, 5));
+    }
+
+    [Fact]
+    public async Task Task_too_fast_rejected()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var civilian = Role(await RolesAsync(admin), "Civilian");
+
+        (await TaskAsync(civilian, id)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await TaskAsync(civilian, id)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Role_tasks_count_but_give_nothing()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var doctor = Role(await RolesAsync(admin), "Doctor");
+
+        await TaskOkAsync(doctor, id);
+        await TaskOkAsync(doctor, id);
+
+        (await DetailsAsync(await PlayerAsync(doctor))).GetProperty("myTasksDone").GetInt32().Should().Be(2);
+        await NextAsync(admin, id);
+        (await DetailsAsync(admin)).GetProperty("bonuses").GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task No_tasks_outside_night_or_when_dead()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToSpeechAsync();
+        (await TaskAsync("Ann", id)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await NextNightAsync(admin, id, fromSpeech: true);
+        var roles = await RolesAsync(admin);
+        var victim = Role(roles, "Civilian");
+        await KillAsync(roles, id, victim);
+        await NextNightAsync(admin, id);
+
+        (await TaskAsync(victim, id)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Civilian_has_no_night_action()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var civilians = roles.Where(r => r.Value.Role == "Civilian").Select(r => r.Key).ToList();
+
+        (await NightAsync(civilians[0], id, roles[civilians[1]].Id)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Night_ends_early_when_roles_acted_and_civilians_did_five()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
+        var civilians = roles.Where(r => r.Value.Role == "Civilian").Select(r => r.Key).ToList();
+        await KillAsync(roles, id, civilians[0]);
+        await NightOkAsync(Role(roles, "Doctor"), id, roles[mafia[0]].Id);
+        await NightOkAsync(Role(roles, "Commissar"), id, roles[mafia[0]].Id);
+        foreach (var civilian in civilians)
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Night");
+                await TaskOkAsync(civilian, id);
+            }
+        }
+
+        (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Morning");
+    }
+
+    [Fact]
+    public async Task Kill_gives_ten_to_each_alive_mafia()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
+        var civilians = roles.Where(r => r.Value.Role == "Civilian").Select(r => r.Key).ToList();
+        await KillAsync(roles, id, civilians[0]);
+        await NextAsync(admin, id);
+        await NextAsync(admin, id);
+        await SkipSpeechesAsync(admin, id);
+
+        // Первую мафию выгнали — за второе убийство она уже ничего не получает.
+        await EliminateAsync(admin, id, mafia[0]);
+        await KillAsync(roles, id, civilians[1]);
+        await NextAsync(admin, id);
+
+        var details = await DetailsAsync(admin);
+        Bonus(details, roles[mafia[0]].Id, "Kill").Should().Be((1, 10));
+        Bonus(details, roles[mafia[1]].Id, "Kill").Should().Be((2, 20));
+    }
+
+    [Fact]
+    public async Task Doctor_save_gives_fifteen_and_mafia_nothing()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var victim = Role(roles, "Civilian");
+        await KillAsync(roles, id, victim);
+        await NightOkAsync(Role(roles, "Doctor"), id, roles[victim].Id);
+
+        await NextAsync(admin, id);
+
+        var details = await DetailsAsync(admin);
+        Bonus(details, roles[Role(roles, "Doctor")].Id, "Save").Should().Be((1, 15));
+        details.GetProperty("bonuses").EnumerateArray().Should().NotContain(b => b.GetProperty("kind").GetString() == "Kill");
+    }
+
+    [Fact]
+    public async Task Commissar_gets_ten_for_each_mafia_found_once()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var commissar = Role(roles, "Commissar");
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => roles[r.Key].Id).ToList();
+
+        await NightOkAsync(commissar, id, mafia[0]);
+        await NextNightAsync(admin, id);
+        await NightOkAsync(commissar, id, mafia[0]);
+        await NextNightAsync(admin, id);
+        await NightOkAsync(commissar, id, roles[Role(roles, "Doctor")].Id);
+        await NextNightAsync(admin, id);
+        await NightOkAsync(commissar, id, mafia[1]);
+
+        Bonus(await DetailsAsync(admin), roles[commissar].Id, "Check").Should().Be((2, 20));
+    }
+
+    [Fact]
+    public async Task Oust_gives_ten_to_alive_non_mafia()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToVotingAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
+
+        await EliminateAsync(admin, id, mafia[0]);
+
+        var details = await DetailsAsync(admin);
+        foreach (var login in Six.Except(mafia))
+        {
+            Bonus(details, roles[login].Id, "Oust").Should().Be((1, 10));
+        }
+
+        Owners(details).Should().NotContain(mafia.Select(m => roles[m].Id));
+    }
+
+    [Fact]
+    public async Task Finish_after_win_writes_win_and_bonus_rows()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
+        var dead = Role(roles, "Civilian");
+
+        // Ночью убит мирный, днём выгнали первую мафию, следующей ночью никого, вторым днём — вторую.
+        await KillAsync(roles, id, dead);
+        await NextAsync(admin, id);
+        await NextAsync(admin, id);
+        await SkipSpeechesAsync(admin, id);
+        await EliminateAsync(admin, id, mafia[0]);
+        await NextAsync(admin, id);
+        await NextAsync(admin, id);
+        await SkipSpeechesAsync(admin, id);
+        await EliminateAsync(admin, id, mafia[1]);
+        var ended = await DetailsAsync(await TestClients.ViewerAsync(_factory));
+        ended.GetProperty("winner").GetString().Should().Be("Civilians");
+        ended.GetProperty("winDonkeys").GetInt32().Should().Be(25);
+        Owners(ended).Should().HaveCount(5);
+
+        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
+
+        var rows = await RowsAsync(id);
+        foreach (var login in Six.Except(mafia))
+        {
+            rows.Should().Contain((login, "Мафия: победа", 25));
+        }
+
+        rows.Should().Contain((Role(roles, "Doctor"), "Мафия: посадки", 20));
+        rows.Should().Contain((mafia[0], "Мафия: убийства", 10));
+        rows.Should().NotContain(r => r.Login == dead && r.Reason == "Мафия: посадки");
+        rows.Should().NotContain(r => mafia.Contains(r.Login) && r.Reason == "Мафия: победа");
+    }
+
+    [Fact]
+    public async Task Finish_without_winner_writes_only_bonuses()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key).ToList();
+        await KillAsync(roles, id, Role(roles, "Civilian"));
+        await NextAsync(admin, id);
+
+        (await admin.PostAsync($"/api/admin/events/{id}/finish", null)).EnsureSuccessStatusCode();
+
+        (await RowsAsync(id)).Should().BeEquivalentTo(mafia.Select(m => (m, "Мафия: убийства", 10)));
+    }
+
+    [Fact]
+    public async Task Bonuses_visible_only_to_owner_admin_and_in_the_end()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToNightAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = Role(roles, "Mafia");
+        var civilian = Role(roles, "Civilian");
+        await TaskOkAsync(civilian, id);
+        await TaskOkAsync(mafia, id);
+        var tv = await TestClients.ViewerAsync(_factory);
+        (await DetailsAsync(tv)).GetProperty("tasksTotal").GetInt32().Should().Be(2);
+        (await DetailsAsync(tv)).GetProperty("tasks").GetArrayLength().Should().Be(0);
+        (await DetailsAsync(admin)).GetProperty("tasks").GetArrayLength().Should().Be(2);
+        await KillAsync(roles, id, Role(roles, "Doctor"));
+
+        await NextAsync(admin, id);
+
+        // Убийство — обеим мафиям, задание — мирному: у ведущего трое, у каждого — только своё.
+        Owners(await DetailsAsync(await PlayerAsync(mafia))).Should().Equal(roles[mafia].Id);
+        Owners(await DetailsAsync(await PlayerAsync(civilian))).Should().Equal(roles[civilian].Id);
+        Owners(await DetailsAsync(tv)).Should().BeEmpty();
+        Owners(await DetailsAsync(admin)).Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task Finish_counts_bonus_saved_after_engine_read_event()
+    {
+        await SeedAsync(Six);
+        var (id, admin) = await ToVotingAsync();
+        var roles = await RolesAsync(admin);
+        var mafia = Role(roles, "Mafia");
+        var voters = Six.Where(l => l != mafia).ToList();
+        foreach (var voter in voters.Skip(1))
+        {
+            await VoteOkAsync(voter, id, roles[mafia].Id);
+        }
+
+        // Движок уже прочитал ивент, когда пришёл последний голос: посадка мафии должна попасть в начисление.
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Events.FindAsync(id);
+        await VoteOkAsync(voters[0], id, roles[mafia].Id);
+        await VoteOkAsync(mafia, id, null);
+        await scope.ServiceProvider.GetRequiredService<EventEngine>().FinishAsync(id);
+
+        (await RowsAsync(id)).Should().Contain((Role(roles, "Doctor"), "Мафия: посадки", 10));
+    }
+
+    #endregion
 
     [Fact]
     public async Task Player_cannot_press_next()
@@ -549,6 +771,44 @@ public class MafiaTests : IDisposable
 
     private async Task VoteOkAsync(string login, Guid id, Guid? targetId) =>
         (await VoteAsync(login, id, targetId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+    private async Task<HttpResponseMessage> TaskAsync(string login, Guid id) =>
+        await (await PlayerAsync(login)).PostAsync($"/api/mafia/{id}/task-done", null);
+
+    /// <summary>Задание сделано, и прошло 2 с — следующее уже не «слишком быстро».</summary>
+    private async Task TaskOkAsync(string login, Guid id)
+    {
+        (await TaskAsync(login, id)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        await AdvanceAsync(TimeSpan.FromSeconds(2));
+    }
+
+    /// <summary>Все живые мафии выбирают жертву (выбывшая получит 409 — её пропускаем).</summary>
+    private async Task KillAsync(Dictionary<string, (Guid Id, string Role)> roles, Guid id, string victim)
+    {
+        foreach (var mafia in roles.Where(r => r.Value.Role == "Mafia").Select(r => r.Key))
+        {
+            await NightAsync(mafia, id, roles[victim].Id);
+        }
+    }
+
+    private static (int Count, int Amount) Bonus(JsonElement details, Guid userId, string kind) =>
+        details.GetProperty("bonuses").EnumerateArray()
+            .Where(b => b.GetProperty("userId").GetGuid() == userId && b.GetProperty("kind").GetString() == kind)
+            .Select(b => (b.GetProperty("count").GetInt32(), b.GetProperty("amount").GetInt32()))
+            .SingleOrDefault();
+
+    private static List<Guid> Owners(JsonElement details) =>
+        details.GetProperty("bonuses").EnumerateArray().Select(b => b.GetProperty("userId").GetGuid()).Distinct().ToList();
+
+    private async Task<List<(string Login, string Reason, int Amount)>> RowsAsync(Guid id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var rows = await db.DonkeyAwards.Where(a => a.EventId == id)
+            .Join(db.Users, a => a.UserId, u => u.Id, (a, u) => new { u.Login, a.Reason, a.Amount })
+            .ToListAsync();
+        return rows.Select(r => (r.Login, r.Reason, r.Amount)).ToList();
+    }
 
     private static async Task<JsonElement> DetailsAsync(HttpClient client) =>
         (await client.GetFromJsonAsync<JsonElement>("/api/events/active")).GetProperty("details");

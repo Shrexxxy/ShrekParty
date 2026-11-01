@@ -4,7 +4,8 @@ import { errorText } from '../admin/errors'
 import { Avatar } from '../components/Avatar'
 import { formatClock } from './countdown'
 import type { MafiaDetails } from './details'
-import { myStatus, nightLocked, nightOptions, phaseTitle, ROLE_NAMES, voteTally } from './mafia'
+import { myStatus, nightOptions, phaseTitle, ROLE_NAMES, voteTally } from './mafia'
+import { BonusSheet, NightTasks } from './MafiaTasks'
 import { useCountdown } from './useCountdown'
 
 type Player = MafiaDetails['players'][number]
@@ -82,6 +83,50 @@ function PickList({ players, selected, onPick }: { players: Player[]; selected: 
         </button>
       ))}
     </div>
+  )
+}
+
+/**
+ * Ночь на телефоне: мирный сразу делает задания; роль сначала выбирает, потом задания для вида (мафия и доктор могут передумать).
+ */
+function NightScreen({ eventId, details, myId, onPick }: { eventId: string; details: MafiaDetails; myId?: string; onPick: (id: string) => void }) {
+  const [changing, setChanging] = useState(false)
+  const role = details.myRole
+  const picking = role !== 'Civilian' && (details.myNightTarget === null || changing)
+
+  if (picking) {
+    return (
+      <>
+        <p>{role === 'Mafia' ? 'Кого убиваем?' : role === 'Doctor' ? 'Кого лечишь?' : 'Кого проверяешь?'}</p>
+        <PickList
+          players={nightOptions(details, myId)}
+          selected={details.myNightTarget}
+          onPick={(id) => {
+            onPick(id)
+            setChanging(false)
+          }}
+        />
+      </>
+    )
+  }
+
+  return (
+    <>
+      {role !== 'Civilian' && (
+        <small className="muted">
+          Выбор: {loginOf(details, details.myNightTarget)}
+          {role !== 'Commissar' && (
+            <>
+              {' · '}
+              <button className="link" onClick={() => setChanging(true)}>
+                сменить
+              </button>
+            </>
+          )}
+        </small>
+      )}
+      <NightTasks eventId={eventId} details={details} />
+    </>
   )
 }
 
@@ -177,8 +222,10 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
           </div>
         )}
         {phase === 'LastWord' && details.eliminated && <div className="mafia-news">Последнее слово: {loginOf(details, details.eliminated.userId)}</div>}
+        {phase === 'Night' && <div className="mafia-news">Выполнено заданий: {details.tasksTotal}</div>}
         <PhaseNews details={details} />
         <MafiaTable details={details} />
+        {phase === 'Ended' && <BonusSheet details={details} />}
       </div>
     )
   }
@@ -192,15 +239,8 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
 
       {phase === 'Intro' && status !== 'outside' && <p className="muted">Ночь знакомства. Мафия знакомится — подсмотри свою роль и жди утра.</p>}
 
-      {phase === 'Night' && details.iAmAlive && (
-        <>
-          <p>Выбери игрока</p>
-          <PickList
-            players={nightOptions(details, myId)}
-            selected={details.myNightTarget}
-            onPick={(id) => !nightLocked(details) && void send('night', { targetId: id })}
-          />
-        </>
+      {phase === 'Night' && status === 'alive' && (
+        <NightScreen details={details} myId={myId} onPick={(id) => void send('night', { targetId: id })} eventId={eventId} />
       )}
 
       {phase === 'Speech' &&
@@ -231,6 +271,13 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
 
       <PhaseNews details={details} />
       {phase === 'Ended' && <MafiaTable details={details} />}
+      {phase !== 'Ended' && details.bonuses.length > 0 && (
+        <details className="card">
+          <summary>Твои ослики за партию: 🫏 {details.bonuses.reduce((sum, b) => sum + b.amount, 0)}</summary>
+          <BonusSheet details={details} />
+        </details>
+      )}
+      {phase === 'Ended' && <BonusSheet details={details} />}
       {error && <p className="error">{error}</p>}
     </div>
   )

@@ -16,7 +16,7 @@ const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Days: 30,
   NeuroPhoto: 50,
   Quiz: 100,
-  Mafia: 50,
+  Mafia: 25,
 }
 const STATUS_LABELS = { Draft: '⏳', Active: '▶️ идёт', Finished: '✅' } as const
 
@@ -99,15 +99,18 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
       )}
       {WITH_DONKEYS.includes(type) && (
         <div className="row-2">
+          {/* В мафии мест нет: поле — сколько каждому победителю, бонусы считаются сами. */}
+          {type !== 'Mafia' && (
+            <label>
+              Схема
+              <select value={scheme} onChange={(e) => setScheme(e.target.value as ScoringScheme)}>
+                <option value="Linear">Линейная</option>
+                <option value="Podium">Призёры</option>
+              </select>
+            </label>
+          )}
           <label>
-            Схема
-            <select value={scheme} onChange={(e) => setScheme(e.target.value as ScoringScheme)}>
-              <option value="Linear">Линейная</option>
-              <option value="Podium">Призёры</option>
-            </select>
-          </label>
-          <label>
-            Макс. 🫏
+            {type === 'Mafia' ? 'За победу (каждому) 🫏' : 'Макс. 🫏'}
             <input
               type="number"
               inputMode="numeric"

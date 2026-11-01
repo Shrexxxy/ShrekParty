@@ -5,7 +5,8 @@ namespace ShrekParty.Rehearsal;
 /// <summary>Одно действие бота.</summary>
 /// <param name="Description">Строка в лог; пустая — частое действие (тапы), в лог только при ошибке.</param>
 /// <param name="Photo">Отправить сгенерированную картинку формой вместо JSON.</param>
-public record BotAction(string Description, HttpMethod Method, string Path, object? Body = null, bool Photo = false);
+/// <param name="DelayMs">Своя пауза перед действием — сверх обычной «человеческой» (задание делается не мгновенно).</param>
+public record BotAction(string Description, HttpMethod Method, string Path, object? Body = null, bool Photo = false, int DelayMs = 0);
 
 /// <summary>
 /// Что сделал бы гость, глядя на текущий ивент. Каждое решение — один раз (ключ в <c>done</c>).
@@ -18,6 +19,8 @@ public static class BotBrain
     private const double FalseStartChance = 0.1;
     private const double QuizPressChance = 0.8;
     private const double AuctionBidChance = 0.4;
+    private const int MafiaTasks = 5;
+    private const int TaskMs = 1600;
 
     private static readonly int[] AuctionSteps = [5, 10, 25];
 
@@ -82,6 +85,20 @@ public static class BotBrain
         }
 
         var role = details.GetProperty("myRole").GetString();
+        var tasks = details.GetProperty("myTasksDone").GetInt32();
+
+        // Задания — все живые (роли для вида). Сервер не берёт чаще раза в 1,5 с — бот «делает» задание 1,6 с.
+        // Без ключа в done: не прошло — следующий снапшот попробует снова, лишнее сервер сам отрежет лимитом.
+        if (tasks < MafiaTasks)
+        {
+            yield return new BotAction($"задание {tasks + 1}", HttpMethod.Post, $"/api/mafia/{id}/task-done", DelayMs: TaskMs);
+        }
+
+        if (role == "Civilian")
+        {
+            yield break;
+        }
+
         var partners = details.GetProperty("partners").EnumerateArray().Select(p => p.GetGuid()).ToHashSet();
         var mine = details.GetProperty("myNightTarget") is { ValueKind: JsonValueKind.String } t ? t.GetGuid() : (Guid?)null;
         var candidates = role switch
@@ -111,7 +128,7 @@ public static class BotBrain
 
         if (mine is null && done.Add($"mafia-night:{id}:{day}"))
         {
-            yield return new BotAction("ночной ход", HttpMethod.Post, $"/api/mafia/{id}/night", new { targetId = candidates[random.Next(candidates.Count)].Id });
+            yield return new BotAction(role == "Doctor" ? "лечу" : "проверяю", HttpMethod.Post, $"/api/mafia/{id}/night", new { targetId = candidates[random.Next(candidates.Count)].Id });
         }
     }
 

@@ -19,7 +19,7 @@ public record MafiaVoteRequest(Guid? TargetId);
 public class MafiaService(AppDbContext db, ILiveNotifier live, TimeProvider time)
 {
     /// <summary>
-    /// Ночной ход по роли: мафия — жертва, доктор — кого лечит, комиссар — кого проверяет, мирный — заглушка без последствий.
+    /// Ночной ход по роли: мафия — жертва, доктор — кого лечит, комиссар — кого проверяет; у мирного хода нет — у него задания.
     /// </summary>
     public Task NightAsync(Guid eventId, Guid userId, Guid targetId) => ChangeAsync(eventId, state =>
     {
@@ -31,8 +31,11 @@ public class MafiaService(AppDbContext db, ILiveNotifier live, TimeProvider time
         var me = AliveSeat(state, userId);
         var target = state.Seats.FirstOrDefault(s => s.UserId == targetId && s.Alive) ?? throw new BadInputException("bad_target");
         var checks = state.Checks;
+        var bonuses = state.Bonuses;
         switch (me.Role)
         {
+            case MafiaRole.Civilian:
+                throw new EventRuleException("no_night_action");
             case MafiaRole.Mafia when target.Role == MafiaRole.Mafia:
                 throw new BadInputException("bad_target");
             case MafiaRole.Doctor when target.UserId == userId || target.UserId == state.LastHeal:
@@ -47,6 +50,12 @@ public class MafiaService(AppDbContext db, ILiveNotifier live, TimeProvider time
                     throw new BadInputException("bad_target");
                 }
 
+                // Ослики — только за первую проверку каждой мафии.
+                if (target.Role == MafiaRole.Mafia && !checks.Any(c => c.TargetId == target.UserId))
+                {
+                    bonuses = [.. bonuses, new MafiaBonus(userId, MafiaBonusKind.Check, 1, MafiaModule.CheckDonkeys)];
+                }
+
                 checks = [.. checks, new MafiaCheck(state.Day, target.UserId, target.Role == MafiaRole.Mafia)];
                 break;
         }
@@ -55,8 +64,40 @@ public class MafiaService(AppDbContext db, ILiveNotifier live, TimeProvider time
         {
             NightActions = new Dictionary<Guid, Guid>(state.NightActions) { [userId] = targetId },
             Checks = checks,
+            Bonuses = bonuses,
         };
         return MafiaModule.NightComplete(next) ? MafiaModule.Advance(next, time.GetUtcNow()) : next;
+    });
+
+    /// <summary>
+    /// Ночное задание сделано: до пяти за ночь, не чаще раза в полторы секунды. У ролей считается для вида, ослики — только мирным.
+    /// </summary>
+    public Task TaskDoneAsync(Guid eventId, Guid userId) => ChangeAsync(eventId, state =>
+    {
+        if (state.Phase != MafiaPhase.Night)
+        {
+            throw new EventRuleException("not_night");
+        }
+
+        AliveSeat(state, userId);
+        var done = state.Tasks.GetValueOrDefault(userId);
+        if (done >= MafiaModule.MaxTasks)
+        {
+            throw new EventRuleException("tasks_done");
+        }
+
+        var now = time.GetUtcNow();
+        if (state.TaskAt.TryGetValue(userId, out var last) && now - last < MafiaModule.TaskInterval)
+        {
+            throw new EventRuleException("too_fast");
+        }
+
+        var next = state with
+        {
+            Tasks = new Dictionary<Guid, int>(state.Tasks) { [userId] = done + 1 },
+            TaskAt = new Dictionary<Guid, DateTimeOffset>(state.TaskAt) { [userId] = now },
+        };
+        return MafiaModule.NightComplete(next) ? MafiaModule.Advance(next, now) : next;
     });
 
     /// <summary>
@@ -132,7 +173,7 @@ public class MafiaService(AppDbContext db, ILiveNotifier live, TimeProvider time
 public static class MafiaEndpoints
 {
     /// <summary>
-    /// <c>/api/mafia/{id}/night|vote|speech-done</c> (игрок), <c>/api/admin/mafia/{id}/next</c> (ведущий).
+    /// <c>/api/mafia/{id}/night|task-done|vote|speech-done</c> (игрок), <c>/api/admin/mafia/{id}/next</c> (ведущий).
     /// </summary>
     public static IEndpointRouteBuilder MapMafia(this IEndpointRouteBuilder app)
     {
@@ -148,6 +189,12 @@ public static class MafiaEndpoints
         player.MapPost("/vote", async (Guid id, MafiaVoteRequest body, ClaimsPrincipal user, MafiaService mafia) =>
         {
             await mafia.VoteAsync(id, user.UserId()!.Value, body.TargetId);
+            return Results.NoContent();
+        });
+
+        player.MapPost("/task-done", async (Guid id, ClaimsPrincipal user, MafiaService mafia) =>
+        {
+            await mafia.TaskDoneAsync(id, user.UserId()!.Value);
             return Results.NoContent();
         });
 

@@ -259,4 +259,13 @@ export interface MafiaDetails {
   eliminated: { userId: string; role: import('./mafia').MafiaRole } | null
   nightVictim: string | null
   winner: 'Civilians' | 'Mafia' | null
+  myTasksDone: number
+  /** Всего заданий этой ночью — для ТВ. */
+  tasksTotal: number
+  /** Задания по игрокам — только ведущему. */
+  tasks: { userId: string; done: number }[]
+  /** Копилка: игроку — своя, ведущему и в конце — все. */
+  bonuses: { userId: string; kind: import('./mafia').MafiaBonusKind; count: number; amount: number }[]
+  /** За победу каждому из команды. */
+  winDonkeys: number
 }

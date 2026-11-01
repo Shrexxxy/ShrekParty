@@ -3,6 +3,8 @@ import { formatClock } from '../events/countdown'
 import type { MafiaDetails } from '../events/details'
 import { MafiaTable } from '../events/MafiaView'
 import { phaseTitle } from '../events/mafia'
+import { BonusSheet } from '../events/MafiaTasks'
+import { MAX_TASKS } from '../events/nightTasks'
 import { useCountdown } from '../events/useCountdown'
 import { useAdminAction } from './useAdminAction'
 
@@ -40,7 +42,23 @@ export function MafiaControls({ event, details, serverTime }: { event: ActiveEve
             </div>
           ))}
           {details.lastHeal && <small className="muted">Прошлой ночью доктор лечил: {login(details.lastHeal)}</small>}
+          <b>Задания</b>
+          {details.players
+            .filter((p) => p.alive)
+            .map((p) => (
+              <div key={p.userId} className="control-row">
+                <span>{p.login}</span>
+                <span>{details.tasks.find((t) => t.userId === p.userId)?.done ?? 0} / {MAX_TASKS}</span>
+              </div>
+            ))}
         </div>
+      )}
+
+      {details.bonuses.length > 0 && (
+        <details open={phase === 'Ended'}>
+          <summary>Ослики за партию</summary>
+          <BonusSheet details={details} />
+        </details>
       )}
 
       {details.checks.length > 0 && (

@@ -61,7 +61,44 @@ export function nightOptions(details: MafiaDetails, myId: string | undefined): M
   )
 }
 
-/** Комиссар уже проверил: список тот же, что у всех, но тапы молча игнорируются. */
-export function nightLocked(details: MafiaDetails): boolean {
-  return details.myRole === 'Commissar' && details.myNightTarget !== null
+export type MafiaBonusKind = 'Tasks' | 'Kill' | 'Check' | 'Save' | 'Oust'
+
+const BONUS_NAMES: Record<MafiaBonusKind, string> = {
+  Tasks: 'Задания',
+  Kill: 'Убийства',
+  Check: 'Проверки',
+  Save: 'Спасения',
+  Oust: 'Посадки',
+}
+
+const BONUS_ORDER: MafiaBonusKind[] = ['Tasks', 'Kill', 'Check', 'Save', 'Oust']
+
+export interface BonusRow {
+  userId: string
+  login: string
+  role: MafiaRole | null
+  /** За победу команды (0 — проиграл или победителя ещё нет). */
+  win: number
+  /** «Убийства: 2 × 10 = 20». */
+  lines: string[]
+  total: number
+}
+
+/** Кто за что сколько получил за партию: по игроку, больше — выше. Видны только те бонусы, что прислал сервер. */
+export function bonusSheet(details: MafiaDetails): BonusRow[] {
+  return details.players
+    .map((p) => {
+      const mine = details.bonuses.filter((b) => b.userId === p.userId).sort((a, b) => BONUS_ORDER.indexOf(a.kind) - BONUS_ORDER.indexOf(b.kind))
+      const team = p.role === 'Mafia' ? 'Mafia' : 'Civilians'
+      const win = details.winner !== null && p.role !== null && details.winner === team ? details.winDonkeys : 0
+      return {
+        userId: p.userId,
+        login: p.login,
+        role: p.role,
+        win,
+        lines: mine.map((b) => `${BONUS_NAMES[b.kind]}: ${b.count} × ${b.amount / b.count} = ${b.amount}`),
+        total: win + mine.reduce((sum, b) => sum + b.amount, 0),
+      }
+    })
+    .sort((a, b) => b.total - a.total)
 }

@@ -53,6 +53,29 @@ public enum MafiaTeam
     Mafia,
 }
 
+/// <summary>За что ослики в мафии (кроме победы).</summary>
+public enum MafiaBonusKind
+{
+    /// <summary>Ночные задания мирного.</summary>
+    Tasks,
+
+    /// <summary>Убийство — каждому живому мафиози.</summary>
+    Kill,
+
+    /// <summary>Комиссар нашёл мафию (каждую — один раз).</summary>
+    Check,
+
+    /// <summary>Доктор спас жертву мафии.</summary>
+    Save,
+
+    /// <summary>Посадили мафию — каждому живому не-мафии.</summary>
+    Oust,
+}
+
+/// <summary>Бонус в копилке партии; начисляется в конце игры.</summary>
+/// <param name="Count">Сколько раз (заданий, убийств…).</param>
+public record MafiaBonus(Guid UserId, MafiaBonusKind Kind, int Count, int Amount);
+
 /// <summary>Игрок за столом.</summary>
 public record MafiaSeat(Guid UserId, MafiaRole Role, bool Alive);
 
@@ -64,6 +87,9 @@ public record MafiaCheck(int Day, Guid TargetId, bool IsMafia);
 /// <param name="LastHeal">Кого доктор лечил прошлой ночью — второй раз подряд нельзя.</param>
 /// <param name="Revealed">Чьи роли открыты всем (выбывшие голосованием).</param>
 /// <param name="Step">Номер перехода: «Дальше» ведущего с устаревшим номером отклоняется — таймер успел раньше.</param>
+/// <param name="Tasks">Сколько заданий сделано этой ночью — у всех, роли делают их для вида.</param>
+/// <param name="TaskAt">Когда сделано последнее задание — защита от двойного тапа.</param>
+/// <param name="Bonuses">Копилка партии.</param>
 public record MafiaState(
     MafiaPhase Phase,
     int Day,
@@ -79,7 +105,10 @@ public record MafiaState(
     Guid? Eliminated,
     IReadOnlyList<Guid> Revealed,
     MafiaTeam? Winner,
-    int Step = 0);
+    int Step,
+    IReadOnlyDictionary<Guid, int> Tasks,
+    IReadOnlyDictionary<Guid, DateTimeOffset> TaskAt,
+    IReadOnlyList<MafiaBonus> Bonuses);
 
 /// <summary>Игрок в деталях; роль — только тем, кому положено её видеть.</summary>
 public record MafiaPlayerDto(Guid UserId, string Login, string? AvatarUrl, bool Alive, MafiaRole? Role);
@@ -90,6 +119,9 @@ public record MafiaActionDto(Guid UserId, Guid TargetId);
 /// <summary>Голос; null — воздержался.</summary>
 public record MafiaVoteDto(Guid VoterId, Guid? TargetId);
 
+/// <summary>Сколько заданий этой ночью сделал игрок (ведущему).</summary>
+public record MafiaTaskDto(Guid UserId, int Done);
+
 /// <summary>Выбывший голосованием и его роль.</summary>
 public record MafiaEliminatedDto(Guid UserId, MafiaRole Role);
 
@@ -97,6 +129,10 @@ public record MafiaEliminatedDto(Guid UserId, MafiaRole Role);
 /// <param name="NightActions">Ведущему — все ходы ночи, мафии — ходы напарников, остальным — пусто.</param>
 /// <param name="Checks">Комиссару — его проверки, ведущему — все.</param>
 /// <param name="Votes">Голоса — после голосования всем, ведущему — сразу.</param>
+/// <param name="TasksTotal">Всего заданий этой ночью — для ТВ, по ней роль не вычислить.</param>
+/// <param name="Tasks">Задания по игрокам — только ведущему.</param>
+/// <param name="Bonuses">Копилка по игрокам и видам: игроку — своя, ведущему и в конце — все.</param>
+/// <param name="WinDonkeys">Сколько за победу каждому из команды.</param>
 /// <param name="Step">Номер перехода — пульт шлёт его с «Дальше».</param>
 public record MafiaDetails(
     MafiaPhase Phase,
@@ -118,7 +154,12 @@ public record MafiaDetails(
     IReadOnlyList<MafiaVoteDto> Votes,
     MafiaEliminatedDto? Eliminated,
     Guid? NightVictim,
-    MafiaTeam? Winner);
+    MafiaTeam? Winner,
+    int MyTasksDone,
+    int TasksTotal,
+    IReadOnlyList<MafiaTaskDto> Tasks,
+    IReadOnlyList<MafiaBonus> Bonuses,
+    int WinDonkeys);
 
 /// <summary>
 /// Мафия: знакомство → утро → речи → голосование → (последнее слово) → ночь → утро → …
@@ -128,6 +169,21 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
 {
     /// <summary>Меньше — не игра: 2 мафии, доктор, комиссар и хотя бы один мирный.</summary>
     public const int MinPlayers = 5;
+
+    /// <summary>Заданий за ночь, по ослику за каждое.</summary>
+    public const int MaxTasks = 5;
+
+    /// <summary>За убийство каждому живому мафиози.</summary>
+    public const int KillDonkeys = 10;
+
+    /// <summary>Комиссару за найденную мафию.</summary>
+    public const int CheckDonkeys = 10;
+
+    /// <summary>Доктору за спасение.</summary>
+    public const int SaveDonkeys = 15;
+
+    /// <summary>Каждому живому не-мафии за посаженную мафию.</summary>
+    public const int OustDonkeys = 10;
 
     /// <summary>Знакомство.</summary>
     public static readonly TimeSpan IntroTime = TimeSpan.FromSeconds(60);
@@ -150,10 +206,22 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
     /// <summary>Последнее слово.</summary>
     public static readonly TimeSpan LastWordTime = TimeSpan.FromSeconds(30);
 
+    /// <summary>Задания чаще — двойной тап, не засчитываем.</summary>
+    public static readonly TimeSpan TaskInterval = TimeSpan.FromSeconds(1.5);
+
     /// <summary>Одна блокировка на ходы, голоса, «Дальше» и тик.</summary>
     internal static readonly SemaphoreSlim Lock = new(1, 1);
 
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    private static readonly Dictionary<MafiaBonusKind, string> BonusReasons = new()
+    {
+        [MafiaBonusKind.Tasks] = "задания",
+        [MafiaBonusKind.Kill] = "убийства",
+        [MafiaBonusKind.Check] = "проверки",
+        [MafiaBonusKind.Save] = "спасения",
+        [MafiaBonusKind.Oust] = "посадки",
+    };
 
     /// <inheritdoc/>
     public EventType Type => EventType.Mafia;
@@ -177,7 +245,8 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
         SetState(ev, new MafiaState(
             MafiaPhase.Intro, 0, ev.StartedAt!.Value + IntroTime,
             seats.Select((id, i) => new MafiaSeat(id, dealt[i], true)).ToList(),
-            new Dictionary<Guid, Guid>(), null, [], null, [], 0, new Dictionary<Guid, Guid?>(), null, [], null));
+            new Dictionary<Guid, Guid>(), null, [], null, [], 0, new Dictionary<Guid, Guid?>(), null, [], null,
+            0, new Dictionary<Guid, int>(), new Dictionary<Guid, DateTimeOffset>(), []));
     }
 
     /// <inheritdoc/>
@@ -190,6 +259,7 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
         var iAmMafia = me?.Role == MafiaRole.Mafia;
         var ended = state.Phase == MafiaPhase.Ended;
         var votesOpen = isAdmin || state.Phase is MafiaPhase.VoteResult or MafiaPhase.LastWord;
+        var bonuses = Summary(state.Bonuses.Where(b => isAdmin || ended || b.UserId == viewerId));
 
         bool RoleVisible(MafiaSeat seat) =>
             isAdmin || ended || seat.UserId == viewerId || state.Revealed.Contains(seat.UserId) || iAmMafia && seat.Role == MafiaRole.Mafia;
@@ -224,7 +294,12 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
                 ? new MafiaEliminatedDto(out1, state.Seats.First(s => s.UserId == out1).Role)
                 : null,
             state.Phase is MafiaPhase.Morning or MafiaPhase.Ended ? state.NightVictim : null,
-            state.Winner);
+            state.Winner,
+            viewerId is { } doer ? state.Tasks.GetValueOrDefault(doer) : 0,
+            state.Tasks.Values.Sum(),
+            isAdmin ? state.Tasks.Select(t => new MafiaTaskDto(t.Key, t.Value)).ToList() : [],
+            bonuses,
+            ev.MaxDonkeys);
     }
 
     /// <inheritdoc/>
@@ -253,25 +328,54 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
     }
 
     /// <inheritdoc/>
-    public Task<IReadOnlyList<Ranked<Guid>>> RankAsync(Event ev)
+    /// <remarks>Мест нет: победу и бонусы начисляет <see cref="AfterFinishAsync"/>.</remarks>
+    public Task<IReadOnlyList<Ranked<Guid>>> RankAsync(Event ev) => Task.FromResult<IReadOnlyList<Ranked<Guid>>>([]);
+
+    /// <inheritdoc/>
+    public async Task AfterFinishAsync(Event ev)
     {
-        var state = StateOf(ev);
-        if (state.Winner is not { } winner)
+        // Движок прочитал ивент до завершения — ход или голос мог успеть после; берём последнее состояние под блокировкой.
+        await Lock.WaitAsync();
+        try
         {
-            // Игру прервали — без мест и осликов.
-            return Task.FromResult<IReadOnlyList<Ranked<Guid>>>([]);
+            await db.Entry(ev).ReloadAsync();
+        }
+        finally
+        {
+            Lock.Release();
         }
 
-        // Победа командная: мёртвые победители тоже на 1-м месте.
-        return Task.FromResult<IReadOnlyList<Ranked<Guid>>>(state.Seats
-            .Select(s => new Ranked<Guid>(s.UserId, TeamOf(s.Role) == winner ? 1 : 2))
-            .OrderBy(r => r.Place)
-            .ToList());
+        var state = StateOf(ev);
+        var at = ev.FinishedAt ?? DateTimeOffset.UtcNow;
+        void Add(Guid userId, int amount, string reason) => db.DonkeyAwards.Add(new DonkeyAward
+        {
+            Id = Guid.NewGuid(), UserId = userId, EventId = ev.Id, Amount = amount, Reason = $"{ev.Title}: {reason}", CreatedAt = at,
+        });
+
+        // Победа командная: мёртвые победители тоже получают. Игру прервали — только бонусы.
+        if (state.Winner is { } winner && ev.MaxDonkeys > 0)
+        {
+            foreach (var seat in state.Seats.Where(s => TeamOf(s.Role) == winner))
+            {
+                Add(seat.UserId, ev.MaxDonkeys, "победа");
+            }
+        }
+
+        foreach (var bonus in Summary(state.Bonuses))
+        {
+            Add(bonus.UserId, bonus.Amount, BonusReasons[bonus.Kind]);
+        }
     }
 
     internal static MafiaState StateOf(Event ev) => JsonSerializer.Deserialize<MafiaState>(ev.StateJson!, Json)!;
 
     internal static void SetState(Event ev, MafiaState state) => ev.StateJson = JsonSerializer.Serialize(state, Json);
+
+    /// <summary>Копилка, сложенная по игроку и виду.</summary>
+    internal static IReadOnlyList<MafiaBonus> Summary(IEnumerable<MafiaBonus> bonuses) =>
+        bonuses.GroupBy(b => (b.UserId, b.Kind))
+            .Select(g => new MafiaBonus(g.Key.UserId, g.Key.Kind, g.Sum(b => b.Count), g.Sum(b => b.Amount)))
+            .ToList();
 
     internal static MafiaTeam TeamOf(MafiaRole role) => role == MafiaRole.Mafia ? MafiaTeam.Mafia : MafiaTeam.Civilians;
 
@@ -281,12 +385,14 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
     internal static MafiaState Advance(MafiaState state, DateTimeOffset now) => Next(state, now) with { Step = state.Step + 1 };
 
     /// <summary>
-    /// Ночь кончится раньше, когда сходили все живые и мафия выбрала одну жертву.
+    /// Ночь кончится раньше, когда мафия выбрала одну жертву, доктор и комиссар сходили, а мирные сделали все задания.
     /// </summary>
     internal static bool NightComplete(MafiaState state)
     {
         var alive = state.Seats.Where(s => s.Alive).ToList();
-        return alive.All(s => state.NightActions.ContainsKey(s.UserId)) && MafiaTarget(state) is not null;
+        return MafiaTarget(state) is not null
+            && alive.Where(s => s.Role is MafiaRole.Doctor or MafiaRole.Commissar).All(s => state.NightActions.ContainsKey(s.UserId))
+            && alive.Where(s => s.Role == MafiaRole.Civilian).All(s => state.Tasks.GetValueOrDefault(s.UserId) >= MaxTasks);
     }
 
     /// <summary>
@@ -327,7 +433,24 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
     {
         var heal = state.Seats.FirstOrDefault(s => s.Alive && s.Role == MafiaRole.Doctor) is { } doctor
             && state.NightActions.TryGetValue(doctor.UserId, out var healed) ? healed : (Guid?)null;
-        var victim = MafiaTarget(state) is { } target && target != heal ? target : (Guid?)null;
+        var target = MafiaTarget(state);
+        var victim = target is { } t && t != heal ? t : (Guid?)null;
+        var alive = state.Seats.Where(s => s.Alive).ToList();
+
+        // Задания — мирным, живым на начало ночи: убитый этой ночью свои уже заработал.
+        var bonuses = alive
+            .Where(s => s.Role == MafiaRole.Civilian && state.Tasks.GetValueOrDefault(s.UserId) > 0)
+            .Select(s => new MafiaBonus(s.UserId, MafiaBonusKind.Tasks, state.Tasks[s.UserId], state.Tasks[s.UserId]))
+            .ToList();
+        if (victim is not null)
+        {
+            bonuses.AddRange(alive.Where(s => s.Role == MafiaRole.Mafia).Select(s => new MafiaBonus(s.UserId, MafiaBonusKind.Kill, 1, KillDonkeys)));
+        }
+        else if (target is not null && alive.FirstOrDefault(s => s.Role == MafiaRole.Doctor) is { } savior)
+        {
+            bonuses.Add(new MafiaBonus(savior.UserId, MafiaBonusKind.Save, 1, SaveDonkeys));
+        }
+
         var seats = state.Seats.Select(s => s.UserId == victim ? s with { Alive = false } : s).ToList();
         var next = state with
         {
@@ -336,6 +459,7 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
             NightActions = new Dictionary<Guid, Guid>(),
             LastHeal = heal,
             NightVictim = victim,
+            Bonuses = [.. state.Bonuses, .. bonuses],
         };
 
         return WinnerOf(seats) is { } winner
@@ -361,11 +485,17 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
         var leaders = tally.Where(t => t.Count == max).ToList();
         // Ничья или никто не голосовал — никто не выбывает.
         var eliminated = leaders.Count == 1 ? leaders[0].Target : (Guid?)null;
+        var seats = state.Seats.Select(s => s.UserId == eliminated ? s with { Alive = false } : s).ToList();
+        var ousted = seats.Any(s => s.UserId == eliminated && s.Role == MafiaRole.Mafia);
+        var bonuses = ousted
+            ? seats.Where(s => s.Alive && s.Role != MafiaRole.Mafia).Select(s => new MafiaBonus(s.UserId, MafiaBonusKind.Oust, 1, OustDonkeys))
+            : Enumerable.Empty<MafiaBonus>();
         return state with
         {
             Phase = MafiaPhase.VoteResult,
             Eliminated = eliminated,
-            Seats = state.Seats.Select(s => s.UserId == eliminated ? s with { Alive = false } : s).ToList(),
+            Seats = seats,
+            Bonuses = [.. state.Bonuses, .. bonuses],
             Revealed = eliminated is { } e ? [.. state.Revealed, e] : state.Revealed,
             Deadline = now + VoteResultTime,
         };
@@ -375,5 +505,5 @@ public class MafiaModule(AppDbContext db, ILiveNotifier live, Random random) : I
         WinnerOf(state.Seats) is { } winner
             // Игру решило голосование — вчерашняя ночная жертва в итоге не нужна.
             ? state with { Phase = MafiaPhase.Ended, Winner = winner, NightVictim = null, Deadline = null }
-            : state with { Phase = MafiaPhase.Night, NightActions = new Dictionary<Guid, Guid>(), Votes = new Dictionary<Guid, Guid?>(), Eliminated = null, Deadline = now + NightTime };
+            : state with { Phase = MafiaPhase.Night, NightActions = new Dictionary<Guid, Guid>(), Tasks = new Dictionary<Guid, int>(), TaskAt = new Dictionary<Guid, DateTimeOffset>(), Votes = new Dictionary<Guid, Guid?>(), Eliminated = null, Deadline = now + NightTime };
 }
