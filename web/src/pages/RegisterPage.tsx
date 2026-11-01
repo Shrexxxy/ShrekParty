@@ -6,6 +6,7 @@ import { useMe } from '../api/me'
 import type { MeDto } from '../api/types'
 import { OnionGame } from '../register/OnionGame'
 import { FakeCaptcha } from '../register/FakeCaptcha'
+import { registerView } from '../register/registerView'
 import { StrongPasswordStep } from '../register/StrongPasswordStep'
 
 type Step = 'form' | 'captcha' | 'game' | 'strong'
@@ -70,8 +71,8 @@ export function RegisterPage() {
     setProgressState(next)
   }, [])
 
-  const state = snapshot?.registration.state ?? 'Closed'
-  const isOpen = state !== 'Closed'
+  const state = snapshot?.registration.state
+  const view = registerView(state)
 
   async function start(e: FormEvent) {
     e.preventDefault()
@@ -125,36 +126,40 @@ export function RegisterPage() {
 
       {progress.step === 'form' && (
         <>
-          {!isOpen ? (
+          {view.connecting && <p className="muted">Подключаюсь…</p>}
+          {view.waiting && (
             <div className="card waiting">
               <div className="waiting-title">Регистрация скоро откроется</div>
               <div className="waiting-count">
                 Ждут: <b>{snapshot?.registration.waitingCount ?? '…'}</b>
               </div>
             </div>
-          ) : (
-            state === 'Open' && <div className="card open-banner">🟢 Регистрация открыта! Быстрее!</div>
           )}
-          <form className="card form" onSubmit={start}>
-            <fieldset disabled={!isOpen || busy}>
-              <label>
-                Логин
-                <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" required />
-              </label>
-              <label>
-                Пароль
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
-              </label>
-              <small className="muted">Не используйте пароли от других сервисов</small>
-              {error && <p className="error">{error}</p>}
-              <button type="submit" className="primary">
-                РЕГИСТРАЦИЯ
-              </button>
-            </fieldset>
-          </form>
-          <p className="muted">
-            Уже есть аккаунт? <Link to="/login">Войти</Link>
-          </p>
+          {state === 'Open' && <div className="card open-banner">🟢 Регистрация открыта! Быстрее!</div>}
+          {view.form && (
+            <form className="card form" onSubmit={start}>
+              <fieldset disabled={busy}>
+                <label>
+                  Логин
+                  <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" required />
+                </label>
+                <label>
+                  Пароль
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+                </label>
+                <small className="muted">Не используйте пароли от других сервисов</small>
+                {error && <p className="error">{error}</p>}
+                <button type="submit" className="primary">
+                  РЕГИСТРАЦИЯ
+                </button>
+              </fieldset>
+            </form>
+          )}
+          {view.loginLink && (
+            <p className="muted">
+              Уже есть аккаунт? <Link to="/login">Войти</Link>
+            </p>
+          )}
         </>
       )}
 
