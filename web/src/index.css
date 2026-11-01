@@ -1,20 +1,47 @@
+/* «Ночь с гирляндой»: ночной синий, тёплые лампочки, коралл, мята, афишная бумага. */
 :root {
-  --swamp: #2f4a14;
-  --swamp-dark: #1c2e0b;
-  --ogre: #8bc34a;
-  --ogre-bright: #b5e36c;
-  --mud: #5d4a2e;
-  --cream: #f5efd9;
-  --text: #f5efd9;
-  --muted: #b9c49c;
-  --danger: #ff6b5b;
-  --card: rgba(0, 0, 0, 0.25);
+  --night: #0d2233;
+  --night-panel: #16344b;
+  --night-raised: #1d4360;
+  --lamp: #ffd166;
+  --lamp-deep: #c99a2e;
+  --coral: #ef6f5e;
+  --coral-deep: #a33f32;
+  --mint: #6ee7b7;
+  --sky: #9cc3e6;
+  --paper: #fff6df;
+  --ink: #0a1824;
+
+  /* Старые имена — на новую палитру, чтобы ещё не переделанные экраны не выпадали из мира. */
+  --swamp: var(--night-panel);
+  --swamp-dark: var(--night);
+  --ogre: var(--lamp);
+  --ogre-bright: #ffe29a;
+  --mud: #24506e;
+  --cream: var(--paper);
+  --text: var(--paper);
+  --muted: #a9c3da;
+  --danger: #ff5a5f;
+  --card: var(--night-panel);
   --radius: 16px;
 
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Unbounded', 'Golos Text', sans-serif;
+  --font-body: 'Golos Text', system-ui, sans-serif;
+
+  font-family: var(--font-body);
   color: var(--text);
-  background: var(--swamp-dark);
+  background: var(--night);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--lamp);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--lamp);
+  outline-offset: 2px;
 }
 
 * {
@@ -24,12 +51,55 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background: radial-gradient(circle at top, var(--swamp), var(--swamp-dark));
+  background: radial-gradient(120% 60% at 50% 0%, var(--night-panel), var(--night));
 }
 
 h1 {
   margin: 0 0 16px;
-  font-size: 28px;
+  font: 900 30px/1.05 var(--font-display);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--lamp);
+  text-shadow: 0 3px 0 var(--ink);
+}
+
+/* Гирлянда флажков — верх каждого экрана ярмарки. */
+.bunting {
+  height: 30px;
+  margin: -16px -16px 12px;
+  background:
+    conic-gradient(from -30deg at 50% 100%, var(--coral) 0 60deg, transparent 0) 0 0 / 44px 30px,
+    conic-gradient(from -30deg at 50% 100%, var(--lamp) 0 60deg, transparent 0) 22px 0 / 44px 30px;
+  border-top: 3px solid rgba(255, 246, 223, 0.35);
+}
+
+/* Билетик: афишная бумага с полукруглыми вырезами по бокам. */
+.ticket {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 18px;
+  mask:
+    radial-gradient(circle 7px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 7px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+}
+
+.ticket label {
+  color: #3d4f5c;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ticket input {
+  border: 3px solid var(--ink);
+  background: #fff;
+}
+
+.ticket .error {
+  color: var(--coral-deep);
+  font-weight: 700;
 }
 
 .page {
@@ -98,7 +168,7 @@ textarea {
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--ogre);
+  border-color: var(--coral);
 }
 
 button {
@@ -117,16 +187,24 @@ button:disabled {
 }
 
 button.primary {
-  background: var(--ogre);
-  color: var(--swamp-dark);
-  font-weight: 700;
-  font-size: 18px;
-  padding: 14px;
+  background: var(--coral);
+  color: var(--ink);
+  font: 900 17px/1.1 var(--font-display);
+  text-transform: uppercase;
+  padding: 18px 14px;
   width: 100%;
+  border-radius: 14px;
+  box-shadow: 0 5px 0 var(--coral-deep);
+}
+
+button.primary:active:not(:disabled) {
+  translate: 0 3px;
+  box-shadow: 0 2px 0 var(--coral-deep);
 }
 
 a {
-  color: var(--ogre-bright);
+  color: var(--lamp);
+  text-underline-offset: 3px;
 }
 
 .avatar {
@@ -169,10 +247,15 @@ a {
   margin-bottom: 12px;
 }
 
-.tabs button[aria-selected='true'] {
-  background: var(--ogre);
-  color: var(--swamp-dark);
+.tabs button {
+  white-space: nowrap;
   font-weight: 700;
+}
+
+.tabs button[aria-selected='true'] {
+  background: var(--lamp);
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .rows {
@@ -187,19 +270,26 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: 12px;
   background: var(--card);
 }
 
+/* Свой ряд — бумажный, как свой билетик. */
 .row.me {
-  outline: 2px solid var(--ogre-bright);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .row .place {
   width: 2ch;
   text-align: right;
-  font-weight: 700;
+  font: 900 20px var(--font-display);
+  color: var(--lamp);
+}
+
+.row.me .place {
+  color: var(--ink);
 }
 
 .row .login {
@@ -207,6 +297,13 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.row .donkeys {
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
 }
 
 fieldset {
@@ -222,8 +319,8 @@ fieldset {
 }
 
 .waiting-title {
-  font-size: 20px;
-  font-weight: 700;
+  font: 800 20px/1.2 var(--font-display);
+  color: var(--lamp);
 }
 
 .waiting-count {
@@ -233,9 +330,10 @@ fieldset {
 
 .open-banner {
   text-align: center;
-  font-weight: 700;
-  font-size: 20px;
-  background: rgba(139, 195, 74, 0.3);
+  font: 900 18px/1.2 var(--font-display);
+  text-transform: uppercase;
+  background: var(--lamp);
+  color: var(--ink);
 }
 
 .captcha {
@@ -773,7 +871,7 @@ button.danger {
 
 .donkey-icon {
   display: inline-block;
-  object-fit: contain;
+  vertical-align: -0.22em;
 }
 
 .tile-img {
@@ -2542,10 +2640,22 @@ details summary {
   margin-bottom: 12px;
 }
 
+.tab-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--coral);
+  vertical-align: 0.1em;
+}
+
 .pet-notice {
   width: 100%;
   font-weight: 800;
-  background: var(--swamp);
+  font-size: 16px;
+  background: var(--lamp);
+  color: var(--ink);
 }
 
 .pet-tab {
@@ -2555,9 +2665,9 @@ details summary {
 .pet-egg {
   display: grid;
   place-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  min-height: 320px;
+  min-height: 340px;
   background: none;
   border: none;
   user-select: none;
@@ -2565,22 +2675,24 @@ details summary {
   touch-action: manipulation;
 }
 
-.pet-egg-shell {
-  font-size: 140px;
-  line-height: 1;
+.pet-egg-art {
+  width: 150px;
+  filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.35));
+  transition: transform 0.1s;
 }
 
-.pet-egg:active .pet-egg-shell {
+.pet-egg:active .pet-egg-art {
   animation: pet-egg-wobble 0.25s ease-in-out;
 }
 
-.pet-egg.stage-2 .pet-egg-shell {
+.pet-egg.stage-2 .pet-egg-art {
   animation: pet-egg-wobble 0.6s ease-in-out infinite;
 }
 
-.pet-egg-crack {
-  min-height: 32px;
-  font-size: 28px;
+.pet-egg-hint {
+  font: 900 18px var(--font-display);
+  text-transform: uppercase;
+  color: var(--lamp);
 }
 
 @keyframes pet-egg-wobble {
@@ -2596,23 +2708,70 @@ details summary {
   }
 }
 
-.pet-card {
-  display: grid;
-  gap: 10px;
+/* Цвет класса — один на все экраны: танк — небо, боец — коралл, маг — мята. */
+.class-tank {
+  --class: var(--sky);
 }
 
-.pet-avatar {
-  font-size: 96px;
-  line-height: 1;
+.class-fighter {
+  --class: var(--coral);
+}
+
+.class-mage {
+  --class: var(--mint);
+}
+
+.pet-card {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  position: relative;
+}
+
+.pet-card .stamp {
+  position: absolute;
+  top: 4px;
+  right: 0;
+}
+
+.pet-medallion {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: var(--class);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 6px var(--night),
+    0 0 0 10px var(--class),
+    0 10px 0 6px rgba(0, 0, 0, 0.3);
 }
 
 .pet-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
+  font: 900 24px/1.1 var(--font-display);
+  text-align: center;
+}
+
+.pet-rename-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--night-raised);
+  color: var(--lamp);
 }
 
 .pet-rename {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .pet-rename input {
@@ -2620,40 +2779,123 @@ details summary {
   min-width: 0;
 }
 
+.pet-rename .primary {
+  width: auto;
+  padding: 12px 16px;
+}
+
 .pet-class {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.class-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--class);
+  color: var(--ink);
   font-weight: 800;
+}
+
+.pet-level {
+  font: 900 16px var(--font-display);
+  color: var(--lamp);
 }
 
 .pet-xp {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
 }
 
 .pet-xp-bar {
-  height: 10px;
+  height: 14px;
   border-radius: 999px;
-  background: var(--card);
+  background: var(--night);
+  box-shadow: inset 0 0 0 2px var(--night-raised);
   overflow: hidden;
 }
 
 .pet-xp-bar span {
   display: block;
   height: 100%;
-  background: var(--ogre);
+  border-radius: 999px;
+  background: var(--lamp);
 }
 
 .pet-stats {
   display: grid;
-  gap: 4px;
-  text-align: left;
+  gap: 6px;
+  width: 100%;
+}
+
+.pet-stat {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--night-raised);
+  font-weight: 700;
+}
+
+.pet-stat .icon {
+  color: var(--class);
+}
+
+.pet-stat b {
+  font: 900 20px var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 
 .pet-derived {
   display: flex;
   justify-content: center;
-  gap: 18px;
-  font-size: 20px;
-  font-weight: 800;
+  gap: 10px;
+  width: 100%;
+}
+
+.pet-derived span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 900 20px var(--font-display);
+}
+
+.pet-derived .hp .icon {
+  color: var(--coral-deep);
+}
+
+.pet-derived .dmg .icon {
+  color: #6b4a00;
+}
+
+.pet-derived .mana .icon {
+  color: #1d6fa5;
+}
+
+/* Штамп — чуть наискосок, для итогов и знакомства. */
+.stamp {
+  display: inline-block;
+  rotate: -7deg;
+  padding: 4px 12px;
+  border: 4px solid var(--coral);
+  border-radius: 10px;
+  color: var(--coral);
+  font: 900 16px var(--font-display);
+  text-transform: uppercase;
 }
 
 .pet-toast {
@@ -2994,4 +3236,55 @@ details summary {
 
 .boss-prizes .locked {
   opacity: 0.5;
+}
+
+/* Фон регистрации: фото компании под зелёным затемнением, чтобы форма читалась.
+   Отрицательный слой ушёл бы под фон body — поэтому фон на нулевом, содержимое над ним. */
+.register-page > :not(.register-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+
+.register-page h1 {
+  text-align: center;
+}
+
+.register-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-position: center 35%;
+  background-size: cover;
+}
+
+.register-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(28, 46, 11, 0.45) 0%, rgba(28, 46, 11, 0.7) 55%, rgba(28, 46, 11, 0.88) 100%);
+}
+
+/* Телефон: фото полосой сверху во всю ширину — видна вся компания, форма ниже и никого не закрывает. */
+@media (max-width: 719px) {
+  .register-page {
+    --photo-height: calc(100vw * 1066 / 1600);
+  }
+
+  /* Гирлянда висит поверх фото, заголовок — у нижнего края фото. */
+  .register-page h1 {
+    margin-top: calc(var(--photo-height) - 90px);
+  }
+
+  .register-backdrop {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--photo-height);
+    background-position: center top;
+    /* Растворяется в прозрачность, а не в цвет: фон страницы — градиент, шва не будет. */
+    mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+  }
+
+  .register-backdrop::after {
+    display: none;
+  }
 }

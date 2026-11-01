@@ -15,6 +15,8 @@ export const ASSETS = {
   ui: {
     donkey: '/assets/ui/donkey.png',
     defaultAvatar: '/assets/ui/avatar-default.png',
+    /** Общее фото компании — фон страницы регистрации. */
+    registerBackground: '/assets/ui/register-bg.jpg',
   },
   /** Клетка противной капчи: /assets/captcha/{id}.jpg */
   captcha: (id: string) => `/assets/captcha/${id}.jpg`,

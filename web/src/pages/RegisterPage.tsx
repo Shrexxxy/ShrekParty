@@ -2,6 +2,7 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError, api } from '../api/http'
 import { useSnapshot } from '../api/live'
+import { ASSETS } from '../assets'
 import { useMe } from '../api/me'
 import type { MeDto } from '../api/types'
 import { OnionGame } from '../register/OnionGame'
@@ -121,7 +122,9 @@ export function RegisterPage() {
   const onGameDone = useCallback(() => setProgress({ ...loadProgress(), step: 'strong' }), [setProgress])
 
   return (
-    <main className="page narrow">
+    <main className="page narrow register-page">
+      <div className="register-backdrop" style={{ backgroundImage: `url(${ASSETS.ui.registerBackground})` }} aria-hidden />
+      <div className="bunting" aria-hidden />
       <h1>Регистрация</h1>
 
       {progress.step === 'form' && (
@@ -135,9 +138,9 @@ export function RegisterPage() {
               </div>
             </div>
           )}
-          {state === 'Open' && <div className="card open-banner">🟢 Регистрация открыта! Быстрее!</div>}
+          {state === 'Open' && <div className="card open-banner">Регистрация открыта! Быстрее!</div>}
           {view.form && (
-            <form className="card form" onSubmit={start}>
+            <form className="ticket form" onSubmit={start}>
               <fieldset disabled={busy}>
                 <label>
                   Логин
@@ -147,7 +150,6 @@ export function RegisterPage() {
                   Пароль
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
                 </label>
-                <small className="muted">Не используйте пароли от других сервисов</small>
                 {error && <p className="error">{error}</p>}
                 <button type="submit" className="primary">
                   РЕГИСТРАЦИЯ

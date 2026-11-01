@@ -52,6 +52,7 @@ export function HomePage() {
 
   return (
     <main className="page">
+      <div className="bunting" aria-hidden />
       <header className="me-header">
         <Avatar url={me?.avatarUrl ?? null} login={me?.login ?? ''} size={56} />
         <div>
@@ -70,13 +71,13 @@ export function HomePage() {
             Игра
           </button>
           <button role="tab" aria-selected={tab === 'pet'} onClick={openPet}>
-            🐉 Мой дракоша{pet.hatched ? '' : ' 🥚'}
+            Мой дракоша{!pet.hatched && <span className="tab-dot" aria-label="есть невылупленное яйцо" />}
           </button>
         </div>
       )}
       {pet && !pet.hatched && !opened && tab === 'game' && (
         <button className="card pet-notice" onClick={openPet}>
-          У тебя есть драконоослик 🥚 — загляни во вкладку «Мой дракоша»
+          У тебя есть драконоослик — загляни во вкладку «Мой дракоша»
         </button>
       )}
       {pet && tab === 'pet' ? (

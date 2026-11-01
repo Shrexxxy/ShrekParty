@@ -1,10 +1,18 @@
 import type { PetClass, PetDto } from '../api/types'
+import type { IconName } from '../components/Icon'
 
 /** Классы по-русски. */
 export const CLASS_NAMES: Record<PetClass, string> = {
-  Tank: '🛡 Танк',
-  Fighter: '⚔️ Боец',
-  Mage: '✨ Маг',
+  Tank: 'Танк',
+  Fighter: 'Боец',
+  Mage: 'Маг',
+}
+
+/** Иконка класса — везде одна и та же, как и его цвет (класс CSS `class-<имя>`). */
+export const CLASS_ICONS: Record<PetClass, IconName> = {
+  Tank: 'shield',
+  Fighter: 'sword',
+  Mage: 'spark',
 }
 
 /** Тапов, чтобы вылупился, — столько же ждёт сервер. */
@@ -14,10 +22,10 @@ const XP_PER_LEVEL = 50
 
 /** Характеристики по-русски, в порядке показа. */
 export const STATS = [
-  { key: 'strength', icon: '💪', name: 'сила' },
-  { key: 'agility', icon: '🏹', name: 'ловкость' },
-  { key: 'intellect', icon: '✨', name: 'интеллект' },
-] as const
+  { key: 'strength', icon: 'strength', name: 'сила' },
+  { key: 'agility', icon: 'agility', name: 'ловкость' },
+  { key: 'intellect', icon: 'spark', name: 'интеллект' },
+] as const satisfies readonly { key: string; icon: IconName; name: string }[]
 
 /** Стадия яйца: 0 — целое, 1 и 2 — трещины (5 и 10 тапов), 3 — вылупился. */
 export function eggStage(taps: number): 0 | 1 | 2 | 3 {
@@ -33,7 +41,7 @@ export function xpProgress(pet: PetDto): { left: number; percent: number } {
   }
 }
 
-/** «Дракоша Кот вырос до 4 уровня! +2 ✨ интеллект, +1 💪 сила»; не вырос — null. */
+/** «Дракоша Кот вырос до 4 уровня! +2 интеллект, +1 сила»; не вырос — null. */
 export function levelUpText(prev: PetDto, next: PetDto): string | null {
   if (next.level <= prev.level) {
     return null
@@ -42,7 +50,7 @@ export function levelUpText(prev: PetDto, next: PetDto): string | null {
   const gains = STATS.map((s) => ({ ...s, gain: next[s.key] - prev[s.key] }))
     .filter((s) => s.gain > 0)
     .sort((a, b) => b.gain - a.gain)
-  return `${next.name} вырос до ${next.level} уровня! ${gains.map((g) => `+${g.gain} ${g.icon} ${g.name}`).join(', ')}`
+  return `${next.name} вырос до ${next.level} уровня! ${gains.map((g) => `+${g.gain} ${g.name}`).join(', ')}`
 }
 
 /** Начался новый ивент — телефон сам возвращается на «Игру», чтобы гость его не пропустил. */

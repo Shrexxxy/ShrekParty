@@ -2,9 +2,33 @@ import { useState } from 'react'
 import { api } from '../api/http'
 import type { PetDto } from '../api/types'
 import { errorText } from '../admin/errors'
-import { CLASS_NAMES, EGG_TAPS, eggStage, STATS, xpProgress } from './pets'
+import { DonkeyIcon } from '../components/DonkeyIcon'
+import { Icon } from '../components/Icon'
+import { CLASS_ICONS, CLASS_NAMES, EGG_TAPS, eggStage, STATS, xpProgress } from './pets'
 
-const CRACKS = ['', '⚡', '⚡⚡'] as const
+/** Трещины по стадиям: с каждой стадией их больше. */
+const CRACK_PATHS = ['M44 62l10 9-6 9 11 8', 'M76 48l-8 11 9 7-7 12', 'M50 104l12-7 4 10 12-6']
+
+/** Яйцо в крапинку; трещины проступают с тапами. */
+function EggArt({ stage }: { stage: number }) {
+  return (
+    <svg className="pet-egg-art" viewBox="0 0 120 150" aria-hidden>
+      <path d="M60 6C88 6 110 52 110 92a50 50 0 0 1-100 0C10 52 32 6 60 6z" fill="#fff6df" stroke="#0a1824" strokeWidth="5" />
+      <g fill="#9cc3e6">
+        <circle cx="42" cy="44" r="6" />
+        <circle cx="78" cy="78" r="8" />
+        <circle cx="36" cy="100" r="7" />
+        <circle cx="86" cy="116" r="5" />
+        <circle cx="62" cy="128" r="4" />
+      </g>
+      <g fill="none" stroke="#0a1824" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+        {CRACK_PATHS.slice(0, stage).map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
+    </svg>
+  )
+}
 
 /** Яйцо: тапы считает телефон, на последнем — «вылупился» серверу; не дошло — ещё один тап. */
 function Egg({ onHatched }: { onHatched: () => Promise<boolean> }) {
@@ -24,9 +48,8 @@ function Egg({ onHatched }: { onHatched: () => Promise<boolean> }) {
 
   return (
     <button className={`pet-egg stage-${stage}`} onClick={() => void tap()} disabled={stage === 3}>
-      <span className="pet-egg-shell">🥚</span>
-      <span className="pet-egg-crack">{CRACKS[Math.min(stage, 2)]}</span>
-      <small className="muted">{stage === 3 ? 'Вылупляется…' : `Тапай! Ещё ${EGG_TAPS - taps}`}</small>
+      <EggArt stage={stage} />
+      <span className="pet-egg-hint">{stage === 3 ? 'Вылупляется…' : `Тапай! Ещё ${EGG_TAPS - taps}`}</span>
       {failed && <small className="error">Не получилось — проверь интернет и тапни ещё раз</small>}
     </button>
   )
@@ -50,9 +73,12 @@ function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
   }
 
   return (
-    <div className="pet-card">
-      {fresh && <div className="mafia-news">Знакомься!</div>}
-      <div className="pet-avatar">🐉</div>
+    <div className={`pet-card class-${pet.class.toLowerCase()}`}>
+      {fresh && <div className="stamp">Знакомься!</div>}
+      {/* Пока нет арта драконоослика — медальон класса. */}
+      <div className="pet-medallion">
+        <Icon name={CLASS_ICONS[pet.class]} size="64px" />
+      </div>
       {editing ? (
         <div className="pet-rename">
           <input value={name} maxLength={20} onChange={(e) => setName(e.target.value)} autoFocus />
@@ -62,9 +88,9 @@ function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
         </div>
       ) : (
         <h2 className="pet-name">
-          {pet.name}{' '}
+          {pet.name}
           <button
-            className="link"
+            className="pet-rename-btn"
             onClick={() => {
               // Ведущий мог переименовать — правим текущую кличку.
               setName(pet.name)
@@ -72,37 +98,48 @@ function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
             }}
             aria-label="Переименовать"
           >
-            ✏️
+            <Icon name="pencil" />
           </button>
         </h2>
       )}
       <div className="pet-class">
-        {CLASS_NAMES[pet.class]} · {pet.level} уровень
+        <span className="class-chip">
+          <Icon name={CLASS_ICONS[pet.class]} />
+          {CLASS_NAMES[pet.class]}
+        </span>
+        <span className="pet-level">{pet.level} уровень</span>
       </div>
       <div className="pet-xp">
         <div className="pet-xp-bar">
           <span style={{ width: `${xp.percent}%` }} />
         </div>
         <small className="muted">
-          ещё {xp.left} 🫏 до {pet.level + 1} уровня
+          ещё {xp.left} <DonkeyIcon /> до {pet.level + 1} уровня
         </small>
       </div>
       <div className="pet-stats">
         {STATS.map((s) => (
-          <div key={s.key} className="control-row">
-            <span>
-              {s.icon} {s.name}
-            </span>
+          <div key={s.key} className="pet-stat">
+            <Icon name={s.icon} />
+            <span>{s.name}</span>
             <b>{pet[s.key]}</b>
           </div>
         ))}
       </div>
       <div className="pet-derived">
-        <span>❤️ {pet.health}</span>
-        <span>⚔️ {pet.damage}</span>
-        <span>💧 {pet.mana}</span>
+        <span className="hp">
+          <Icon name="heart" label="здоровье" /> {pet.health}
+        </span>
+        <span className="dmg">
+          <Icon name="sword" label="урон" /> {pet.damage}
+        </span>
+        <span className="mana">
+          <Icon name="drop" label="мана" /> {pet.mana}
+        </span>
       </div>
-      <small className="muted">Сила даёт здоровье, ловкость — урон, интеллект — ману. Растёт от заработанных осликов: 50 🫏 — уровень.</small>
+      <small className="muted">
+        Сила даёт здоровье, ловкость — урон, интеллект — ману. Растёт от заработанных осликов: 50 <DonkeyIcon /> — уровень.
+      </small>
       {error && <p className="error">{error}</p>}
     </div>
   )
