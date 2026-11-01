@@ -25,6 +25,17 @@ public class BotBrainTests
         BotBrain.Decide(Night(tasksDone: 5), Me, new Random(1), new HashSet<string>()).Should().BeEmpty();
     }
 
+    [Fact]
+    public void Pet_hatch_retried_until_hatched()
+    {
+        var egg = JsonSerializer.SerializeToElement(new { myPet = new { hatched = false } });
+        var done = new HashSet<string>();
+
+        BotBrain.Pet(egg, done).Should().ContainSingle();
+        BotBrain.Pet(egg, done).Should().ContainSingle();
+        BotBrain.Pet(JsonSerializer.SerializeToElement(new { myPet = new { hatched = true } }), done).Should().BeEmpty();
+    }
+
     private static JsonElement Night(int tasksDone) => JsonSerializer.SerializeToElement(new
     {
         id = Guid.NewGuid().ToString(),

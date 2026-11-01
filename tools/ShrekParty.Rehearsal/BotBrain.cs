@@ -25,6 +25,19 @@ public static class BotBrain
     private static readonly int[] AuctionSteps = [5, 10, 25];
 
     /// <summary>
+    /// Яйцо драконоослика есть и не вылуплено — вылупить (гость тапает яйцо, серверу важен только итог).
+    /// Без ключа в done: не прошло — следующий снапшот попробует снова; повтор сервер не считает.
+    /// </summary>
+    public static IEnumerable<BotAction> Pet(JsonElement snapshot, ISet<string> done)
+    {
+        if (snapshot.TryGetProperty("myPet", out var pet) && pet.ValueKind == JsonValueKind.Object
+            && !pet.GetProperty("hatched").GetBoolean())
+        {
+            yield return new BotAction("вылупил дракоосла", HttpMethod.Post, "/api/pets/hatch");
+        }
+    }
+
+    /// <summary>
     /// Новые действия по снапшоту ивента.
     /// </summary>
     public static IEnumerable<BotAction> Decide(JsonElement activeEvent, Guid me, Random random, ISet<string> done)

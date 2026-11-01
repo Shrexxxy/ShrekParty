@@ -9,6 +9,7 @@ import { CurrentEventCard } from '../admin/CurrentEventCard'
 import { Program } from '../admin/Program'
 import { AuctionLots } from '../admin/AuctionLots'
 import { NeuroPhotos } from '../admin/NeuroPhotos'
+import { Pets } from '../admin/Pets'
 import { TvControls } from '../admin/TvControls'
 import { Leaderboard } from '../components/Leaderboard'
 
@@ -189,6 +190,7 @@ export function AdminPage() {
           <Leaderboard snapshot={snapshot} />
           <ManualAward snapshot={snapshot} />
           <TvControls preload={snapshot.tvPreload} />
+          <Pets overview={snapshot.pets} />
           <NeuroPhotos snapshot={snapshot} />
           <AuctionLots />
           <ResetBlock />

@@ -162,6 +162,24 @@ public class BotTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bots_hatch_pets()
+    {
+        await _factory.OpenRegistrationAsync();
+        await RunBotsAsync(3);
+        var admin = await TestClients.AdminAsync(_factory);
+
+        (await admin.PostAsJsonAsync("/api/admin/registration/close", new { })).EnsureSuccessStatusCode();
+
+        await WaitUntilAsync(async () =>
+        {
+            ShrekParty.Api.Live.AppSnapshot? snapshot = null;
+            await _factory.WithServiceAsync<ShrekParty.Api.Live.SnapshotBuilder>(async b =>
+                snapshot = await b.BuildAsync(new ShrekParty.Api.Live.SnapshotAudience(SignedIn: true, IsAdmin: true)));
+            return snapshot!.Pets is { Hatched: 3 };
+        });
+    }
+
+    [Fact]
     public async Task Bot_rerun_logs_in_existing()
     {
         await _factory.OpenRegistrationAsync();

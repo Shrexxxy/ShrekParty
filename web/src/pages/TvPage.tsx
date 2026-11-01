@@ -79,6 +79,11 @@ export function TvPage() {
   return (
     <main className="page tv">
       <TvMessageOverlay message={snapshot.tvMessage} serverTime={snapshot.serverTime} />
+      {!snapshot.activeEvent && snapshot.pets?.beforeFirstEvent && snapshot.pets.hatched < snapshot.pets.total && (
+        <div className="tv-pets-counter">
+          🥚 Вылупилось драконоосликов: {snapshot.pets.hatched} из {snapshot.pets.total}
+        </div>
+      )}
       {snapshot.activeEvent ? (
         <div className="tv-event">
           <h1 className="tv-title">{snapshot.activeEvent.title}</h1>

@@ -1,5 +1,6 @@
 using ShrekParty.Api.Donkeys;
 using ShrekParty.Api.Events;
+using ShrekParty.Api.Pets;
 using ShrekParty.Api.Quiz;
 using ShrekParty.Api.Registration;
 using ShrekParty.Api.Tv;
@@ -15,13 +16,17 @@ namespace ShrekParty.Api.Live;
 /// <param name="ActiveEvent">Текущий ивент программы с деталями для этого зрителя; гостям — null.</param>
 /// <param name="TvMessage">Ручное сообщение именинника на ТВ, пока не истекло.</param>
 /// <param name="TvPreload">Сколько медиа Своей игры скачало ТВ — только админу.</param>
+/// <param name="MyPet">Свой драконоослик — только игроку.</param>
+/// <param name="Pets">Сколько вылупилось — ТВ и ведущему; список всех — только ведущему.</param>
 public record AppSnapshot(
     RegistrationStatusDto Registration,
     IReadOnlyList<LeaderboardRowDto> Leaderboard,
     DateTimeOffset ServerTime,
     ActiveEventDto? ActiveEvent = null,
     TvMessageDto? TvMessage = null,
-    TvPreloadDto? TvPreload = null);
+    TvPreloadDto? TvPreload = null,
+    PetDto? MyPet = null,
+    PetsOverviewDto? Pets = null);
 
 /// <summary>
 /// Кому собирается снапшот.
@@ -43,6 +48,7 @@ public class SnapshotBuilder(
     EventEngine events,
     TvContentService tv,
     TvPreloadStatus preload,
+    PetService pets,
     TimeProvider time)
 {
     /// <summary>
@@ -66,13 +72,18 @@ public class SnapshotBuilder(
 
         var leaderboard = await donkeys.GetLeaderboardAsync();
         var message = await tv.GetActiveMessageAsync();
+        var allPets = await pets.AllAsync();
+        var hatched = allPets.Count(p => p.Hatched);
+        var beforeFirstEvent = await pets.BeforeFirstEventAsync();
         var result = new List<AppSnapshot>(audiences.Count);
         foreach (var audience in audiences)
         {
             result.Add(audience.SignedIn
                 ? new AppSnapshot(
                     status, leaderboard, now, await events.GetActiveAsync(audience.ViewerId, audience.IsAdmin), message,
-                    audience.IsAdmin ? preload.Current : null)
+                    audience.IsAdmin ? preload.Current : null,
+                    allPets.FirstOrDefault(p => p.UserId == audience.ViewerId),
+                    audience.ViewerId is null ? new PetsOverviewDto(hatched, allPets.Count, audience.IsAdmin ? allPets : [], beforeFirstEvent) : null)
                 : guest);
         }
 

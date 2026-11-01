@@ -78,9 +78,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<AuctionSale> AuctionSales => Set<AuctionSale>();
 
+    public DbSet<Pet> Pets => Set<Pet>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasIndex(u => u.LoginNormalized).IsUnique();
+        modelBuilder.Entity<Pet>().HasKey(p => p.UserId);
         modelBuilder.Entity<RegistrationAttempt>().HasIndex(a => a.LoginNormalized).IsUnique();
         modelBuilder.Entity<DonkeyAward>().HasIndex(a => a.UserId);
         modelBuilder.Entity<PollVote>().HasIndex(v => new { v.EventId, v.UserId }).IsUnique();

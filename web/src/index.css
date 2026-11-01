@@ -2536,3 +2536,147 @@ details summary {
   color: var(--ogre-bright);
   text-decoration: underline;
 }
+
+/* Драконоослик: вкладка, яйцо, карточка. */
+.pet-switch {
+  margin-bottom: 12px;
+}
+
+.pet-notice {
+  width: 100%;
+  font-weight: 800;
+  background: var(--swamp);
+}
+
+.pet-tab {
+  text-align: center;
+}
+
+.pet-egg {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 320px;
+  background: none;
+  border: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.pet-egg-shell {
+  font-size: 140px;
+  line-height: 1;
+}
+
+.pet-egg:active .pet-egg-shell {
+  animation: pet-egg-wobble 0.25s ease-in-out;
+}
+
+.pet-egg.stage-2 .pet-egg-shell {
+  animation: pet-egg-wobble 0.6s ease-in-out infinite;
+}
+
+.pet-egg-crack {
+  min-height: 32px;
+  font-size: 28px;
+}
+
+@keyframes pet-egg-wobble {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  25% {
+    rotate: -8deg;
+  }
+  75% {
+    rotate: 8deg;
+  }
+}
+
+.pet-card {
+  display: grid;
+  gap: 10px;
+}
+
+.pet-avatar {
+  font-size: 96px;
+  line-height: 1;
+}
+
+.pet-name {
+  margin: 0;
+}
+
+.pet-rename {
+  display: flex;
+  gap: 8px;
+}
+
+.pet-rename input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pet-class {
+  font-weight: 800;
+}
+
+.pet-xp {
+  display: grid;
+  gap: 4px;
+}
+
+.pet-xp-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.pet-xp-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ogre);
+}
+
+.pet-stats {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.pet-derived {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.pet-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--ogre);
+  color: var(--swamp-dark);
+  font-weight: 800;
+}
+
+.tv-pets-counter {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  translate: -50% 0;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: var(--card);
+  font-size: clamp(20px, 2.4vw, 40px);
+  font-weight: 800;
+}

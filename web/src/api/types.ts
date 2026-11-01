@@ -76,6 +76,39 @@ export interface AppSnapshot {
   tvMessage?: TvMessageDto | null
   /** Сколько медиа Своей игры скачало ТВ — только админу. */
   tvPreload?: { loaded: number; total: number; at: string } | null
+  /** Свой драконоослик — только игроку. */
+  myPet?: PetDto | null
+  /** Сколько вылупилось — ТВ и ведущему; список — только ведущему. */
+  pets?: PetsOverviewDto | null
+}
+
+export type PetClass = 'Tank' | 'Fighter' | 'Mage'
+
+export interface PetDto {
+  userId: string
+  login: string
+  name: string
+  class: PetClass
+  hatched: boolean
+  level: number
+  /** Заработано за вечер — это опыт. */
+  earned: number
+  /** Сколько всего надо заработать до следующего уровня. */
+  nextLevelAt: number
+  strength: number
+  agility: number
+  intellect: number
+  health: number
+  damage: number
+  mana: number
+}
+
+export interface PetsOverviewDto {
+  hatched: number
+  total: number
+  pets: PetDto[]
+  /** Ни один ивент ещё не стартовал — ТВ показывает счётчик только до него. */
+  beforeFirstEvent: boolean
 }
 
 export interface ProgramItemDto {

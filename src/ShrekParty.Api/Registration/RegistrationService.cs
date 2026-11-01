@@ -7,6 +7,7 @@ using ShrekParty.Api.Auth;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Donkeys;
 using ShrekParty.Api.Live;
+using ShrekParty.Api.Pets;
 using ShrekParty.Api.Scoring;
 
 namespace ShrekParty.Api.Registration;
@@ -37,7 +38,8 @@ public partial class RegistrationService(
     IPasswordHasher<RegistrationAttempt> attemptHasher,
     DonkeyService donkeys,
     ConnectionTracker connections,
-    ILiveNotifier live)
+    ILiveNotifier live,
+    PetService pets)
 {
     /// <summary>Минимальная оценка zxcvbn для «сложного» пароля.</summary>
     public const int MinStrongScore = 3;
@@ -198,6 +200,7 @@ public partial class RegistrationService(
 
         await donkeys.AwardRankingAsync(ev.Id, ToUsers(speed), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationSpeed, customTable);
         await donkeys.AwardRankingAsync(ev.Id, ToUsers(strength), scheme, PartMaxDonkeys, DonkeyReasons.RegistrationPassword, customTable);
+        await pets.EnsureAsync();
         return true;
     }
 
@@ -319,6 +322,13 @@ public partial class RegistrationService(
         }
 
         await donkeys.AwardAsync(user.Id, 150, DonkeyReasons.StartCapital);
+
+        // Опоздавший после закрытия получает яйцо сразу; остальные — при закрытии.
+        if (ToState(await CurrentEventAsync()) == RegistrationState.Finished)
+        {
+            await pets.EnsureAsync();
+        }
+
         return (RegistrationOutcome.Ok, user);
     }
 

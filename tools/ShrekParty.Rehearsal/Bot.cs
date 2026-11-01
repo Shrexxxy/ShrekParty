@@ -140,6 +140,15 @@ public sealed class Bot(string login, BotOptions options, BotTransport transport
                 latest = s;
             }
 
+            if (latest.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var action in BotBrain.Pet(latest, _done))
+                {
+                    await PauseAsync(ct);
+                    await DoAsync(http, action, ct);
+                }
+            }
+
             if (latest.ValueKind == JsonValueKind.Object
                 && latest.TryGetProperty("activeEvent", out var active) && active.ValueKind == JsonValueKind.Object)
             {
