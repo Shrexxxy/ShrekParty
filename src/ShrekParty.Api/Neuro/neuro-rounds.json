@@ -4,6 +4,13 @@
     { "id": "d162801cc6bf", "answer": "Паша", "character": "Джек Воробей" },
     { "id": "905f9ca06c62", "answer": "Алеся", "character": "Доктор Дум" },
     { "id": "c37fa05fe31e", "answer": "Леха", "character": "Николай Александрович Захаров" },
-    { "id": "dadb01e4ba4c", "answer": "Жека", "character": "Бельдам" }
+    { "id": "dadb01e4ba4c", "answer": "Жека", "character": "Бельдам" },
+    { "id": "b64e17dc67f1", "answer": "Дима", "character": "Илья Прусикин" },
+    { "id": "1fe6e804bb22", "answer": "Дима", "character": "Сергей Кузнецов" },
+    { "id": "2c9082d5fa1d", "answer": "Дима", "character": "Нед Старк" },
+    { "id": "464e13083f6f", "answer": "Катя", "character": "Гост" },
+    { "id": "32c42a895aaf", "answer": "Артем", "character": "Сириус Блэк" },
+    { "id": "1f04e04d0399", "answer": "Лиза", "character": "Веном" },
+    { "id": "00249f3ed4b1", "answer": "Саня", "character": "Т'Чалла" }
   ]
 }
