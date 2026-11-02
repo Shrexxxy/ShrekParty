@@ -56,6 +56,26 @@ describe('onionRules: очки и стрик', () => {
   })
 })
 
+describe('onionRules: упавшие луки', () => {
+  it('промах остаётся на полу под своим жёлобом, пойманный — нет', () => {
+    let s = move(createGame(224, alwaysLane2), 2)
+    s = step(s, 3000)
+    expect(s.dropped).toEqual([])
+
+    s = move(s, 0)
+    s = step(s, 3000)
+    expect(s.dropped.length).toBe(s.missed)
+    expect(s.dropped.every((d) => d.lane === 2)).toBe(true)
+  })
+
+  it('на полу не больше 30 луков — старые убираются', () => {
+    let s = createGame(224, alwaysLane2)
+    s = step(s, 120_000)
+    expect(s.missed).toBeGreaterThan(30)
+    expect(s.dropped.length).toBe(30)
+  })
+})
+
 describe('onionRules: темп от стрика', () => {
   it('скорость растёт со стриком, но не быстрее 700 мс', () => {
     expect(rollMs(0)).toBe(3000)

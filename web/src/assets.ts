@@ -3,7 +3,8 @@ export const ASSETS = {
   game: {
     background: '/assets/game/swamp-bg.jpg',
     body: '/assets/game/ogre-body.png',
-    arm: '/assets/game/ogre-arm.png',
+    /** Кисть: предплечье тянется полосой, кисть не искажается. */
+    hand: '/assets/game/ogre-hand.png',
     basket: '/assets/game/basket.png',
     onion: '/assets/game/onion.png',
   },

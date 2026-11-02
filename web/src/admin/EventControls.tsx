@@ -88,7 +88,7 @@ function TournamentControls({ details }: { details: TournamentDetails }) {
   const done = playable.filter((m) => m.status === 'Done').reverse()
   return (
     <div className="controls">
-      {details.challenge.state === 'Offered' && <p>⏳ Победитель решает про вызов…</p>}
+      {details.challenge.state === 'Offered' && <p>⏳ Победитель решает про вызов… Завершишь турнир сейчас — засчитается отказ.</p>}
       {open.map((m) => (
         <MatchControl key={m.id} match={m} />
       ))}

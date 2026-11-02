@@ -137,8 +137,9 @@ public class TournamentModule(AppDbContext db, Random random) : IEventModule
         var matches = await db.TournamentMatches.Where(m => m.EventId == ev.Id).ToListAsync();
         var decision = StateOf(ev).Decision;
         var bracketDone = matches.Where(m => m.Round != TournamentRound.Challenge).All(m => m.Status == MatchStatus.Done);
-        var challengeDone = decision == ChallengeState.Declined
-            || (decision == ChallengeState.Accepted && matches.Any(m => m.Round == TournamentRound.Challenge && m.Status == MatchStatus.Done));
+        // Победитель ещё думает про вызов — ведущий может завершить: молчание засчитывается как отказ (см. AfterFinishAsync).
+        var challengeDone = decision != ChallengeState.Accepted
+            || matches.Any(m => m.Round == TournamentRound.Challenge && m.Status == MatchStatus.Done);
         if (!bracketDone || !challengeDone)
         {
             throw new EventRuleException("not_complete");
@@ -159,13 +160,18 @@ public class TournamentModule(AppDbContext db, Random random) : IEventModule
             tote.FinishedAt = ev.FinishedAt;
         }
 
+        if (StateOf(ev).Decision is null)
+        {
+            ev.StateJson = JsonSerializer.Serialize(new TournamentState(ChallengeState.Declined), Json);
+        }
+
         var challenge = await db.TournamentMatches.FirstOrDefaultAsync(m => m.EventId == ev.Id && m.Round == TournamentRound.Challenge);
         if (challenge?.WinnerId is null || challenge.PlayerAId is not { } champion)
         {
             return;
         }
 
-        // Ослики за 1-е место уже начислены по схеме — добавляем поправку отдельной строкой.
+        // Ослики за 1-е место уже начислены — добавляем поправку отдельной строкой.
         var firstPlace = await db.DonkeyAwards.Where(a => a.EventId == ev.Id && a.UserId == champion).SumAsync(a => a.Amount);
         var won = challenge.WinnerId == champion;
         var target = won ? firstPlace * 2 : (int)Math.Round(firstPlace * 0.5, MidpointRounding.AwayFromZero);

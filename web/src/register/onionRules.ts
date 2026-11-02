@@ -21,6 +21,12 @@ export interface Catch {
   points: number
 }
 
+/** Упавший мимо корзинки — валяется на полу под своим жёлобом. */
+export interface Dropped {
+  id: number
+  lane: Lane
+}
+
 export interface GameState {
   target: number
   score: number
@@ -28,6 +34,8 @@ export interface GameState {
   missed: number
   shrekLane: Lane
   onions: Onion[]
+  /** Последние упавшие, старые убираются — пол не бесконечный. */
+  dropped: Dropped[]
   sinceSpawnMs: number
   nextId: number
   elapsedMs: number
@@ -44,6 +52,7 @@ export interface GameState {
 export const TARGET_SCORE = 224
 export const TIMEOUT_MS = 5 * 60_000
 export const MIN_ARRIVAL_GAP_MS = 350
+export const MAX_DROPPED = 30
 
 const START_ROLL_MS = 3000
 const MIN_ROLL_MS = 700
@@ -79,6 +88,7 @@ export function createGame(target = TARGET_SCORE, random: () => number = Math.ra
     missed: 0,
     shrekLane: 0,
     onions: [],
+    dropped: [],
     sinceSpawnMs: 0,
     nextId: 1,
     elapsedMs: 0,
@@ -103,6 +113,7 @@ export function tick(state: GameState, dtMs: number): GameState {
 
   let { score, streak, missed, lastCatch } = state
   const rolling: Onion[] = []
+  const dropped: Dropped[] = []
   // Сначала те, что докатились раньше, — порядок важен для стрика.
   for (const onion of [...state.onions].sort((a, b) => a.durationMs - a.progressMs - (b.durationMs - b.progressMs))) {
     const progressMs = onion.progressMs + dtMs
@@ -115,6 +126,7 @@ export function tick(state: GameState, dtMs: number): GameState {
     } else {
       streak = 0
       missed++
+      dropped.push({ id: onion.id, lane: onion.lane })
     }
   }
 
@@ -126,6 +138,7 @@ export function tick(state: GameState, dtMs: number): GameState {
     missed,
     lastCatch,
     onions: rolling,
+    dropped: dropped.length ? [...state.dropped, ...dropped].slice(-MAX_DROPPED) : state.dropped,
     elapsedMs,
     sinceSpawnMs: state.sinceSpawnMs + dtMs,
   }

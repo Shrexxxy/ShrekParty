@@ -7,17 +7,36 @@ import { createGame, move, tick, type GameState, type Lane } from './onionRules'
 /** Начало и конец жёлоба в процентах поля (поле квадратное). */
 const CHUTES: Record<Lane, { from: [number, number]; to: [number, number] }> = {
   0: { from: [4, 12], to: [30, 34] },
-  1: { from: [4, 50], to: [30, 72] },
+  1: { from: [4, 50], to: [26, 70] },
   2: { from: [96, 12], to: [70, 34] },
-  3: { from: [96, 50], to: [70, 72] },
+  3: { from: [96, 50], to: [74, 70] },
 }
 
-/** Плечи Шрека и где держится корзинка относительно конца жёлоба. */
+/** Плечи Шрека — где из рукавов на картинке выходят руки — и где держится корзинка относительно конца жёлоба. */
 const SHOULDERS: [number, number][] = [
-  [41, 80],
-  [59, 80],
+  [36, 45.7],
+  [64, 45.7],
 ]
 const BASKET_OFFSET_Y = 5
+
+/** Пол, где валяются упавшие луки, — на уровне ног Шрека, в процентах поля. */
+const FLOOR_Y = 80
+
+/** Луки над краем корзинки — по одному на каждую пятую часть пути к цели. */
+const BASKET_ONIONS: [number, number][] = [
+  [-30, -42],
+  [30, -42],
+  [0, -50],
+  [-16, -72],
+  [16, -72],
+]
+
+/** Где на полу лежит упавший лук: под концом жёлоба, чуть в сторону — каждый по-своему. */
+function floorSpot(id: number, lane: Lane): { x: number; rotate: number } {
+  const end = CHUTES[lane].to[0]
+  const side = lane < 2 ? -1 : 1
+  return { x: end + side * ((id * 37) % 9) - side * 2, rotate: (id * 53) % 360 }
+}
 
 const KEYS: Record<string, Lane> = { q: 0, a: 1, p: 2, l: 3, й: 0, ф: 1, з: 2, д: 3 }
 
@@ -44,7 +63,7 @@ function armStyle(shoulder: [number, number], target: [number, number]) {
     left: `${shoulder[0]}%`,
     top: `${shoulder[1]}%`,
     height: `${Math.hypot(dx, dy)}%`,
-    // Картинка руки висит вниз (по +Y) — поворачиваем её к корзинке.
+    // Рука висит вниз (по +Y) — поворачиваем её к корзинке.
     rotate: `${(Math.atan2(dy, dx) * 180) / Math.PI - 90}deg`,
   }
 }
@@ -130,21 +149,37 @@ export function OnionGame({ onDone }: { onDone: () => void }) {
         })}
 
         <Sprite className="ogre-body" src={ASSETS.game.body} fallback={<OgreFallback />} alt="Шрек" />
+        {/* Руки поверх тела — выходят из-под края рукава, иначе на нижних полках кисти прячутся за Шреком.
+            Предплечье тянется, кисть — картинка как есть. */}
         {SHOULDERS.map((shoulder, i) => (
-          <Sprite
-            key={i}
-            className={i === 0 ? 'ogre-arm' : 'ogre-arm mirrored'}
-            src={ASSETS.game.arm}
-            fallback={<span className="ogre-arm-fallback" />}
-            style={armStyle(shoulder, basket)}
-          />
+          <span key={i} className={i === 0 ? 'ogre-arm' : 'ogre-arm mirrored'} style={armStyle(shoulder, basket)}>
+            <span className="ogre-forearm" />
+            <Sprite className="ogre-hand" src={ASSETS.game.hand} fallback={<span className="ogre-hand-fallback" />} />
+          </span>
         ))}
-        <Sprite
-          className="ogre-basket"
-          src={ASSETS.game.basket}
-          fallback="🧺"
-          style={{ left: `${basket[0]}%`, top: `${basket[1]}%` }}
-        />
+        {state.dropped.map((d) => {
+          const end = CHUTES[d.lane].to
+          const spot = floorSpot(d.id, d.lane)
+          return (
+            <motion.span
+              key={d.id}
+              className="onion-dropped"
+              initial={{ left: `${end[0]}%`, top: `${end[1]}%`, rotate: 0 }}
+              animate={{ left: `${spot.x}%`, top: `${FLOOR_Y}%`, rotate: spot.rotate }}
+              transition={{ duration: 0.45, ease: 'easeIn' }}
+            >
+              <Sprite className="onion-img" src={ASSETS.game.onion} fallback="🧅" />
+            </motion.span>
+          )
+        })}
+
+        {/* Корзинка наполняется по мере набора очков. */}
+        <div className="ogre-basket" style={{ left: `${basket[0]}%`, top: `${basket[1]}%` }}>
+          {BASKET_ONIONS.slice(0, Math.floor((progress / 100) * BASKET_ONIONS.length)).map(([x, y], i) => (
+            <Sprite key={i} className="basket-onion" src={ASSETS.game.onion} fallback="🧅" style={{ translate: `${x}% ${y}%` }} />
+          ))}
+          <Sprite className="ogre-basket-img" src={ASSETS.game.basket} fallback="🧺" />
+        </div>
 
         {state.onions.map((o) => {
           const { from, to } = CHUTES[o.lane]

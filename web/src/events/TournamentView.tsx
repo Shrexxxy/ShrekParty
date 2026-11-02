@@ -109,6 +109,8 @@ export function TournamentView({ eventId, details, myId, tv }: { eventId: string
     (m) => m.status === 'Pending' && m.playerA && m.playerB && !m.isBye && m.playerA.id !== myId && m.playerB.id !== myId,
   )
   const challengeMatch = details.matches.find((m) => m.round === 'Challenge')
+  const final = details.matches.find((m) => m.round === 'Final')
+  const champion = [final?.playerA, final?.playerB].find((p) => p && p.id === details.challenge.offeredToId)?.login
 
   async function decide(accept: boolean) {
     setError(null)
@@ -121,6 +123,12 @@ export function TournamentView({ eventId, details, myId, tv }: { eventId: string
 
   return (
     <div className={tv ? 'tournament tv' : 'tournament'}>
+      {tv && details.challenge.state === 'Offered' && champion && (
+        <div className="challenge-banner">{champion} решает: драться с именинником или забрать ослики?</div>
+      )}
+      {tv && details.challenge.state === 'Declined' && champion && (
+        <div className="challenge-banner">{champion} забирает ослики — вызов не брошен</div>
+      )}
       {tv && challengeMatch && challengeMatch.status !== 'Done' && (
         <div className="challenge-banner">⚔️ {challengeMatch.playerA?.login} бросает вызов имениннику!</div>
       )}

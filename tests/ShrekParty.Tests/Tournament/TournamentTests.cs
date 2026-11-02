@@ -171,16 +171,24 @@ public class TournamentTests : IDisposable
     }
 
     [Fact]
-    public async Task Finish_before_challenge_decision_409()
+    public async Task Finish_while_winner_decides_counts_as_decline()
     {
         await SeedPlayersAsync("Ann", "Bob");
         var (id, admin) = await StartTournamentAsync();
-        var final = Matches(await DetailsAsync(admin), "Final").Single();
-        await PlayAsync(admin, final, PlayerId(final, "playerA")!.Value);
+        var (winner, _) = await PlayFinalAsync(admin, Matches(await DetailsAsync(admin), "Final").Single());
 
         var response = await admin.PostAsync($"/api/admin/events/{id}/finish", null);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await TabAsync(admin, id)).Should().BeEquivalentTo(new Dictionary<string, int> { ["Ann"] = 100, ["Bob"] = 50 });
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ev = await scope.ServiceProvider.GetRequiredService<ShrekParty.Api.Data.AppDbContext>().Events.FindAsync(id);
+            var state = JsonSerializer.Deserialize<ShrekParty.Api.Tournament.TournamentState>(ev!.StateJson!, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            state!.Decision.Should().Be(ShrekParty.Api.Tournament.ChallengeState.Declined);
+        }
+
+        (await winner.PostAsJsonAsync($"/api/tournaments/{id}/challenge", new { accept = true })).StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Fact]
