@@ -45,6 +45,8 @@ export interface BossFighter {
   login: string
   name: string
   class: PetClass
+  /** Рисунок питомца внутри класса — картинка на экранах. */
+  variant: number
   hp: number
   maxHp: number
   mana: number
@@ -68,7 +70,8 @@ export interface BossDetails {
   fighters: BossFighter[]
   myId: string | null
   myChoice: { action: FighterAction; targetId: string | null } | null
-  myOptions: { action: FighterAction; unavailable: string | null }[]
+  /** amount — урон или лечение для подписи на кнопке; у заслона и уклона null. */
+  myOptions: { action: FighterAction; unavailable: string | null; amount: number | null }[]
   feed: Fx[]
   cheerBonus: number
   iCheered: boolean
@@ -91,6 +94,24 @@ export const ACTION_ICONS: Record<FighterAction, string> = {
   Power: '💥',
   Fire: '🔥',
   Heal: '💚',
+}
+
+/** Название скилла и что он делает — подпись на кнопке; число — для своего питомца. */
+export function actionText(action: FighterAction, amount: number | null): { name: string; hint: string } {
+  switch (action) {
+    case 'Attack':
+      return { name: 'Лягнуть', hint: `Бьёт копытом: урон ${amount}` }
+    case 'Dodge':
+      return { name: 'Увернуться', hint: 'Удар босса пролетит мимо. Два хода подряд нельзя' }
+    case 'Cover':
+      return { name: 'Встать стеной', hint: 'Закрывает всех собой: весь урон по команде на тебя, вдвое меньше' }
+    case 'Power':
+      return { name: 'С разбега', hint: `Двойной урон ${amount}, но увернуться в этот ход нельзя` }
+    case 'Fire':
+      return { name: 'Драконий чих', hint: `Огнём по боссу: урон ${amount}, 4 маны` }
+    case 'Heal':
+      return { name: 'Луковый угар', hint: `Лечит союзника на ${amount}, 3 маны` }
+  }
 }
 
 /** Иконка хода босса — на баннере; текста по минимуму. */

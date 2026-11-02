@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { api } from '../api/http'
 import { codeText, errorText } from '../admin/errors'
-import { CLASS_NAMES } from '../pets/pets'
+import { Sprite } from '../components/Sprite'
+import { CLASS_NAMES, petArt } from '../pets/pets'
 import {
   ACTION_ICONS,
+  actionText,
   activeFighter,
   BOSS_NAMES,
   type BossDetails,
@@ -27,6 +29,16 @@ const BOSS_FACES: Record<BossKind, string> = { Peasant: '🧑‍🌾', Farquaad:
 const SHOW_MIN_MS = 3000
 const SHOW_TAIL_MS = 1000
 const FX_MS = 600
+
+/** Драконоослик игрока; оглушённый — тыква поверх. */
+function PetPic({ f }: { f: BossFighter }) {
+  return (
+    <span className="boss-pet">
+      <Sprite src={petArt(f)} fallback="🐉" className="boss-pet-img" alt={f.name} />
+      {f.stunned && <span className="boss-pet-pumpkin">🎃</span>}
+    </span>
+  )
+}
 
 function Bar({ value, max, kind }: { value: number; max: number; kind: 'hp' | 'mana' | 'boss' }) {
   return (
@@ -58,7 +70,7 @@ function FighterCard({ f, fx, targeted, big }: { f: BossFighter; fx: Fx | null; 
   return (
     <div className={['boss-fighter', !f.alive && 'dead', targeted && 'targeted', big && 'big', onMe && fxClass(fx)].filter(Boolean).join(' ')}>
       {f.choice && <span className="boss-choice">{ACTION_ICONS[f.choice]}</span>}
-      <span className="boss-pet">{f.stunned ? '🎃' : '🐉'}</span>
+      <PetPic f={f} />
       {onMe && fx.amount > 0 && <span className="boss-number">{fx.kind === 'Heal' ? `+${fx.amount}` : `−${fx.amount}`}</span>}
       <small className="boss-fighter-name">{f.name}</small>
       <small className="muted">{CLASS_NAMES[f.class]}</small>
@@ -153,7 +165,7 @@ function Actions({ eventId, details, me }: { eventId: string; details: BossDetai
           .filter((f) => f.alive)
           .map((f) => (
             <button key={f.userId} onClick={() => void act('Heal', f.userId)}>
-              🐉 {f.name}
+              <PetPic f={f} /> {f.name}
               <Bar value={f.hp} max={f.maxHp} kind="hp" />
             </button>
           ))}
@@ -167,17 +179,23 @@ function Actions({ eventId, details, me }: { eventId: string; details: BossDetai
   return (
     <>
       <div className="boss-actions">
-        {details.myOptions.map((o) => (
-          <button
-            key={o.action}
-            className={details.myChoice?.action === o.action ? 'primary' : ''}
-            disabled={o.unavailable !== null}
-            onClick={() => (o.action === 'Heal' ? setHealing(true) : void act(o.action))}
-          >
-            <span className="boss-action-icon">{ACTION_ICONS[o.action]}</span>
-            {o.unavailable && <small className="muted">{codeText(o.unavailable)}</small>}
-          </button>
-        ))}
+        {details.myOptions.map((o) => {
+          const text = actionText(o.action, o.amount)
+          return (
+            <button
+              key={o.action}
+              className={details.myChoice?.action === o.action ? 'primary' : ''}
+              disabled={o.unavailable !== null}
+              onClick={() => (o.action === 'Heal' ? setHealing(true) : void act(o.action))}
+            >
+              <span className="boss-action-icon">{ACTION_ICONS[o.action]}</span>
+              <span className="boss-action-text">
+                <b>{text.name}</b>
+                <small>{o.unavailable ? codeText(o.unavailable) : text.hint}</small>
+              </span>
+            </button>
+          )
+        })}
       </div>
       {!me.alive && <p className="muted">💀</p>}
       {error && <p className="error">{error}</p>}

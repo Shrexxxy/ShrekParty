@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFighter, BOSS_NAMES, feedStep, fxClass, hitsBoss, hpPercent, openLots, parsePrize, PRIZE_OPTIONS, prizeKey, type Fx } from './boss'
+import { actionText, activeFighter, BOSS_NAMES, feedStep, fxClass, hitsBoss, hpPercent, openLots, parsePrize, PRIZE_OPTIONS, prizeKey, type Fx } from './boss'
 
 const fx = (kind: Fx['kind'], actorId: string | null = null, targetId: string | null = null, amount = 0): Fx => ({ kind, actorId, targetId, amount })
 
@@ -68,5 +68,16 @@ describe('призы', () => {
       { name: 'в', medal: 'Gold' as const, open: false, sold: false },
     ]
     expect(openLots(prizes)).toBe(1)
+  })
+})
+
+describe('actionText', () => {
+  it('название и что делает, с числом для своего питомца', () => {
+    expect(actionText('Attack', 7)).toEqual({ name: 'Лягнуть', hint: 'Бьёт копытом: урон 7' })
+    expect(actionText('Power', 14)).toEqual({ name: 'С разбега', hint: 'Двойной урон 14, но увернуться в этот ход нельзя' })
+    expect(actionText('Fire', 18)).toEqual({ name: 'Драконий чих', hint: 'Огнём по боссу: урон 18, 4 маны' })
+    expect(actionText('Heal', 12)).toEqual({ name: 'Луковый угар', hint: 'Лечит союзника на 12, 3 маны' })
+    expect(actionText('Dodge', null).name).toBe('Увернуться')
+    expect(actionText('Cover', null).name).toBe('Встать стеной')
   })
 })

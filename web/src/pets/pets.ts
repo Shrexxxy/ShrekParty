@@ -16,7 +16,7 @@ export const CLASS_ICONS: Record<PetClass, IconName> = {
 }
 
 /** Картинка питомца: свой рисунок внутри класса. */
-export function petArt(pet: PetDto): string {
+export function petArt(pet: Pick<PetDto, 'class' | 'variant'>): string {
   return `/assets/pets/${pet.class.toLowerCase()}-${pet.variant}.png`
 }
 

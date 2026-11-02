@@ -74,6 +74,40 @@ public class BossFightTests : IDisposable
     }
 
     [Fact]
+    public async Task Fighters_have_pet_art_and_options_show_amounts()
+    {
+        await PlayersAsync();
+        await ToChoosingAsync();
+        IReadOnlyList<PetDto> pets = [];
+        await _factory.WithServiceAsync<PetService>(async p => pets = await p.AllAsync());
+
+        foreach (var pet in pets)
+        {
+            var details = await DetailsAsync(await PlayerAsync(pet.Login));
+            Fighter(details, pet.Login).GetProperty("variant").GetInt32().Should().Be(pet.Variant);
+            var amounts = details.GetProperty("myOptions").EnumerateArray().ToDictionary(
+                o => o.GetProperty("action").GetString()!,
+                o => o.GetProperty("amount").ValueKind == JsonValueKind.Null ? (int?)null : o.GetProperty("amount").GetInt32());
+
+            amounts["Attack"].Should().Be(pet.Damage);
+            amounts["Dodge"].Should().BeNull();
+            if (pet.Class == PetClass.Fighter)
+            {
+                amounts["Power"].Should().Be(2 * pet.Damage);
+            }
+            if (pet.Class == PetClass.Mage)
+            {
+                amounts["Fire"].Should().Be(3 * pet.Intellect);
+                amounts["Heal"].Should().Be(2 * pet.Intellect);
+            }
+            if (pet.Class == PetClass.Tank)
+            {
+                amounts["Cover"].Should().BeNull();
+            }
+        }
+    }
+
+    [Fact]
     public async Task Choosing_ends_by_timer_then_showing_then_next_turn()
     {
         await PlayersAsync();

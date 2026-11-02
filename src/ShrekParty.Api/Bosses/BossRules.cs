@@ -244,6 +244,20 @@ public static class BossRules
         return (int)Math.Ceiling(mult * average * def.Strength * rage * (doubled ? 2 : 1));
     }
 
+    /// <summary>Урон или лечение действия с учётом поддержки с того света; у заслона и уклона числа нет.</summary>
+    public static int? Amount(Fighter fighter, FighterAction action, int cheers)
+    {
+        var bonus = Math.Min(MaxCheerBonus, cheers);
+        return action switch
+        {
+            FighterAction.Attack => fighter.Damage + bonus,
+            FighterAction.Power => 2 * (fighter.Damage + bonus),
+            FighterAction.Fire => 3 * fighter.Intellect + bonus,
+            FighterAction.Heal => 2 * fighter.Intellect,
+            _ => null,
+        };
+    }
+
     /// <summary>Почему действие сейчас нельзя: null — можно.</summary>
     public static string? Unavailable(Fighter fighter, FighterAction action) => (fighter, action) switch
     {

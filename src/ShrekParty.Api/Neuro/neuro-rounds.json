@@ -2,6 +2,8 @@
   "decoys": ["Гарри Поттер", "Джокер", "Шерлок Холмс"],
   "rounds": [
     { "id": "d162801cc6bf", "answer": "Паша", "character": "Джек Воробей" },
-    { "id": "905f9ca06c62", "answer": "Алеся", "character": "Доктор Дум" }
+    { "id": "905f9ca06c62", "answer": "Алеся", "character": "Доктор Дум" },
+    { "id": "c37fa05fe31e", "answer": "Леха", "character": "Николай Александрович Захаров" },
+    { "id": "dadb01e4ba4c", "answer": "Жека", "character": "Бельдам" }
   ]
 }

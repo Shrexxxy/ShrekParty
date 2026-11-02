@@ -56,19 +56,19 @@ public record BossState(
     Medal? Medal,
     IReadOnlyDictionary<Guid, BossName> Names);
 
-/// <summary>Логин хозяина и кличка драконоослика.</summary>
-public record BossName(string Login, string Name);
+/// <summary>Логин хозяина, кличка драконоослика и его рисунок — для картинки на экранах.</summary>
+public record BossName(string Login, string Name, int Variant = 1);
 
 /// <summary>Боец для экранов; выбор виден всем — чтобы договариваться вслух.</summary>
 public record BossFighterDto(
-    Guid UserId, string Login, string Name, PetClass Class, int Hp, int MaxHp, int Mana, int MaxMana, bool Alive, bool Stunned, FighterAction? Choice);
+    Guid UserId, string Login, string Name, PetClass Class, int Variant, int Hp, int MaxHp, int Mana, int MaxMana, bool Alive, bool Stunned, FighterAction? Choice);
 
 /// <summary>Приз босса на экране итога.</summary>
 /// <param name="Open">Медаль боя его открыла.</param>
 public record BossPrizeDto(string Name, Medal Medal, bool Open, bool Sold);
 
-/// <summary>Действие и почему его сейчас нельзя (null — можно).</summary>
-public record BossOptionDto(FighterAction Action, string? Unavailable);
+/// <summary>Действие, почему его сейчас нельзя (null — можно) и сколько урона или лечения даст — для подписи на кнопке.</summary>
+public record BossOptionDto(FighterAction Action, string? Unavailable, int? Amount);
 
 /// <summary>Детали боя.</summary>
 /// <param name="Rage">Множитель ярости босса сейчас (1 — без ярости).</param>
@@ -159,7 +159,7 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
         var max = BossRules.MaxHp(boss, fighters);
         SetState(ev, new BossState(
             boss, BossPhase.Intro, 0, 0, ev.StartedAt!.Value + IntroTime, max, max, false, null, fighters,
-            new Dictionary<Guid, FighterChoice>(), [], 0, [], null, all.ToDictionary(p => p.UserId, p => new BossName(p.Login, p.Name))));
+            new Dictionary<Guid, FighterChoice>(), [], 0, [], null, all.ToDictionary(p => p.UserId, p => new BossName(p.Login, p.Name, p.Variant))));
     }
 
     /// <inheritdoc/>
@@ -184,12 +184,12 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
             state.Fighters
                 .Where(f => names.ContainsKey(f.UserId))
                 .Select(f => new BossFighterDto(
-                    f.UserId, names[f.UserId].Login, names[f.UserId].Name, f.Class, f.Hp, f.MaxHp, f.Mana, f.MaxMana, f.Alive, f.Stunned,
+                    f.UserId, names[f.UserId].Login, names[f.UserId].Name, f.Class, names[f.UserId].Variant, f.Hp, f.MaxHp, f.Mana, f.MaxMana, f.Alive, f.Stunned,
                     showChoices && state.Choices.TryGetValue(f.UserId, out var c) ? c.Action : null))
                 .ToList(),
             me?.UserId,
             me is not null && state.Choices.TryGetValue(me.UserId, out var mine) ? mine : null,
-            me is null ? [] : OptionsFor(me).Select(a => new BossOptionDto(a, BossRules.Unavailable(me, a))).ToList(),
+            me is null ? [] : OptionsFor(me).Select(a => new BossOptionDto(a, BossRules.Unavailable(me, a), BossRules.Amount(me, a, state.CheerBonus))).ToList(),
             state.Phase is BossPhase.Showing or BossPhase.Won or BossPhase.Lost ? state.Feed : [],
             state.CheerBonus,
             me is not null && state.Cheers.Contains(me.UserId),
