@@ -162,10 +162,6 @@ export function AdminPage() {
           <Icon name="tv" size="28px" />
           <span>Экран ТВ</span>
         </Link>
-        <Link to="/admin/neuro" className="admin-tile">
-          <Icon name="photo" size="28px" />
-          <span>Нейрофото</span>
-        </Link>
         <Link to="/admin/auction" className="admin-tile">
           <Icon name="gavel" size="28px" />
           <span>Лоты</span>

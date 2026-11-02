@@ -13,7 +13,7 @@ public class DefaultsTests : IDisposable
     [InlineData("Reaction", 30)]
     [InlineData("Tapper", 30)]
     [InlineData("Days", 30)]
-    [InlineData("NeuroPhoto", 50)]
+    [InlineData("NeuroPhoto", 0)]
     public async Task Defaults_for_layer3_types(string type, int maxDonkeys)
     {
         var admin = await TestClients.AdminAsync(_factory);

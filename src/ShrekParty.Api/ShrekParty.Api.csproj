@@ -11,4 +11,8 @@
     <PackageReference Include="zxcvbn-core" Version="7.0.92" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Neuro/neuro-rounds.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

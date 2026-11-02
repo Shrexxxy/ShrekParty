@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useSnapshot } from '../api/live'
 import { AuctionLots } from '../admin/AuctionLots'
-import { NeuroPhotos } from '../admin/NeuroPhotos'
 import { Program } from '../admin/Program'
 import { TvControls } from '../admin/TvControls'
 
@@ -33,12 +32,6 @@ export function AdminProgramPage() {
 export function AdminTvPage() {
   const snapshot = useSnapshot()
   return <AdminSubPage title="Экран ТВ">{snapshot === null ? <p className="muted">Подключаюсь…</p> : <TvControls preload={snapshot.tvPreload} />}</AdminSubPage>
-}
-
-/** Фото для нейрофото и кто на каждом. */
-export function AdminNeuroPage() {
-  const snapshot = useSnapshot()
-  return <AdminSubPage title="Нейрофото">{snapshot === null ? <p className="muted">Подключаюсь…</p> : <NeuroPhotos snapshot={snapshot} />}</AdminSubPage>
 }
 
 /** Лоты аукциона. */

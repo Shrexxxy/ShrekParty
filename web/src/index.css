@@ -2185,20 +2185,58 @@ details summary {
 
 .neuro-options {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
 .neuro-options button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  padding: 14px 6px;
+  font-weight: 800;
 }
 
 .neuro-options button.on {
-  background: var(--ogre);
-  color: var(--swamp-dark);
+  background: var(--lamp);
+  color: var(--ink);
+}
+
+/* Раскрытие на ТВ: друг + образ = результат. */
+.neuro-triple {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1.3fr;
+  align-items: center;
+  gap: clamp(8px, 1.5vw, 24px);
+}
+
+.neuro-triple img {
+  width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.neuro-sign {
+  font: 900 clamp(32px, 5vw, 80px) var(--font-display);
+  color: var(--lamp);
+}
+
+.neuro-choice h3 {
+  margin: 6px 0;
+  text-align: left;
+}
+
+.neuro-verdict {
+  display: grid;
+  gap: 4px;
   font-weight: 700;
+}
+
+.neuro-verdict b {
+  font: 900 24px var(--font-display);
+  color: var(--lamp);
 }
 
 .neuro-subject {

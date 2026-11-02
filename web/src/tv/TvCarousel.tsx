@@ -3,18 +3,21 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/http'
 import type { AppSnapshot } from '../api/types'
 import { Leaderboard } from '../components/Leaderboard'
+import { NeuroTriple } from '../events/NeuroView'
 import { factsForCycle } from './carousel'
 import { Highlighted } from './Highlighted'
 
 const LEADERBOARD_MS = 60_000
 const FACT_MS = 10_000
 
-/** Слайд карусели: факт или фото (матч, мем, фотоохота) с подписью. */
+/** Слайд карусели: факт, фото (матч, мем, фотоохота) с подписью или тройка нейрофото. */
 interface SlideDto {
-  kind: 'Fact' | 'Photo'
+  kind: 'Fact' | 'Photo' | 'Neuro'
   text: string
   logins: string[]
   imageUrl: string | null
+  /** Нейрофото: друг, образ, что получилось. */
+  images: string[] | null
 }
 
 /** Между ивентами: общая таблица минуту → два слайда (факты и фото) по 10 с → снова таблица; слайды по кругу. */
@@ -65,12 +68,14 @@ export function TvCarousel({ snapshot }: { snapshot: AppSnapshot }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -40 }}
         >
-          {fact.imageUrl ? (
+          {fact.kind === 'Neuro' && fact.images ? (
+            <NeuroTriple friendUrl={fact.images[0]} sourceUrl={fact.images[1]} resultUrl={fact.images[2]} />
+          ) : fact.imageUrl ? (
             <img className="tv-slide-photo" src={fact.imageUrl} alt="" />
           ) : (
             <div className="tv-fact-label">А вы знали?</div>
           )}
-          <div className={fact.imageUrl ? 'tv-slide-caption' : 'tv-fact-text'}>
+          <div className={fact.imageUrl || fact.images ? 'tv-slide-caption' : 'tv-fact-text'}>
             <Highlighted text={fact.text} logins={fact.logins} />
           </div>
         </motion.div>

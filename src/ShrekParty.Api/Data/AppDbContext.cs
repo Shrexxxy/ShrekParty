@@ -58,7 +58,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<DaysAnswer> DaysAnswers => Set<DaysAnswer>();
 
-    public DbSet<NeuroPhoto> NeuroPhotos => Set<NeuroPhoto>();
 
     public DbSet<NeuroGuess> NeuroGuesses => Set<NeuroGuess>();
 
@@ -94,7 +93,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<ReactionAttempt>().HasIndex(a => new { a.EventId, a.UserId, a.Round }).IsUnique();
         modelBuilder.Entity<TapScore>().HasIndex(t => new { t.EventId, t.UserId }).IsUnique();
         modelBuilder.Entity<DaysAnswer>().HasIndex(a => new { a.EventId, a.UserId }).IsUnique();
-        modelBuilder.Entity<NeuroGuess>().HasIndex(g => new { g.EventId, g.PhotoId, g.UserId }).IsUnique();
+        modelBuilder.Entity<NeuroGuess>().HasIndex(g => new { g.EventId, g.RoundId, g.UserId }).IsUnique();
         modelBuilder.Entity<QuizPress>().HasIndex(p => new { p.EventId, p.QuestionId, p.UserId }).IsUnique();
         modelBuilder.Entity<QuizFinalAnswer>().HasIndex(f => new { f.EventId, f.UserId }).IsUnique();
     }

@@ -81,6 +81,7 @@ builder.Services.AddScoped<IEventModule, DaysModule>();
 builder.Services.AddScoped<DaysService>();
 builder.Services.AddScoped<IEventModule, NeuroModule>();
 builder.Services.AddScoped<NeuroService>();
+builder.Services.AddSingleton(_ => NeuroCatalog.Load(Path.Combine(AppContext.BaseDirectory, "Neuro", "neuro-rounds.json")));
 builder.Services.AddScoped<QuizContentService>();
 builder.Services.AddScoped<IEventModule, QuizModule>();
 builder.Services.AddScoped<QuizService>();

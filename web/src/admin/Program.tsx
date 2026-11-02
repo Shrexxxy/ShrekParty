@@ -6,7 +6,7 @@ import { errorText } from './errors'
 import { EVENT_TYPE_LABELS, moveOrder, nextDraft } from './programOrder'
 
 const CREATABLE: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'BossFight', 'Ceremony', 'Auction']
-const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia']
+const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'Quiz', 'Mafia']
 const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Tournament: 100,
   Laugh: 100,
@@ -15,7 +15,6 @@ const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Reaction: 30,
   Tapper: 30,
   Days: 30,
-  NeuroPhoto: 50,
   Quiz: 100,
   Mafia: 25,
 }

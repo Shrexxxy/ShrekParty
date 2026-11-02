@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Media;
+using ShrekParty.Api.Neuro;
 using ShrekParty.Api.PhotoHunt;
 using ShrekParty.Api.Tournament;
 
@@ -12,15 +13,18 @@ public enum SlideKind
 {
     Fact,
     Photo,
+
+    /// <summary>Нейрофото: три картинки — друг, образ, что получилось.</summary>
+    Neuro,
 }
 
-/// <summary>Слайд карусели ТВ; логины — чтобы подсветить ники.</summary>
-public record SlideDto(SlideKind Kind, string Text, IReadOnlyList<string> Logins, string? ImageUrl);
+/// <summary>Слайд карусели ТВ; логины — чтобы подсветить ники; несколько картинок — у нейрофото.</summary>
+public record SlideDto(SlideKind Kind, string Text, IReadOnlyList<string> Logins, string? ImageUrl, IReadOnlyList<string>? Images = null);
 
 /// <summary>
 /// Слайды карусели между ивентами: факты регистрации, фото матчей с подписью по шаблону, мемы, фото фотоохот и пряток — вперемешку.
 /// </summary>
-public class TvSlidesService(AppDbContext db, TvFactsService facts, Random random)
+public class TvSlidesService(AppDbContext db, TvFactsService facts, NeuroCatalog neuro, Random random)
 {
     /// <summary>
     /// Все слайды в случайном порядке.
@@ -33,6 +37,7 @@ public class TvSlidesService(AppDbContext db, TvFactsService facts, Random rando
         slides.AddRange(await MemesAsync());
         slides.AddRange(await HuntPhotosAsync());
         slides.AddRange(await HideShotsAsync());
+        slides.AddRange(await NeuroAsync());
 
         var shuffled = slides.ToArray();
         random.Shuffle(shuffled);
@@ -67,6 +72,12 @@ public class TvSlidesService(AppDbContext db, TvFactsService facts, Random rando
                 return new SlideDto(SlideKind.Photo, template.Replace("{A}", a).Replace("{B}", b), [a, b], MediaStorage.UrlFor(p.Id));
             });
     }
+
+    /// <summary>Тройки нейрофото — только после игры, иначе карусель выдаст ответы заранее.</summary>
+    private async Task<IEnumerable<SlideDto>> NeuroAsync() =>
+        await db.Events.AnyAsync(e => e.Type == EventType.NeuroPhoto && e.Status == EventStatus.Finished)
+            ? neuro.Rounds.Select(r => new SlideDto(SlideKind.Neuro, $"Это {r.Answer} в образе: {r.Character}!", [], null, [r.FriendUrl, r.SourceUrl, r.ResultUrl]))
+            : [];
 
     private async Task<IEnumerable<SlideDto>> MemesAsync() =>
         (await db.MediaFiles.AsNoTracking().Where(m => m.Tag == TvContentService.MemeTag).ToListAsync())

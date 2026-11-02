@@ -324,16 +324,20 @@ public static class BotBrain
     private static IEnumerable<BotAction> Neuro(string id, JsonElement details, Random random, ISet<string> done)
     {
         var index = details.GetProperty("index").GetInt32();
-        if (details.GetProperty("phase").GetString() != "Guessing" || details.GetProperty("myGuess").ValueKind != JsonValueKind.Null
+        if (details.GetProperty("phase").GetString() != "Guessing" || details.GetProperty("myPerson").ValueKind != JsonValueKind.Null
             || !done.Add($"neuro:{id}:{index}"))
         {
             yield break;
         }
 
-        var options = details.GetProperty("options").EnumerateArray().ToList();
-        var pick = options[random.Next(options.Count)];
-        yield return new BotAction($"на фото {pick.GetProperty("login").GetString()}", HttpMethod.Post, $"/api/neuro/{id}/guess",
-            new { userId = pick.GetProperty("userId").GetGuid() });
+        string Pick(string key)
+        {
+            var options = details.GetProperty(key).EnumerateArray().Select(o => o.GetString()!).ToList();
+            return options[random.Next(options.Count)];
+        }
+
+        var (person, character) = (Pick("people"), Pick("characters"));
+        yield return new BotAction($"на фото {person} в образе: {character}", HttpMethod.Post, $"/api/neuro/{id}/guess", new { person, character });
     }
 
     private static IEnumerable<BotAction> Tournament(string id, JsonElement details, Guid me, Random random, ISet<string> done)

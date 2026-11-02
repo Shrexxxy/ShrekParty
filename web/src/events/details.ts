@@ -142,12 +142,21 @@ export interface NeuroDetails {
   total: number
   phase: 'Guessing' | 'Reveal'
   deadline: string
+  /** Что получилось — маскировка. */
   photoUrl: string
-  options: { userId: string; login: string; avatarUrl: string | null }[]
-  myGuess: string | null
+  /** Люди и персонажи на выбор. */
+  people: string[]
+  characters: string[]
+  myPerson: string | null
+  myCharacter: string | null
   guessed: number
-  subjectId: string | null
+  /** С раскрытия: кто на фото, под кого, сколько осликов у зрителя, кто угадал человека и исходники. */
+  answer: string | null
+  character: string | null
+  myPoints: number | null
   correct: string[]
+  friendUrl: string | null
+  sourceUrl: string | null
 }
 
 export type QuizPhase =
