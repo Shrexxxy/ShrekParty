@@ -6,6 +6,7 @@ import { crackTimeText } from './crackTime'
 import { Donkeys } from './DonkeyIcon'
 import { medalFor } from './medals'
 import { StrengthBar } from './StrengthBar'
+import { EmojiText } from './Emoji'
 
 /** «за ~3 секунды», но «мгновенно» и «дольше, чем…» — без «за». */
 function crackPhrase(guessesLog10: number): string {
@@ -75,10 +76,10 @@ export function RegistrationResults({
             </div>
             <div className="reg-details">
               <span className="time" title="Время регистрации от открытия">
-                {r.isLate ? '⏰ опоздал' : '⏱'} {formatElapsed(r.elapsedSeconds)}
+                <EmojiText text={r.isLate ? '⏰ опоздал' : '⏱'} /> {formatElapsed(r.elapsedSeconds)}
                 {r.speedPlace !== null && (
                   <span className="medal" title="Медалька за скорость">
-                    {medalFor(r.speedPlace, lastSpeedPlace)}
+                    <EmojiText text={medalFor(r.speedPlace, lastSpeedPlace)} />
                   </span>
                 )}
               </span>

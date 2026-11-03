@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 /**
  * Фейковая ошибка «пароль слишком простой» и ввод нового. Сложность не показываем и не требуем:
@@ -19,7 +20,7 @@ export function StrongPasswordStep({ error, busy, onSubmit }: { error: string | 
   return (
     <form className="card form" onSubmit={submit}>
       <div className="fake-error">
-        <b>⚠️ Пароль слишком простой</b>
+        <b><Emoji e="⚠️" /> Пароль слишком простой</b>
         <span>Пожалуйста, придумайте сложный пароль</span>
       </div>
       <label>
@@ -33,7 +34,7 @@ export function StrongPasswordStep({ error, busy, onSubmit }: { error: string | 
             autoFocus
           />
           <button type="button" onClick={() => setVisible((v) => !v)} aria-label="Показать пароль">
-            {visible ? '🙈' : '👁'}
+            <EmojiText text={visible ? '🙈' : '👁'} />
           </button>
         </div>
       </label>

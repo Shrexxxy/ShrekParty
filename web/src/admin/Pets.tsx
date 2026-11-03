@@ -1,6 +1,7 @@
 import type { PetDto, PetsOverviewDto } from '../api/types'
 import { CLASS_NAMES } from '../pets/pets'
 import { useAdminAction } from './useAdminAction'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 function PetRow({ pet }: { pet: PetDto }) {
   const { run, error, busy } = useAdminAction()
@@ -17,12 +18,12 @@ function PetRow({ pet }: { pet: PetDto }) {
       <span>
         <b>{pet.login}</b> · {pet.name}{' '}
         <button className="link" disabled={busy} onClick={rename} aria-label="Переименовать">
-          ✏️
+          <Emoji e="✏️" />
         </button>
         {error && <small className="error"> {error}</small>}
       </span>
       <span>
-        {CLASS_NAMES[pet.class]} · {pet.level} ур. {pet.hatched ? '' : '🥚'}
+        {CLASS_NAMES[pet.class]} · {pet.level} ур. <EmojiText text={pet.hatched ? '' : '🥚'} />
       </span>
     </div>
   )
@@ -38,7 +39,7 @@ export function Pets({ overview }: { overview: PetsOverviewDto | null | undefine
     <section className="card admin-block">
       <details>
         <summary>
-          🐉 Драконоослики · вылупилось {overview.hatched} из {overview.total}
+          <Emoji e="🐉" /> Драконоослики · вылупилось {overview.hatched} из {overview.total}
         </summary>
         {overview.pets.map((p) => (
           <PetRow key={p.userId} pet={p} />

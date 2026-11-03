@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ASSETS } from '../assets'
 import { Sprite } from '../components/Sprite'
 import { createGame, move, tick, type GameState, type Lane } from './onionRules'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 /** Начало и конец жёлоба в процентах поля (поле квадратное). */
 const CHUTES: Record<Lane, { from: [number, number]; to: [number, number] }> = {
@@ -135,7 +136,7 @@ export function OnionGame({ onDone }: { onDone: () => void }) {
         </span>
         {state.streak >= 2 && (
           <motion.span key={state.streak} className="onion-streak" initial={{ scale: 1.5 }} animate={{ scale: 1 }}>
-            🔥 Стрик ×{state.streak}
+            <Emoji e="🔥" /> Стрик ×{state.streak}
           </motion.span>
         )}
       </div>
@@ -218,7 +219,7 @@ export function OnionGame({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       {state.done && (
-        <div className="cookie-done">{state.tiredOut ? '😴 Шрек устал ждать. Засчитано!' : '✅ Проверка пройдена'}</div>
+        <div className="cookie-done"><EmojiText text={state.tiredOut ? '😴 Шрек устал ждать. Засчитано!' : '✅ Проверка пройдена'} /></div>
       )}
     </div>
   )

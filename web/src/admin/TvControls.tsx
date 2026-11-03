@@ -3,6 +3,7 @@ import { api } from '../api/http'
 import type { AppSnapshot } from '../api/types'
 import { CameraButton } from './CameraButton'
 import { useAdminAction } from './useAdminAction'
+import { Emoji } from '../components/Emoji'
 
 interface CaptionDto {
   id: string
@@ -52,10 +53,10 @@ export function AnnounceForm({ onDone }: { onDone: () => void }) {
       </label>
       <div className="control-row">
         <CameraButton disabled={busy || !text.trim()} onPhoto={(photo) => void show(form(photo))}>
-          📸 С фото
+          <Emoji e="📸" /> С фото
         </CameraButton>
         <button type="button" disabled={busy} onClick={() => void run('/api/admin/tv/message', { method: 'DELETE' })}>
-          ✖ Убрать с экрана
+          <Emoji e="✖" /> Убрать с экрана
         </button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -91,7 +92,7 @@ function Memes() {
         <input value={caption} onChange={(e) => setCaption(e.target.value)} />
       </label>
       <CameraButton disabled={busy} onPhoto={(form) => void add(form)}>
-        🖼 Добавить мем
+        <Emoji e="🖼" /> Добавить мем
       </CameraButton>
       <div className="meme-grid">
         {memes.map((m) => (
@@ -99,7 +100,7 @@ function Memes() {
             <img src={m.url} alt={m.caption ?? ''} />
             <figcaption>
               {m.caption}
-              <button onClick={async () => confirm('Удалить мем?') && (await run(`/api/admin/memes/${m.id}`, { method: 'DELETE' })) && load()}>🗑</button>
+              <button onClick={async () => confirm('Удалить мем?') && (await run(`/api/admin/memes/${m.id}`, { method: 'DELETE' })) && load()}><Emoji e="🗑" /></button>
             </figcaption>
           </figure>
         ))}
@@ -134,7 +135,7 @@ function Captions() {
           <li key={c.id}>
             <span>{c.text}</span>
             <button type="button" onClick={async () => (await run(`/api/admin/captions/${c.id}`, { method: 'DELETE' })) && load()}>
-              🗑
+              <Emoji e="🗑" />
             </button>
           </li>
         ))}
@@ -155,9 +156,13 @@ export function TvControls({ preload }: { preload: AppSnapshot['tvPreload'] }) {
   return (
     <section className="card admin-block">
       <p className="muted">
-        {preload
-          ? `Медиа Своей игры на ТВ: ${preload.loaded} из ${preload.total} ${preload.loaded === preload.total ? '✅' : '⏳'}`
-          : 'ТВ ещё не сообщало, скачаны ли медиа Своей игры'}
+        {preload ? (
+          <>
+            Медиа Своей игры на ТВ: {preload.loaded} из {preload.total} <Emoji e={preload.loaded === preload.total ? '✅' : '⏳'} />
+          </>
+        ) : (
+          'ТВ ещё не сообщало, скачаны ли медиа Своей игры'
+        )}
       </p>
       <details>
         <summary>Мемы для карусели</summary>

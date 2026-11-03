@@ -9,6 +9,7 @@ import type { QuizDetails, QuizFinalist } from './details'
 import { REVEAL_STEP_MS, revealedCount } from './layer3'
 import { canPress, cellLabel, MS_PER_CHAR, pressTime, rouletteFrames, typedChars } from './quiz'
 import { useCountdown } from './useCountdown'
+import { Emoji } from '../components/Emoji'
 
 const ROULETTE_FRAMES = 30
 const ROULETTE_MS = 5000
@@ -388,7 +389,7 @@ export function QuizView({ eventId, details, serverTime, myId, tv }: { eventId: 
           {head}
           <Typed text={question.text} startedAt={details.readingStartedAt} />
           {question.mediaType === 'Image' && question.mediaUrl && <img className="quiz-media" src={question.mediaUrl} alt="" />}
-          {(question.mediaType === 'Audio' || question.mediaType === 'Video') && <p className="muted">{question.mediaType === 'Video' ? '🎬' : '🎵'} Смотри и слушай на ТВ</p>}
+          {(question.mediaType === 'Audio' || question.mediaType === 'Video') && <p className="muted"><Emoji e={question.mediaType === 'Video' ? '🎬' : '🎵'} /> Смотри и слушай на ТВ</p>}
           {phase === 'Reading' ? (
             <PressButton eventId={eventId} details={details} myId={myId} />
           ) : (

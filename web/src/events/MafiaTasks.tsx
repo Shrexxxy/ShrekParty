@@ -3,6 +3,7 @@ import { api } from '../api/http'
 import type { MafiaDetails } from './details'
 import { bonusSheet, ROLE_NAMES } from './mafia'
 import { GINGER_FIELD, GINGER_PARTS, isSwipe, makeFlies, MAX_TASKS, nextTask, ONION_LAYERS, placePart, retryTask, snaps, swat, type TaskKind } from './nightTasks'
+import { Emoji } from '../components/Emoji'
 
 /** Лук: каждый свайп по луковице снимает слой. */
 function Onion({ onDone }: { onDone: () => void }) {
@@ -28,7 +29,7 @@ function Onion({ onDone }: { onDone: () => void }) {
       onPointerCancel={() => (start.current = null)}
     >
       <span className="task-onion-bulb" style={{ transform: `scale(${0.4 + layers * 0.12})` }}>
-        🧅
+        <Emoji e="🧅" />
       </span>
       <small className="muted">Почисти лук свайпами — слоёв осталось: {layers}</small>
     </div>
@@ -51,7 +52,7 @@ function Flies({ onDone }: { onDone: () => void }) {
     <div className="mafia-task task-flies">
       {flies.map((f) => (
         <button key={f.id} className="task-fly" style={{ left: `${f.x}%`, top: `${f.y}%`, animationDelay: `${-f.id * 0.4}s` }} onPointerDown={() => hit(f.id)}>
-          🪰
+          <Emoji e="🪰" />
         </button>
       ))}
       <small className="muted task-flies-hint">Отгони мух: осталось {flies.length}</small>
@@ -97,7 +98,7 @@ function Gingerbread({ onDone }: { onDone: () => void }) {
       onPointerCancel={() => setDrag(null)}
     >
       <span className="task-ginger-body" style={pct(150, 120)}>
-        🍪
+        <Emoji e="🍪" />
       </span>
       {GINGER_PARTS.map((p) => (
         <span key={`slot-${p.id}`} className="task-ginger-slot" style={pct(p.slot.x, p.slot.y)} />
@@ -157,7 +158,7 @@ export function NightTasks({ eventId, details }: { eventId: string; details: Maf
   }
 
   if (done >= MAX_TASKS) {
-    return <div className="mafia-news">Все задания сделаны 💪 Жди утра</div>
+    return <div className="mafia-news">Все задания сделаны <Emoji e="💪" /> Жди утра</div>
   }
 
   const Task = { onion: Onion, flies: Flies, gingerbread: Gingerbread }[kind]
@@ -188,7 +189,7 @@ export function BonusSheet({ details }: { details: MafiaDetails }) {
               <b>{r.login}</b>
               {r.role && <small className="muted"> · {ROLE_NAMES[r.role]}</small>}
             </span>
-            <b>🫏 {r.total}</b>
+            <b><Emoji e="🫏" /> {r.total}</b>
           </div>
           {details.phase === 'Ended' && <small>{r.win > 0 ? `Победа команды: ${r.win}` : 'Победа команды: —'}</small>}
           {r.lines.map((line) => (

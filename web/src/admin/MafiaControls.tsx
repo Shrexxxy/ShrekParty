@@ -7,6 +7,7 @@ import { BonusSheet } from '../events/MafiaTasks'
 import { MAX_TASKS } from '../events/nightTasks'
 import { useCountdown } from '../events/useCountdown'
 import { useAdminAction } from './useAdminAction'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 function Clock({ deadline, serverTime }: { deadline: string; serverTime: string }) {
   return <b>{formatClock(useCountdown(deadline, serverTime))}</b>
@@ -21,7 +22,7 @@ export function MafiaControls({ event, details, serverTime }: { event: ActiveEve
   return (
     <div className="controls">
       <p>
-        {phaseTitle(phase)} · день {details.day}
+        <EmojiText text={phaseTitle(phase)} /> · день {details.day}
         {details.deadline && phase !== 'Ended' && (
           <>
             {' · '}
@@ -96,10 +97,10 @@ export function MafiaControls({ event, details, serverTime }: { event: ActiveEve
       )}
 
       {phase === 'Ended' ? (
-        <p className="muted">{details.winner === 'Mafia' ? 'Победила мафия' : 'Победили мирные'} — «⏹ Завершить», чтобы начислить ослики.</p>
+        <p className="muted">{details.winner === 'Mafia' ? 'Победила мафия' : 'Победили мирные'} — «<Emoji e="⏹" /> Завершить», чтобы начислить ослики.</p>
       ) : (
         <button className="primary" disabled={busy} onClick={() => void run(`/api/admin/mafia/${event.id}/next?step=${details.step}`)}>
-          {phase === 'Speech' ? '⏭ Передать слово' : '▶ Дальше'}
+          <EmojiText text={phase === 'Speech' ? '⏭ Передать слово' : '▶ Дальше'} />
         </button>
       )}
       {error && <p className="error">{error}</p>}

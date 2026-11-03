@@ -2,6 +2,7 @@ import type { ActiveEventDto } from '../api/types'
 import type { AuctionDetails } from '../events/details'
 import { EventView } from '../events/EventView'
 import { useAdminAction } from './useAdminAction'
+import { Emoji } from '../components/Emoji'
 
 /** Пульт аукциона: вид ТВ, «Следующий лот», отмена продажи, история покупок. */
 export function AuctionControls({ event, details, serverTime }: { event: ActiveEventDto; details: AuctionDetails; serverTime: string }) {
@@ -13,7 +14,7 @@ export function AuctionControls({ event, details, serverTime }: { event: ActiveE
       <EventView event={event} serverTime={serverTime} tv />
       {details.phase !== 'Bidding' && details.phase !== 'Done' && (
         <button className="primary" disabled={busy} onClick={() => void run(`${base}/next`)}>
-          ▶ Следующий лот {details.left > 0 ? `(впереди ${details.left})` : '(лотов нет — закончить)'}
+          <Emoji e="▶" /> Следующий лот {details.left > 0 ? `(впереди ${details.left})` : '(лотов нет — закончить)'}
         </button>
       )}
       {details.phase === 'Sold' && (
@@ -21,7 +22,7 @@ export function AuctionControls({ event, details, serverTime }: { event: ActiveE
           ↩ Отменить продажу
         </button>
       )}
-      {details.phase === 'Done' && <p className="muted">Все лоты сыграны — «⏹ Завершить».</p>}
+      {details.phase === 'Done' && <p className="muted">Все лоты сыграны — «<Emoji e="⏹" /> Завершить».</p>}
       {details.sales.length > 0 && (
         <details>
           <summary>Продано ({details.sales.length})</summary>
@@ -29,7 +30,7 @@ export function AuctionControls({ event, details, serverTime }: { event: ActiveE
             <div key={i} className="control-row">
               <span>{s.lotName}</span>
               <span>
-                {s.login} · {s.price} 🫏
+                {s.login} · {s.price} <Emoji e="🫏" />
               </span>
             </div>
           ))}

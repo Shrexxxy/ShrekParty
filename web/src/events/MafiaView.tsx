@@ -7,6 +7,7 @@ import type { MafiaDetails } from './details'
 import { myStatus, nightOptions, phaseTitle, ROLE_NAMES, voteTally } from './mafia'
 import { BonusSheet, NightTasks } from './MafiaTasks'
 import { useCountdown } from './useCountdown'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 type Player = MafiaDetails['players'][number]
 
@@ -168,7 +169,7 @@ function PhaseNews({ details }: { details: MafiaDetails }) {
     case 'Ended':
       return (
         <div className="mafia-news">
-          {details.winner === 'Mafia' ? 'Победила мафия 🔫' : 'Победили мирные жители 🕊'}
+          <EmojiText text={details.winner === 'Mafia' ? 'Победила мафия 🔫' : 'Победили мирные жители 🕊'} />
           {details.eliminated && (
             <small>
               {' '}
@@ -201,7 +202,9 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
 
   const header = (
     <div className="mafia-head">
-      <span>{phaseTitle(phase)}</span>
+      <span>
+        <EmojiText text={phaseTitle(phase)} />
+      </span>
       {details.deadline && phase !== 'Ended' && <Clock deadline={details.deadline} serverTime={serverTime} />}
     </div>
   )
@@ -234,8 +237,8 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
     <div className="mafia">
       {header}
       <RoleCard details={details} />
-      {status === 'outside' && phase !== 'Ended' && <p className="muted">Ты не в этой партии — смотри на ТВ 📺</p>}
-      {status === 'dead' && phase !== 'Ended' && <p className="muted">Ты выбыл — смотри и молчи 🤫</p>}
+      {status === 'outside' && phase !== 'Ended' && <p className="muted">Ты не в этой партии — смотри на ТВ <Emoji e="📺" /></p>}
+      {status === 'dead' && phase !== 'Ended' && <p className="muted">Ты выбыл — смотри и молчи <Emoji e="🤫" /></p>}
 
       {phase === 'Intro' && status !== 'outside' && <p className="muted">Ночь знакомства. Мафия знакомится — подсмотри свою роль и жди утра.</p>}
 
@@ -273,7 +276,7 @@ export function MafiaView({ eventId, details, serverTime, myId, tv }: { eventId:
       {phase === 'Ended' && <MafiaTable details={details} />}
       {phase !== 'Ended' && details.bonuses.length > 0 && (
         <details className="card">
-          <summary>Твои ослики за партию: 🫏 {details.bonuses.reduce((sum, b) => sum + b.amount, 0)}</summary>
+          <summary>Твои ослики за партию: <Emoji e="🫏" /> {details.bonuses.reduce((sum, b) => sum + b.amount, 0)}</summary>
           <BonusSheet details={details} />
         </details>
       )}

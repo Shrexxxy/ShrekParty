@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PetDto } from '../api/types'
 import { lastSeenPet, levelUpText, rememberPet } from './pets'
+import { Emoji } from '../components/Emoji'
 
 /** «Дракоша вырос до N уровня!» — один раз на рост, закрывается тапом. */
 export function LevelUpToast({ pet }: { pet: PetDto }) {
@@ -24,7 +25,7 @@ export function LevelUpToast({ pet }: { pet: PetDto }) {
 
   return (
     <button className="pet-toast" onClick={() => setText(null)}>
-      🎉 {text}
+      <Emoji e="🎉" /> {text}
     </button>
   )
 }

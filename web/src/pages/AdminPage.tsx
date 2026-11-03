@@ -12,6 +12,7 @@ import { AnnounceForm } from '../admin/TvControls'
 import { DonkeyIcon } from '../components/DonkeyIcon'
 import { Icon } from '../components/Icon'
 import { Leaderboard } from '../components/Leaderboard'
+import { Emoji } from '../components/Emoji'
 
 const STATE_LABELS = { Closed: 'закрыта, гости ждут', Open: 'открыта', Finished: 'закрыта, очки начислены' } as const
 
@@ -38,12 +39,12 @@ function RegistrationControl({ snapshot }: { snapshot: AppSnapshot }) {
       </p>
       {state === 'Closed' && (
         <button className="primary" onClick={() => void call('/api/admin/registration/open')}>
-          🚀 Открыть регистрацию
+          <Emoji e="🚀" /> Открыть регистрацию
         </button>
       )}
       {state === 'Open' && (
         <button className="primary" onClick={() => void call('/api/admin/registration/close')}>
-          🏁 Закрыть и начислить очки
+          <Emoji e="🏁" /> Закрыть и начислить очки
         </button>
       )}
       {error && <p className="error">{error}</p>}

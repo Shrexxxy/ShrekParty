@@ -3,6 +3,7 @@ import { api } from '../api/http'
 import { useMe } from '../api/me'
 import type { MeDto } from '../api/types'
 import { photoForm } from '../components/imageUpload'
+import { EmojiText } from '../components/Emoji'
 
 const MAX_SIDE = 512
 
@@ -35,7 +36,7 @@ export function AvatarUpload() {
     <div className="card avatar-upload">
       <input ref={input} type="file" accept="image/*" capture="user" hidden onChange={onFile} />
       <button className="primary" disabled={busy} onClick={() => input.current?.click()}>
-        {busy ? 'Загружаю…' : me?.avatarUrl ? '📸 Переснять селфи' : '📸 Сделать селфи (+5 🫏)'}
+        <EmojiText text={busy ? 'Загружаю…' : me?.avatarUrl ? '📸 Переснять селфи' : '📸 Сделать селфи (+5 🫏)'} />
       </button>
       {error && <p className="error">{error}</p>}
     </div>

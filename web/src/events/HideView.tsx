@@ -4,12 +4,13 @@ import { errorText } from '../admin/errors'
 import { formatClock } from './countdown'
 import type { HideDetails } from './details'
 import { useCountdown } from './useCountdown'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 /** Чёрный экран на всё окно: в темноте телефон не должен выдавать хозяина. */
 export function HideDark() {
   return (
     <div className="hide-dark">
-      <span>🤫</span>
+      <span><Emoji e="🤫" /></span>
     </div>
   )
 }
@@ -28,7 +29,7 @@ export function HideShotWall({ eventId, details, canVote }: { eventId: string; d
   }
 
   if (details.shots.length === 0) {
-    return <p className="muted">Ни одного фото — никого не поймали 😎</p>
+    return <p className="muted">Ни одного фото — никого не поймали <Emoji e="😎" /></p>
   }
 
   return (
@@ -42,7 +43,7 @@ export function HideShotWall({ eventId, details, canVote }: { eventId: string; d
           >
             <img src={s.url} alt="" loading="lazy" />
             <figcaption>
-              {s.id === details.myVote ? '✅ ' : ''}😂 {s.votes}
+              <EmojiText text={s.id === details.myVote ? '✅ ' : ''} /><Emoji e="😂" /> {s.votes}
             </figcaption>
           </figure>
         ))}
@@ -61,9 +62,9 @@ export function HideView({ eventId, details, serverTime, tv }: { eventId: string
 
   return (
     <div className={tv ? 'hide tv' : 'hide'}>
-      <div className="hide-phase">😂 Самое смешное фото</div>
+      <div className="hide-phase"><Emoji e="😂" /> Самое смешное фото</div>
       <div className="hide-clock">{formatClock(left)}</div>
-      {!tv && <p className="muted">Тапни по фото, которое смешнее всех. Герои фото получат +15 🫏</p>}
+      {!tv && <p className="muted">Тапни по фото, которое смешнее всех. Герои фото получат +15 <Emoji e="🫏" /></p>}
       <HideShotWall eventId={eventId} details={details} canVote={!tv} />
     </div>
   )

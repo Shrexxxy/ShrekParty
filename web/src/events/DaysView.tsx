@@ -7,6 +7,7 @@ import { formatClock } from './countdown'
 import type { DaysDetails } from './details'
 import { REVEAL_STEP_MS, revealedCount } from './layer3'
 import { useCountdown } from './useCountdown'
+import { Emoji } from '../components/Emoji'
 
 const CHEAT_RETRIES = 5
 
@@ -69,7 +70,7 @@ function DaysReveal({ details }: { details: DaysDetails }) {
           <small className="muted">±{a.diff}</small>
         </div>
       ))}
-      {shown > details.answers.length && <div className="days-truth">Правильно: {details.truth} дней 🎂</div>}
+      {shown > details.answers.length && <div className="days-truth">Правильно: {details.truth} дней <Emoji e="🎂" /></div>}
     </div>
   )
 }
@@ -97,7 +98,7 @@ export function DaysView({ eventId, details, serverTime, tv }: { eventId: string
       <div className="days tv">
         {answering ? (
           <>
-            <div className="hide-phase">🎂 Сколько дней имениннику?</div>
+            <div className="hide-phase"><Emoji e="🎂" /> Сколько дней имениннику?</div>
             <div className="hide-clock">{formatClock(left)}</div>
             <div className="muted">
               Ответили: {details.answered} / {details.total}
@@ -106,13 +107,13 @@ export function DaysView({ eventId, details, serverTime, tv }: { eventId: string
         ) : (
           <DaysReveal details={details} />
         )}
-        {details.disqualified.length > 0 && <div className="days-cheaters">🚫 Недобросовестные: {details.disqualified.join(', ')}</div>}
+        {details.disqualified.length > 0 && <div className="days-cheaters"><Emoji e="🚫" /> Недобросовестные: {details.disqualified.join(', ')}</div>}
       </div>
     )
   }
 
   if (details.iAmDisqualified) {
-    return <div className="days cheater">🚫 Недобросовестный! Ты свернул браузер или потерял связь.</div>
+    return <div className="days cheater"><Emoji e="🚫" /> Недобросовестный! Ты свернул браузер или потерял связь.</div>
   }
 
   if (!answering) {
@@ -127,7 +128,7 @@ export function DaysView({ eventId, details, serverTime, tv }: { eventId: string
 
   return (
     <form className="days form" onSubmit={submit}>
-      <p className="days-warning">⚠️ Не сворачивай браузер и не переключай вкладки — дисквалификация!</p>
+      <p className="days-warning"><Emoji e="⚠️" /> Не сворачивай браузер и не переключай вкладки — дисквалификация!</p>
       <div className="hide-clock">{formatClock(left)}</div>
       <label>
         Сколько дней имениннику сегодня?

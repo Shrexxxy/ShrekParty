@@ -4,6 +4,7 @@ import type { ActiveEventDto } from '../api/types'
 import { errorText } from './errors'
 import { EventControls } from './EventControls'
 import { EVENT_TYPE_LABELS } from './programOrder'
+import { Emoji } from '../components/Emoji'
 
 /**
  * Сверху админки: что сейчас идёт и главные кнопки. Админ ведёт вечер с телефона — всё под рукой.
@@ -39,7 +40,7 @@ export function CurrentEventCard({ event, serverTime }: { event: ActiveEventDto 
           <h2>{event.title}</h2>
         </div>
         <button className="danger finish" onClick={() => void finish()}>
-          ⏹ Завершить
+          <Emoji e="⏹" /> Завершить
         </button>
       </div>
       <EventControls event={event} serverTime={serverTime} />

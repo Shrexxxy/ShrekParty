@@ -4,6 +4,7 @@ import { photoForm } from '../components/imageUpload'
 import { parsePrize, PRIZE_OPTIONS, prizeKey } from '../events/boss'
 import type { AuctionLot } from '../events/details'
 import { useAdminAction } from './useAdminAction'
+import { Emoji } from '../components/Emoji'
 
 const MAX_SIDE = 1600
 
@@ -36,7 +37,7 @@ function LotRow({ lot, run, reload, busy }: { lot: AuctionLot; run: ReturnType<t
 
   return (
     <div className="auction-lot-row">
-      {lot.photoUrl ? <img src={lot.photoUrl} alt="" /> : <span className="auction-lot-nophoto">🎁</span>}
+      {lot.photoUrl ? <img src={lot.photoUrl} alt="" /> : <span className="auction-lot-nophoto"><Emoji e="🎁" /></span>}
       <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => void save()} />
       <input type="number" inputMode="numeric" min={1} value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => void save()} />
       <select value={prize} disabled={busy} onChange={(e) => void setPrize(e.target.value)} aria-label="Куда">
@@ -47,11 +48,11 @@ function LotRow({ lot, run, reload, busy }: { lot: AuctionLot; run: ReturnType<t
         ))}
       </select>
       <label className="button-like">
-        📷
+        <Emoji e="📷" />
         <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => void upload(e)} />
       </label>
       <button disabled={busy} onClick={async () => confirm(`Удалить «${lot.name}»?`) && (await run(`/api/admin/auction/lots/${lot.id}`, { method: 'DELETE' })) && reload()}>
-        🗑
+        <Emoji e="🗑" />
       </button>
     </div>
   )

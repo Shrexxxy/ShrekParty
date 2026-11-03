@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { api, ApiError } from '../api/http'
 import { errorText } from '../admin/errors'
 import { byRounds, FINAL_ROUND, IMPORT_EXAMPLE, nextRound, type QuizQuestionDto, type QuizThemeDto } from './editor'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 const MEDIA_ICONS = { Image: '🖼', Audio: '🎵', Video: '🎬' } as const
 
@@ -99,16 +100,16 @@ function QuestionEditor({ question, isFinal, act }: { question: QuizQuestionDto;
         {question.mediaType && question.mediaUrl && (
           <>
             <a href={question.mediaUrl} target="_blank" rel="noreferrer">
-              {MEDIA_ICONS[question.mediaType]} файл
+              <Emoji e={MEDIA_ICONS[question.mediaType]} /> файл
             </a>
-            <button onClick={() => void act(() => api(`/api/admin/quiz/questions/${question.id}/media`, { method: 'DELETE' }))}>✖</button>
+            <button onClick={() => void act(() => api(`/api/admin/quiz/questions/${question.id}/media`, { method: 'DELETE' }))}><Emoji e="✖" /></button>
           </>
         )}
         <label className="button-like">
-          {progress !== null ? `⏳ ${progress}%` : question.mediaType ? 'Заменить' : '＋ Медиа'}
+          <EmojiText text={progress !== null ? `⏳ ${progress}%` : question.mediaType ? 'Заменить' : '＋ Медиа'} />
           <input type="file" accept="image/*,audio/*,video/*" hidden disabled={progress !== null} onChange={upload} />
         </label>
-        <button onClick={() => confirm('Удалить вопрос?') && void act(() => api(`/api/admin/quiz/questions/${question.id}`, { method: 'DELETE' }))}>🗑</button>
+        <button onClick={() => confirm('Удалить вопрос?') && void act(() => api(`/api/admin/quiz/questions/${question.id}`, { method: 'DELETE' }))}><Emoji e="🗑" /></button>
       </div>
     </div>
   )
@@ -139,7 +140,7 @@ function ThemeEditor({ theme, act }: { theme: QuizThemeDto; act: Act }) {
           onBlur={() => name !== theme.name && void act(() => api(`/api/admin/quiz/themes/${theme.id}`, { method: 'PUT', body: { name } }))}
         />
         <button onClick={() => confirm(`Удалить тему «${theme.name}» со всеми вопросами?`) && void act(() => api(`/api/admin/quiz/themes/${theme.id}`, { method: 'DELETE' }))}>
-          🗑
+          <Emoji e="🗑" />
         </button>
       </div>
       {theme.questions.map((q) => (
@@ -188,7 +189,7 @@ function ImportExport({ act }: { act: Act }) {
   return (
     <details className="card">
       <summary>Импорт / экспорт JSON</summary>
-      <button onClick={() => void exportJson()}>⬇ Скачать JSON</button>
+      <button onClick={() => void exportJson()}><Emoji e="⬇" /> Скачать JSON</button>
       <p className="muted">Импорт заменяет всё. Медиа в JSON нет — прикрепляй файлы в редакторе. Цена необязательна. Раунд 0 — финал.</p>
       <pre className="quiz-edit-example">{IMPORT_EXAMPLE}</pre>
       <textarea value={json} onChange={(e) => setJson(e.target.value)} rows={8} placeholder="Вставь JSON" />

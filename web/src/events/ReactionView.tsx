@@ -3,6 +3,7 @@ import { api } from '../api/http'
 import { Avatar } from '../components/Avatar'
 import type { ReactionDetails } from './details'
 import { reactionTap } from './layer3'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 /** Табличка времён: попытки по раундам и лучшая. */
 function ReactionBoard({ details }: { details: ReactionDetails }) {
@@ -25,7 +26,7 @@ function ReactionBoard({ details }: { details: ReactionDetails }) {
             </td>
             {Array.from({ length: details.totalRounds }, (_, i) => {
               const attempt = r.attempts.find((a) => a.round === i + 1)
-              return <td key={i}>{!attempt ? '—' : attempt.falseStart ? '🚫' : attempt.ms}</td>
+              return <td key={i}>{!attempt ? '—' : attempt.falseStart ? <Emoji e="🚫" /> : attempt.ms}</td>
             })}
             <td className="reaction-best">{r.best ?? '—'}</td>
           </tr>
@@ -104,7 +105,7 @@ export function ReactionView({ eventId, details, tv }: { eventId: string; detail
         Раунд {details.round} из {details.totalRounds}
       </div>
       <div className="reaction-mine">
-        {details.myFalseStart ? '🚫 Фальстарт — жди следующего раунда' : details.myAttempt !== null ? `⚡ ${details.myAttempt} мс` : 'Раунд прошёл без тебя'}
+        <EmojiText text={details.myFalseStart ? '🚫 Фальстарт — жди следующего раунда' : details.myAttempt !== null ? `⚡ ${details.myAttempt} мс` : 'Раунд прошёл без тебя'} />
       </div>
       <ReactionBoard details={details} />
     </div>

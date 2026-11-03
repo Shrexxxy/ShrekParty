@@ -4,6 +4,7 @@ import type { EventType, ProgramItemDto } from '../api/types'
 import { BOSS_NAMES, type BossKind } from '../events/boss'
 import { errorText } from './errors'
 import { EVENT_TYPE_LABELS, moveOrder, nextDraft } from './programOrder'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 const CREATABLE: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'NeuroPhoto', 'Quiz', 'Mafia', 'BossFight', 'Ceremony', 'Auction']
 const WITH_DONKEYS: EventType[] = ['Tournament', 'Laugh', 'HideAndSeek', 'PhotoHunt', 'Reaction', 'Tapper', 'Days', 'Quiz', 'Mafia']
@@ -29,6 +30,7 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
   const [task, setTask] = useState('')
   const [duration, setDuration] = useState('180')
   const [boss, setBoss] = useState<BossKind>('Peasant')
+  const [chooseSeconds, setChooseSeconds] = useState('60')
   const [error, setError] = useState<string | null>(null)
 
   function settings() {
@@ -36,7 +38,8 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
       return { task: task.trim() || null, durationSec: Number(duration) || 180 }
     }
     if (type === 'BossFight') {
-      return { boss }
+      // У Крестьянина таймера нет — ждём, пока все подтвердят.
+      return { boss, chooseSeconds: boss === 'Peasant' ? null : Number(chooseSeconds) || 60 }
     }
     return undefined
   }
@@ -97,22 +100,32 @@ function AddEventForm({ onAdded }: { onAdded: () => void }) {
         </>
       )}
       {type === 'BossFight' && (
-        <label>
-          Босс
-          <select value={boss} onChange={(e) => setBoss(e.target.value as BossKind)}>
-            {(Object.keys(BOSS_NAMES) as BossKind[]).map((b) => (
-              <option key={b} value={b}>
-                {BOSS_NAMES[b]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <>
+          <label>
+            Босс
+            <select value={boss} onChange={(e) => setBoss(e.target.value as BossKind)}>
+              {(Object.keys(BOSS_NAMES) as BossKind[]).map((b) => (
+                <option key={b} value={b}>
+                  {BOSS_NAMES[b]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {boss === 'Peasant' ? (
+            <small className="muted">Без таймера: ход начинается, когда все подтвердят</small>
+          ) : (
+            <label>
+              Секунд на выбор хода
+              <input type="number" inputMode="numeric" value={chooseSeconds} onChange={(e) => setChooseSeconds(e.target.value)} />
+            </label>
+          )}
+        </>
       )}
       {WITH_DONKEYS.includes(type) && (
         <div className="row-2">
           {/* В мафии мест нет: поле — сколько каждому победителю, бонусы считаются сами. */}
           <label>
-            {type === 'Mafia' ? 'За победу (каждому) 🫏' : 'Макс. 🫏'}
+            <EmojiText text={type === 'Mafia' ? 'За победу (каждому) 🫏' : 'Макс. 🫏'} />
             <input
               type="number"
               inputMode="numeric"
@@ -162,12 +175,14 @@ export function Program({ version }: { version?: string }) {
       <ol className="program">
         {items.map((item) => (
           <li key={item.id} className={item.id === next?.id ? 'program-item next' : 'program-item'}>
-            <span className="program-status">{STATUS_LABELS[item.status]}</span>
+            <span className="program-status">
+              <EmojiText text={STATUS_LABELS[item.status]} />
+            </span>
             <span className="program-title">
               <b>{item.title}</b>
               <small className="muted">
                 {EVENT_TYPE_LABELS[item.type]}
-                {item.maxDonkeys > 0 && ` · до ${item.maxDonkeys} 🫏`}
+                <EmojiText text={item.maxDonkeys > 0 && ` · до ${item.maxDonkeys} 🫏`} />
               </small>
             </span>
             {item.status === 'Draft' && (
@@ -190,13 +205,13 @@ export function Program({ version }: { version?: string }) {
                   aria-label="Удалить"
                   onClick={() => confirm(`Удалить «${item.title}»?`) && void act(`/api/admin/events/${item.id}`, { method: 'DELETE' })}
                 >
-                  🗑
+                  <Emoji e="🗑" />
                 </button>
               </span>
             )}
             {item.id === next?.id && (
               <button className="primary program-start" onClick={() => void act(`/api/admin/events/${item.id}/start`, { method: 'POST' })}>
-                ▶ Начать
+                <Emoji e="▶" /> Начать
               </button>
             )}
           </li>

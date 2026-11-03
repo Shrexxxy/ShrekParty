@@ -14,6 +14,7 @@ import { CameraButton } from './CameraButton'
 import { MafiaControls } from './MafiaControls'
 import { QuizControls } from './QuizControls'
 import { useAdminAction } from './useAdminAction'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 /** Карточка матча в пульте: начать, победитель со счётом, отмена, фото. */
 function MatchControl({ match }: { match: MatchDto }) {
@@ -25,7 +26,7 @@ function MatchControl({ match }: { match: MatchDto }) {
     <div className={`card match-control ${match.status.toLowerCase()}`}>
       <small className="muted">
         {ROUND_TITLES[match.round]} · {match.status === 'Pending' ? 'ждёт' : match.status === 'Live' ? 'идёт' : 'сыгран'}
-        {match.pool > 0 && ` · банк ${match.pool} 🫏`}
+        <EmojiText text={match.pool > 0 && ` · банк ${match.pool} 🫏`} />
       </small>
       <div className="match-players">
         {[a, b].map((p, i) =>
@@ -44,7 +45,7 @@ function MatchControl({ match }: { match: MatchDto }) {
         <>
           {match.status === 'Pending' && (
             <button disabled={busy} onClick={() => void run(`/api/admin/matches/${match.id}/start`)}>
-              ▶ Начать (закрыть ставки)
+              <Emoji e="▶" /> Начать (закрыть ставки)
             </button>
           )}
           <input value={score} onChange={(e) => setScore(e.target.value)} placeholder="Счёт, например 3:1" />
@@ -59,7 +60,7 @@ function MatchControl({ match }: { match: MatchDto }) {
                   void run(`/api/admin/matches/${match.id}/winner`, { method: 'POST', body: { winnerId: p.id, score: score || null } })
                 }
               >
-                🏆 {p.login}
+                <Emoji e="🏆" /> {p.login}
               </button>
             ))}
           </div>
@@ -73,7 +74,7 @@ function MatchControl({ match }: { match: MatchDto }) {
         )}
         {a && b && (
           <CameraButton disabled={busy} onPhoto={(form) => void run(`/api/admin/matches/${match.id}/photos`, { method: 'POST', body: form })}>
-            📸 Фото {match.photos > 0 && `(${match.photos})`}
+            <Emoji e="📸" /> Фото {match.photos > 0 && `(${match.photos})`}
           </CameraButton>
         )}
       </div>
@@ -88,7 +89,7 @@ function TournamentControls({ details }: { details: TournamentDetails }) {
   const done = playable.filter((m) => m.status === 'Done').reverse()
   return (
     <div className="controls">
-      {details.challenge.state === 'Offered' && <p>⏳ Победитель решает про вызов… Завершишь турнир сейчас — засчитается отказ.</p>}
+      {details.challenge.state === 'Offered' && <p><Emoji e="⏳" /> Победитель решает про вызов… Завершишь турнир сейчас — засчитается отказ.</p>}
       {open.map((m) => (
         <MatchControl key={m.id} match={m} />
       ))}
@@ -151,9 +152,9 @@ function LaughControls({ event, details }: { event: ActiveEventDto; details: Lau
 }
 
 const HIDE_PHASES: Record<HideDetails['phase'], string> = {
-  Hiding: '🙈 Прячутся',
-  Shooting: '📸 Съёмка',
-  Voting: '😂 Голосование',
+  Hiding: '<Emoji e="🙈" /> Прячутся',
+  Shooting: '<Emoji e="📸" /> Съёмка',
+  Voting: '<Emoji e="😂" /> Голосование',
 }
 
 /** Экран отметок: фото и галочки, кто на нём; пусто — фото без людей. */
@@ -269,10 +270,10 @@ function HideControls({ event, details, serverTime }: { event: ActiveEventDto; d
       {details.phase === 'Shooting' && (
         <div className="bet-sides">
           <CameraButton disabled={busy} onPhoto={takePhoto}>
-            📸 Фото
+            <Emoji e="📸" /> Фото
           </CameraButton>
           <button disabled={busy} onClick={() => confirm(details.shots.length > 0 ? 'Закончить съёмку и начать голосование?' : 'Снимков нет — завершить прятки?') && void run(`/api/admin/hide/${event.id}/stop`)}>
-            ⏹ Закончить съёмку
+            <Emoji e="⏹" /> Закончить съёмку
           </button>
         </div>
       )}
@@ -284,7 +285,7 @@ function HideControls({ event, details, serverTime }: { event: ActiveEventDto; d
             <span>
               <Avatar url={p.avatarUrl} login={p.login} size={24} /> {p.login}
             </span>
-            <b>📸 {p.hits}</b>
+            <b><Emoji e="📸" /> {p.hits}</b>
           </div>
         ))}
 
@@ -295,15 +296,15 @@ function HideControls({ event, details, serverTime }: { event: ActiveEventDto; d
               <img src={s.url} alt="" loading="lazy" />
               <figcaption>
                 {s.userIds.map((id) => logins.get(id)).join(', ') || 'никого'}
-                {details.phase === 'Voting' && ` · 😂 ${s.votes}`}
+                <EmojiText text={details.phase === 'Voting' && ` · 😂 ${s.votes}`} />
               </figcaption>
               <div className="bet-sides">
                 <button disabled={busy} onClick={() => setEditing(s.id)}>
-                  ✏️
+                  <Emoji e="✏️" />
                 </button>
                 {details.phase !== 'Voting' && (
                   <button disabled={busy} onClick={() => confirm('Удалить фото?') && void run(`/api/admin/hide/shots/${s.id}`, { method: 'DELETE' })}>
-                    🗑
+                    <Emoji e="🗑" />
                   </button>
                 )}
               </div>
@@ -325,7 +326,7 @@ function CeremonyControls({ event, details }: { event: ActiveEventDto; details: 
         Шаг {details.step + 1} из {details.totalSteps}
       </p>
       <button className="primary ceremony-next" disabled={busy || last} onClick={() => void run(`/api/admin/ceremony/${event.id}/next`)}>
-        {last ? 'Это финал 🎉' : 'Дальше ▶'}
+        <EmojiText text={last ? 'Это финал 🎉' : 'Дальше ▶'} />
       </button>
       {error && <p className="error">{error}</p>}
     </div>
@@ -363,7 +364,7 @@ export function EventControls({ event, serverTime }: { event: ActiveEventDto; se
       return (
         <>
           <EventView event={event} serverTime={serverTime} tv />
-          {(details as DaysDetails).phase === 'Reveal' && <p className="muted">Когда раскрытие на ТВ закончится — «⏹ Завершить».</p>}
+          {(details as DaysDetails).phase === 'Reveal' && <p className="muted">Когда раскрытие на ТВ закончится — «<Emoji e="⏹" /> Завершить».</p>}
         </>
       )
     default:

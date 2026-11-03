@@ -5,6 +5,7 @@ import { photoForm } from '../components/imageUpload'
 import { formatClock } from './countdown'
 import type { PhotoHuntDetails } from './details'
 import { useCountdown } from './useCountdown'
+import { Emoji, EmojiText } from '../components/Emoji'
 
 const MAX_SIDE = 1280
 
@@ -56,7 +57,7 @@ export function PhotoView({
 
   return (
     <div className={tv ? 'hunt tv' : 'hunt'}>
-      <div className="hunt-task">📸 {details.task}</div>
+      <div className="hunt-task"><Emoji e="📸" /> {details.task}</div>
       {shooting ? (
         <>
           <div className="hide-clock">{formatClock(left)}</div>
@@ -68,7 +69,7 @@ export function PhotoView({
               {details.myPhotoUrl && <img className="hunt-mine" src={details.myPhotoUrl} alt="Моё фото" />}
               <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
               <button className="primary" disabled={busy} onClick={() => input.current?.click()}>
-                {busy ? 'Загружаю…' : details.myPhotoUrl ? '🔁 Переснять' : '📷 Сфоткать'}
+                <EmojiText text={busy ? 'Загружаю…' : details.myPhotoUrl ? '🔁 Переснять' : '📷 Сфоткать'} />
               </button>
             </>
           )}
@@ -85,10 +86,10 @@ export function PhotoView({
                   <figcaption>
                     <span>{p.login}</span>
                     {tv || mine ? (
-                      <span>❤️ {p.likes}</span>
+                      <span><Emoji e="❤️" /> {p.likes}</span>
                     ) : (
                       <button className={p.likedByMe ? 'like on' : 'like'} onClick={() => void toggleLike(p.userId, p.likedByMe)}>
-                        {p.likedByMe ? '❤️' : '🤍'} {p.likes}
+                        <EmojiText text={p.likedByMe ? '❤️' : '🤍'} /> {p.likes}
                       </button>
                     )}
                   </figcaption>

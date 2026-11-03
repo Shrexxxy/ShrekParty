@@ -6,6 +6,8 @@ import { bidButtons, goingCall } from './auction'
 import { formatClock } from './countdown'
 import type { AuctionDetails } from './details'
 import { useCountdown } from './useCountdown'
+import { Emoji } from '../components/Emoji'
+import { EmojiText } from '../components/Emoji'
 
 /** Таймер торгов и «Раз… два…» под конец. */
 function BiddingClock({ deadline, serverTime, tv }: { deadline: string; serverTime: string; tv?: boolean }) {
@@ -54,7 +56,7 @@ export function AuctionView({ eventId, details, serverTime, myId, tv }: { eventI
   const result =
     (phase === 'Sold' || phase === 'Unsold') && details.last ? (
       <div className={`auction-result ${details.last.sold ? 'sold' : ''}`}>
-        {details.last.sold ? `ПРОДАНО! ${details.last.lotName} — ${details.last.login} за ${details.last.price} 🫏` : `«${details.last.lotName}» — без ставок`}
+        <EmojiText text={details.last.sold ? `ПРОДАНО! ${details.last.lotName} — ${details.last.login} за ${details.last.price} 🫏` : `«${details.last.lotName}» — без ставок`} />
       </div>
     ) : null
 
@@ -65,7 +67,7 @@ export function AuctionView({ eventId, details, serverTime, myId, tv }: { eventI
           <div className="auction-lot-name">{lot.name}</div>
           {lot.photoUrl && <img className="auction-photo" src={lot.photoUrl} alt="" />}
           <div className="auction-price">
-            {details.price === null ? `Старт: ${lot.startPrice} 🫏` : `${details.price} 🫏`}
+            <EmojiText text={details.price === null ? `Старт: ${lot.startPrice} 🫏` : `${details.price} 🫏`} />
             {details.leader && (
               <span className="auction-leader">
                 <Avatar url={details.leader.avatarUrl} login={details.leader.login} size={tv ? 48 : 28} /> {details.leader.login}
@@ -90,8 +92,8 @@ export function AuctionView({ eventId, details, serverTime, myId, tv }: { eventI
       )}
       {result}
       {phase === 'Idle' && <p className="muted">Следующий лот — сейчас! Лотов впереди: {details.left}</p>}
-      {phase === 'Done' && <div className="auction-result">Аукцион окончен! 🎉</div>}
-      {!tv && details.myBalance !== null && <p className="quiz-my-score">На руках: {details.myBalance} 🫏</p>}
+      {phase === 'Done' && <div className="auction-result">Аукцион окончен! <Emoji e="🎉" /></div>}
+      {!tv && details.myBalance !== null && <p className="quiz-my-score">На руках: {details.myBalance} <Emoji e="🫏" /></p>}
       {error && <p className="error">{error}</p>}
       {tv && <Balances details={details} />}
     </div>

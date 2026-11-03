@@ -5,18 +5,19 @@ import type { QuizDetails } from '../events/details'
 import { QuizBoard } from '../events/QuizView'
 import { useCountdown } from '../events/useCountdown'
 import { useAdminAction } from './useAdminAction'
+import { Emoji } from '../components/Emoji'
 
 const PHASES: Record<QuizDetails['phase'], string> = {
-  Roulette: '🎰 Рулетка',
-  Choosing: '👆 Выбор вопроса',
-  Reading: '📖 Читаем',
-  Answering: '🗣 Отвечают',
-  Closed: '✅ Вопрос закрыт',
-  Done: '🏁 Раунды сыграны',
-  FinalBetting: '💰 Финал: ставки',
-  FinalQuestion: '✍️ Финал: ответ',
-  FinalJudging: '⚖️ Финал: проверка',
-  FinalReveal: '🎉 Финал: раскрытие',
+  Roulette: '<Emoji e="🎰" /> Рулетка',
+  Choosing: '<Emoji e="👆" /> Выбор вопроса',
+  Reading: '<Emoji e="📖" /> Читаем',
+  Answering: '<Emoji e="🗣" /> Отвечают',
+  Closed: '<Emoji e="✅" /> Вопрос закрыт',
+  Done: '<Emoji e="🏁" /> Раунды сыграны',
+  FinalBetting: '<Emoji e="💰" /> Финал: ставки',
+  FinalQuestion: '<Emoji e="✍️" /> Финал: ответ',
+  FinalJudging: '<Emoji e="⚖️" /> Финал: проверка',
+  FinalReveal: '<Emoji e="🎉" /> Финал: раскрытие',
 }
 
 function DeadlineClock({ deadline, serverTime }: { deadline: string; serverTime: string }) {
@@ -58,10 +59,10 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
           {hasPlayer && (phase === 'Reading' || phase === 'Answering') && (
             <div className="bet-sides">
               <button disabled={busy} onClick={() => void run(`${base}/media`, { method: 'POST', body: { action: 'Play' } })}>
-                ▶ Повторить
+                <Emoji e="▶" /> Повторить
               </button>
               <button disabled={busy} onClick={() => void run(`${base}/media`, { method: 'POST', body: { action: 'Pause' } })}>
-                ⏸ Пауза
+                <Emoji e="⏸" /> Пауза
               </button>
             </div>
           )}
@@ -76,7 +77,7 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
             onChoose={(id, label) => confirm(`Выбрать ${label} за ${login(details.chooserId)}?`) && void run(`${base}/choose`, { method: 'POST', body: { questionId: id } })}
           />
           <button disabled={busy} onClick={() => confirm('Закончить раунд досрочно?') && void run(`${base}/next-round`)}>
-            ⏭ Следующий раунд
+            <Emoji e="⏭" /> Следующий раунд
           </button>
         </>
       )}
@@ -85,7 +86,7 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
         <>
           {details.wrong.length > 0 && <p className="muted">Ошиблись: {details.wrong.map(login).join(', ')}</p>}
           <button disabled={busy} onClick={() => void run(`${base}/close`)}>
-            ✖ Закрыть вопрос
+            <Emoji e="✖" /> Закрыть вопрос
           </button>
         </>
       )}
@@ -97,10 +98,10 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
           </p>
           <div className="bet-sides">
             <button className="primary" disabled={busy} onClick={() => void run(`${base}/verdict`, { method: 'POST', body: { correct: true } })}>
-              ✅ Верно
+              <Emoji e="✅" /> Верно
             </button>
             <button disabled={busy} onClick={() => void run(`${base}/verdict`, { method: 'POST', body: { correct: false } })}>
-              ❌ Неверно
+              <Emoji e="❌" /> Неверно
             </button>
           </div>
         </>
@@ -108,7 +109,7 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
 
       {phase === 'Done' && (
         <button className="primary" disabled={busy} onClick={() => void run(`${base}/final`)}>
-          🏁 Финал
+          <Emoji e="🏁" /> Финал
         </button>
       )}
 
@@ -128,14 +129,14 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
                     disabled={busy}
                     onClick={() => void run(`${base}/final-verdict`, { method: 'POST', body: { userId: f.userId, correct: true } })}
                   >
-                    ✅
+                    <Emoji e="✅" />
                   </button>
                   <button
                     className={f.correct === false ? 'primary' : ''}
                     disabled={busy}
                     onClick={() => void run(`${base}/final-verdict`, { method: 'POST', body: { userId: f.userId, correct: false } })}
                   >
-                    ❌
+                    <Emoji e="❌" />
                   </button>
                 </span>
               )}
@@ -143,10 +144,10 @@ export function QuizControls({ event, details, serverTime }: { event: ActiveEven
           ))}
           {phase === 'FinalJudging' && (
             <button className="primary" disabled={busy} onClick={() => void run(`${base}/reveal`)}>
-              🎉 Раскрыть на ТВ
+              <Emoji e="🎉" /> Раскрыть на ТВ
             </button>
           )}
-          {phase === 'FinalReveal' && <p className="muted">Когда раскрытие на ТВ закончится — «⏹ Завершить».</p>}
+          {phase === 'FinalReveal' && <p className="muted">Когда раскрытие на ТВ закончится — «<Emoji e="⏹" /> Завершить».</p>}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { TvAfterClose } from '../tv/TvAfterClose'
 import { TvCarousel } from '../tv/TvCarousel'
 import { TvMessageOverlay } from '../tv/TvMessageOverlay'
 import { TvWaiting } from '../tv/TvWaiting'
+import { Emoji } from '../components/Emoji'
 
 const RESULTS_MS = 60_000
 
@@ -66,7 +67,7 @@ export function TvPage() {
     return (
       <main className="page tv center">
         <button className="primary tv-unlock" onClick={unlockSound}>
-          🔊 Включить звук и полный экран
+          <Emoji e="🔊" /> Включить звук и полный экран
         </button>
       </main>
     )
@@ -81,7 +82,7 @@ export function TvPage() {
       <TvMessageOverlay message={snapshot.tvMessage} serverTime={snapshot.serverTime} />
       {!snapshot.activeEvent && snapshot.pets?.beforeFirstEvent && snapshot.pets.hatched < snapshot.pets.total && (
         <div className="tv-pets-counter">
-          🥚 Вылупилось драконоосликов: {snapshot.pets.hatched} из {snapshot.pets.total}
+          <Emoji e="🥚" /> Вылупилось драконоосликов: {snapshot.pets.hatched} из {snapshot.pets.total}
         </div>
       )}
       {snapshot.activeEvent ? (

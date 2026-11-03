@@ -4,6 +4,7 @@ import { errorText } from '../admin/errors'
 import { Avatar } from '../components/Avatar'
 import type { MatchDto, TournamentDetails, TournamentPlayer } from './details'
 import { bracketColumns, oddsText, ROUND_TITLES } from './tournament'
+import { Emoji } from '../components/Emoji'
 
 const MAX_BET = 25
 
@@ -41,7 +42,7 @@ export function Bracket({ details, myId }: { details: TournamentDetails; myId?: 
                 <PlayerRow player={m.playerA} match={m} />
                 <PlayerRow player={m.playerB} match={m} isBye={m.isBye} />
                 {m.score && <small className="bracket-score">{m.score}</small>}
-                {m.pool > 0 && <small className="muted">банк {m.pool} 🫏</small>}
+                {m.pool > 0 && <small className="muted">банк {m.pool} <Emoji e="🫏" /></small>}
                 {m.myBet && myId && <small className="my-bet">твоя ставка {m.myBet.amount}</small>}
               </div>
             ))}
@@ -74,11 +75,11 @@ function BetCard({ match }: { match: MatchDto }) {
   return (
     <div className="card bet-card">
       <small className="muted">
-        {ROUND_TITLES[match.round]} · банк {match.pool} 🫏
+        {ROUND_TITLES[match.round]} · банк {match.pool} <Emoji e="🫏" />
       </small>
       {match.myBet ? (
         <p>
-          Ставка {match.myBet.amount} 🫏 на {sides.find(([p]) => p.id === match.myBet!.onPlayerId)?.[0].login}
+          Ставка {match.myBet.amount} <Emoji e="🫏" /> на {sides.find(([p]) => p.id === match.myBet!.onPlayerId)?.[0].login}
         </p>
       ) : (
         <>
@@ -130,19 +131,19 @@ export function TournamentView({ eventId, details, myId, tv }: { eventId: string
         <div className="challenge-banner">{champion} забирает ослики — вызов не брошен</div>
       )}
       {tv && challengeMatch && challengeMatch.status !== 'Done' && (
-        <div className="challenge-banner">⚔️ {challengeMatch.playerA?.login} бросает вызов имениннику!</div>
+        <div className="challenge-banner"><Emoji e="⚔️" /> {challengeMatch.playerA?.login} бросает вызов имениннику!</div>
       )}
       {!tv && next && next.playerA && next.playerB && (
-        <div className="card next-match">🎮 Ты играешь следующим! {ROUND_TITLES[next.round]}</div>
+        <div className="card next-match"><Emoji e="🎮" /> Ты играешь следующим! {ROUND_TITLES[next.round]}</div>
       )}
       {!tv && details.challenge.offeredToMe && details.challenge.state === 'Offered' && (
         <div className="card challenge-offer">
-          <b>🏆 Ты выиграл турнир!</b>
+          <b><Emoji e="🏆" /> Ты выиграл турнир!</b>
           <p>Забрать 100% осликов за 1-е место — или бросить вызов имениннику: победишь — ×2, проиграешь — ×0,5.</p>
           <div className="bet-sides">
             <button onClick={() => void decide(false)}>Забрать 100%</button>
             <button className="primary" onClick={() => void decide(true)}>
-              ⚔️ Бросить вызов
+              <Emoji e="⚔️" /> Бросить вызов
             </button>
           </div>
           {error && <p className="error">{error}</p>}
