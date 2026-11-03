@@ -57,7 +57,7 @@ public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time,
     }
 
     /// <summary>
-    /// Выбор действия на ход; можно менять до конца хода. Все живые выбрали — ход разыгрывается сразу.
+    /// Выбор действия на ход; можно менять, пока не подтвердил (после — только через «Отменить»).
     /// </summary>
     public Task ActAsync(Guid eventId, Guid userId, FighterAction action, Guid? targetId) => ChangeAsync(eventId, state =>
     {
@@ -67,6 +67,11 @@ public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time,
         }
 
         var me = Participant(state, userId);
+        if (BossModule.ConfirmedOf(state).Contains(userId))
+        {
+            throw new EventRuleException("confirmed");
+        }
+
         switch (BossRules.Unavailable(me, action))
         {
             case "bad_action":
@@ -80,14 +85,48 @@ public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time,
             throw new BadInputException("bad_target");
         }
 
-        var next = state with
+        return state with
         {
             Choices = new Dictionary<Guid, FighterChoice>(state.Choices)
             {
                 [userId] = new FighterChoice(action, action == FighterAction.Heal ? targetId : null),
             },
         };
-        return BossModule.AllChose(next) ? BossModule.Advance(next, time.GetUtcNow(), random) : next;
+    });
+
+    /// <summary>«Подтвердить» выбор; все живые подтвердили — ход разыгрывается сразу, не дожидаясь таймера.</summary>
+    public Task ConfirmAsync(Guid eventId, Guid userId) => ChangeAsync(eventId, state =>
+    {
+        if (state.Phase != BossPhase.Choosing)
+        {
+            throw new EventRuleException("turn_over");
+        }
+
+        if (!Participant(state, userId).Alive)
+        {
+            throw new EventRuleException("dead");
+        }
+
+        if (!state.Choices.ContainsKey(userId))
+        {
+            throw new EventRuleException("no_choice");
+        }
+
+        var confirmed = BossModule.ConfirmedOf(state);
+        var next = confirmed.Contains(userId) ? state : state with { Confirmed = [.. confirmed, userId] };
+        return BossModule.AllConfirmed(next) ? BossModule.Advance(next, time.GetUtcNow(), random) : next;
+    });
+
+    /// <summary>«Отменить» подтверждение — выбор снова можно менять.</summary>
+    public Task CancelAsync(Guid eventId, Guid userId) => ChangeAsync(eventId, state =>
+    {
+        if (state.Phase != BossPhase.Choosing)
+        {
+            throw new EventRuleException("turn_over");
+        }
+
+        Participant(state, userId);
+        return state with { Confirmed = BossModule.ConfirmedOf(state).Where(id => id != userId).ToList() };
     });
 
     /// <summary>Выбывший поддерживает живых: раз за ход, прибавка к ударам — в следующем ходу.</summary>
@@ -143,7 +182,7 @@ public class BossService(AppDbContext db, ILiveNotifier live, TimeProvider time,
 public static class BossEndpoints
 {
     /// <summary>
-    /// <c>/api/boss/{id}/act|cheer</c> (игрок), <c>/api/admin/boss/{id}/next</c> (ведущий).
+    /// <c>/api/boss/{id}/act|confirm|cancel|cheer</c> (игрок), <c>/api/admin/boss/{id}/next</c> (ведущий).
     /// </summary>
     public static IEndpointRouteBuilder MapBoss(this IEndpointRouteBuilder app)
     {
@@ -153,6 +192,18 @@ public static class BossEndpoints
         player.MapPost("/act", async (Guid id, BossActRequest body, ClaimsPrincipal user, BossService boss) =>
         {
             await boss.ActAsync(id, user.UserId()!.Value, body.Action, body.TargetId);
+            return Results.NoContent();
+        });
+
+        player.MapPost("/confirm", async (Guid id, ClaimsPrincipal user, BossService boss) =>
+        {
+            await boss.ConfirmAsync(id, user.UserId()!.Value);
+            return Results.NoContent();
+        });
+
+        player.MapPost("/cancel", async (Guid id, ClaimsPrincipal user, BossService boss) =>
+        {
+            await boss.CancelAsync(id, user.UserId()!.Value);
             return Results.NoContent();
         });
 

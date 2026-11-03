@@ -121,6 +121,9 @@ public enum FxKind
 
     /// <summary>Питомец выбыл.</summary>
     Knockout,
+
+    /// <summary>Танк в заслоне ловит стрелу/звезду удара по всем — свою (цель = он) или чужую (цель = кого прикрыл); урона нет.</summary>
+    Absorbed,
 }
 
 /// <summary>Медаль за победу — по доле выживших.</summary>
@@ -188,14 +191,14 @@ public static class BossRules
         [BossKind.Farquaad] = new(7, 2.6m,
         [
             new(BossMoveKind.Sword, 35, 0.75m, Target.One),
-            new(BossMoveKind.Volley, 30, 0.30m, Target.All),
+            new(BossMoveKind.Volley, 30, 0.15m, Target.All),
             new(BossMoveKind.Shield, 15, 0m, Target.None),
             new(BossMoveKind.Windup, 20, 0m, Target.None, Windup: true),
         ]),
         [BossKind.Fairy] = new(8, 1.4m,
         [
             new(BossMoveKind.Wand, 30, 1.2m, Target.One),
-            new(BossMoveKind.Stars, 35, 0.45m, Target.All),
+            new(BossMoveKind.Stars, 35, 0.25m, Target.All),
             new(BossMoveKind.Pumpkin, 20, 0.3m, Target.One, Stun: true),
             new(BossMoveKind.Potion, 15, 0m, Target.None, SelfHeal: 0.10m),
         ]),
@@ -404,7 +407,30 @@ public static class BossRules
             var hit = Hit(boss, intent.Move, fighters, turn, bossHp, bossMax, doubled);
             var targets = intent.Targets.Where(t => team.TryGetValue(t, out var f) && f.Alive).ToList();
             var tanks = acts.Where(a => a.Value == FighterAction.Cover).Select(a => a.Key).ToList();
-            if (tanks.Count > 0 && targets.Count > 0)
+            var aoe = def.Target == Target.All;
+            if (aoe && tanks.Count > 0)
+            {
+                // Удар по всем — стрела/звезда каждому. Танк в заслоне ловит свою и ещё одну — за самого раненого
+                // из тех, кто не уворачивается; урона ему нет. Остальным прилетает как обычно.
+                var saved = new HashSet<Guid>(tanks);
+                foreach (var tank in tanks)
+                {
+                    feed.Add(new Fx(FxKind.Absorbed, tank, tank, 0));
+                    var ally = targets
+                        .Where(t => !saved.Contains(t) && acts[t] != FighterAction.Dodge)
+                        .OrderBy(t => team[t].Hp)
+                        .Cast<Guid?>()
+                        .FirstOrDefault();
+                    if (ally is { } id)
+                    {
+                        saved.Add(id);
+                        feed.Add(new Fx(FxKind.Absorbed, tank, id, 0));
+                    }
+                }
+
+                HitEach(targets.Where(t => !saved.Contains(t)));
+            }
+            else if (tanks.Count > 0 && targets.Count > 0)
             {
                 // Заслон: весь урон по целям — танкам, вдвое меньше, поровну.
                 var share = (int)Math.Ceiling(hit * targets.Count / 2.0m / tanks.Count);
@@ -416,7 +442,12 @@ public static class BossRules
             }
             else
             {
-                foreach (var t in targets)
+                HitEach(targets);
+            }
+
+            void HitEach(IEnumerable<Guid> hitTargets)
+            {
+                foreach (var t in hitTargets)
                 {
                     if (acts[t] == FighterAction.Dodge)
                     {

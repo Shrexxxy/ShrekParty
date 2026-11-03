@@ -70,11 +70,44 @@ public class BossFightTests : IDisposable
         details.GetProperty("phase").GetString().Should().Be("Choosing");
         details.GetProperty("turn").GetInt32().Should().Be(1);
         details.GetProperty("intent").GetProperty("move").GetString().Should().NotBeNullOrEmpty();
-        details.GetProperty("deadline").GetDateTimeOffset().Should().Be(_factory.Time.GetUtcNow().AddSeconds(20));
+        details.GetProperty("deadline").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
-    public async Task Fighters_have_pet_art_and_options_show_amounts()
+    public async Task Peasant_waits_for_everyone_without_timer()
+    {
+        await PlayersAsync();
+        var (_, admin) = await ToChoosingAsync();
+
+        await AdvanceAsync(TimeSpan.FromMinutes(10));
+
+        var details = await DetailsAsync(admin);
+        details.GetProperty("phase").GetString().Should().Be("Choosing");
+        details.GetProperty("turn").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Other_bosses_timer_from_settings_default_60()
+    {
+        await PlayersAsync();
+        var (_, custom) = await StartAsync("Farquaad", chooseSeconds: 45);
+        await AdvanceAsync(TimeSpan.FromSeconds(8));
+
+        (await DetailsAsync(custom)).GetProperty("deadline").GetDateTimeOffset().Should().Be(_factory.Time.GetUtcNow().AddSeconds(45));
+    }
+
+    [Fact]
+    public async Task Default_timer_is_60()
+    {
+        await PlayersAsync();
+        var (_, admin) = await StartAsync("Fairy");
+        await AdvanceAsync(TimeSpan.FromSeconds(8));
+
+        (await DetailsAsync(admin)).GetProperty("deadline").GetDateTimeOffset().Should().Be(_factory.Time.GetUtcNow().AddSeconds(60));
+    }
+
+    [Fact]
+    public async Task Fighters_have_pet_art_level_avatar_and_options_show_amounts()
     {
         await PlayersAsync();
         await ToChoosingAsync();
@@ -84,7 +117,10 @@ public class BossFightTests : IDisposable
         foreach (var pet in pets)
         {
             var details = await DetailsAsync(await PlayerAsync(pet.Login));
-            Fighter(details, pet.Login).GetProperty("variant").GetInt32().Should().Be(pet.Variant);
+            var fighter = Fighter(details, pet.Login);
+            fighter.GetProperty("variant").GetInt32().Should().Be(pet.Variant);
+            fighter.GetProperty("level").GetInt32().Should().Be(pet.Level);
+            fighter.TryGetProperty("avatarUrl", out _).Should().BeTrue();
             var amounts = details.GetProperty("myOptions").EnumerateArray().ToDictionary(
                 o => o.GetProperty("action").GetString()!,
                 o => o.GetProperty("amount").ValueKind == JsonValueKind.Null ? (int?)null : o.GetProperty("amount").GetInt32());
@@ -111,16 +147,18 @@ public class BossFightTests : IDisposable
     public async Task Choosing_ends_by_timer_then_showing_then_next_turn()
     {
         await PlayersAsync();
-        var (_, admin) = await StartAsync();
+        var (_, admin) = await StartAsync("Farquaad", chooseSeconds: 20);
         await AdvanceAsync(TimeSpan.FromSeconds(8));
 
         await AdvanceAsync(TimeSpan.FromSeconds(20));
 
         var showing = await DetailsAsync(admin);
         showing.GetProperty("phase").GetString().Should().Be("Showing");
+        // Экранам нужен разыгрываемый ход босса — стрелы залпа и звёзды летят по-своему.
+        showing.GetProperty("playingMove").GetString().Should().NotBeNullOrEmpty();
         var events = showing.GetProperty("feed").GetArrayLength();
         events.Should().BeGreaterThan(0);
-        var playback = TimeSpan.FromMilliseconds(Math.Max(3000, 600 * events + 1000));
+        var playback = TimeSpan.FromMilliseconds(Math.Max(3000, 1500 * events + 2000));
         showing.GetProperty("deadline").GetDateTimeOffset().Should().Be(_factory.Time.GetUtcNow() + playback);
 
         await AdvanceAsync(playback);
@@ -134,12 +172,12 @@ public class BossFightTests : IDisposable
     public async Task Ends_won_with_medal()
     {
         await PlayersAsync();
-        var (id, admin) = await StartAsync();
+        var (id, admin) = await StartAsync("Farquaad", chooseSeconds: 20);
         await AdvanceAsync(TimeSpan.FromSeconds(8));
         await PatchStateAsync(id, s => s["bossHp"] = 1);
 
         await AdvanceAsync(TimeSpan.FromSeconds(20));
-        await AdvanceAsync(TimeSpan.FromSeconds(30));
+        await AdvanceAsync(TimeSpan.FromSeconds(60));
 
         var details = await DetailsAsync(admin);
         details.GetProperty("phase").GetString().Should().Be("Won");
@@ -151,7 +189,7 @@ public class BossFightTests : IDisposable
     public async Task Ends_lost_when_all_out()
     {
         await PlayersAsync();
-        var (id, admin) = await StartAsync("Farquaad");
+        var (id, admin) = await StartAsync("Farquaad", chooseSeconds: 20);
         await AdvanceAsync(TimeSpan.FromSeconds(8));
         await PatchStateAsync(id, s =>
         {
@@ -171,7 +209,7 @@ public class BossFightTests : IDisposable
         });
 
         await AdvanceAsync(TimeSpan.FromSeconds(20));
-        await AdvanceAsync(TimeSpan.FromSeconds(30));
+        await AdvanceAsync(TimeSpan.FromSeconds(60));
 
         var details = await DetailsAsync(admin);
         details.GetProperty("phase").GetString().Should().Be("Lost");
@@ -207,7 +245,7 @@ public class BossFightTests : IDisposable
     }
 
     [Fact]
-    public async Task All_alive_chose_ends_turn_early()
+    public async Task Chose_but_not_confirmed_still_waits()
     {
         await PlayersAsync();
         var (id, admin) = await ToChoosingAsync();
@@ -217,7 +255,79 @@ public class BossFightTests : IDisposable
             await ActOkAsync(login, id, "Attack");
         }
 
+        (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Choosing");
+    }
+
+    [Fact]
+    public async Task All_alive_confirmed_ends_turn_early()
+    {
+        await PlayersAsync();
+        var (id, admin) = await ToChoosingAsync();
+
+        foreach (var login in Six)
+        {
+            await ActOkAsync(login, id, "Attack");
+            await ConfirmOkAsync(login, id);
+        }
+
         (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Showing");
+    }
+
+    [Fact]
+    public async Task Confirm_locks_choice_until_cancel()
+    {
+        await PlayersAsync();
+        var (id, _) = await ToChoosingAsync();
+        var ann = await PlayerAsync("Ann");
+
+        (await ann.PostAsync($"/api/boss/{id}/confirm", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await ActOkAsync("Ann", id, "Attack");
+        await ConfirmOkAsync("Ann", id);
+        (await DetailsAsync(ann)).GetProperty("myConfirmed").GetBoolean().Should().BeTrue();
+
+        (await ActAsync("Ann", id, "Dodge")).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        (await ann.PostAsync($"/api/boss/{id}/cancel", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await DetailsAsync(ann)).GetProperty("myConfirmed").GetBoolean().Should().BeFalse();
+        await ActOkAsync("Ann", id, "Dodge");
+        (await DetailsAsync(ann)).GetProperty("myChoice").GetProperty("action").GetString().Should().Be("Dodge");
+    }
+
+    [Fact]
+    public async Task Dead_and_stunned_are_not_waited_for()
+    {
+        await PlayersAsync();
+        var (id, admin) = await ToChoosingAsync();
+        var fighters = (await DetailsAsync(admin)).GetProperty("fighters").EnumerateArray().ToList();
+        await PatchStateAsync(id, s =>
+        {
+            FighterNode(s, Id(fighters, "Eve"))["hp"] = 0;
+            FighterNode(s, Id(fighters, "Fox"))["stunned"] = true;
+        });
+
+        foreach (var login in Six.Where(l => l is not "Eve" and not "Fox"))
+        {
+            await ActOkAsync(login, id, "Attack");
+            await ConfirmOkAsync(login, id);
+        }
+
+        (await DetailsAsync(admin)).GetProperty("phase").GetString().Should().Be("Showing");
+    }
+
+    [Fact]
+    public async Task Intent_shows_expected_damage()
+    {
+        await PlayersAsync();
+        var (id, admin) = await StartAsync("Farquaad", chooseSeconds: 20);
+        await AdvanceAsync(TimeSpan.FromSeconds(8));
+        var targets = new JsonArray((await DetailsAsync(admin)).GetProperty("fighters").EnumerateArray()
+            .Select(f => (JsonNode)f.GetProperty("userId").GetGuid().ToString()).Take(1).ToArray());
+
+        await PatchStateAsync(id, s => s["intent"] = new JsonObject { ["move"] = (int)BossMoveKind.Sword, ["targets"] = targets.DeepClone() });
+        (await DetailsAsync(admin)).GetProperty("intent").GetProperty("damage").GetInt32().Should().BeGreaterThan(0);
+
+        await PatchStateAsync(id, s => s["intent"] = new JsonObject { ["move"] = (int)BossMoveKind.Shield, ["targets"] = new JsonArray() });
+        (await DetailsAsync(admin)).GetProperty("intent").GetProperty("damage").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -273,7 +383,8 @@ public class BossFightTests : IDisposable
     public async Task Cheer_once_per_turn_bonus_next_turn()
     {
         await PlayersAsync();
-        var (id, admin) = await ToChoosingAsync();
+        var (id, admin) = await StartAsync("Farquaad", chooseSeconds: 20);
+        await AdvanceAsync(TimeSpan.FromSeconds(8));
         var fighters = (await DetailsAsync(admin)).GetProperty("fighters").EnumerateArray().ToList();
         await PatchStateAsync(id, s =>
         {
@@ -288,7 +399,7 @@ public class BossFightTests : IDisposable
 
         await AdvanceAsync(TimeSpan.FromSeconds(20));
         (await DetailsAsync(admin)).GetProperty("cheerBonus").GetInt32().Should().Be(2);
-        await AdvanceAsync(TimeSpan.FromSeconds(30));
+        await AdvanceAsync(TimeSpan.FromSeconds(60));
         await PatchStateAsync(id, s =>
         {
             // Ann мог выбыть в первом ходу — возвращаем, чтобы проверить прибавку к удару.
@@ -529,20 +640,20 @@ public class BossFightTests : IDisposable
         (await admin.PostAsJsonAsync("/api/admin/registration/close", new { })).EnsureSuccessStatusCode();
     }
 
-    private static async Task<Guid> CreateAsync(HttpClient admin, string? boss)
+    private static async Task<Guid> CreateAsync(HttpClient admin, string? boss, int? chooseSeconds = null)
     {
         object body = boss is null
             ? new { type = "BossFight", title = "Битва" }
-            : new { type = "BossFight", title = "Битва", settings = new { boss } };
+            : new { type = "BossFight", title = "Битва", settings = new { boss, chooseSeconds } };
         var created = await admin.PostAsJsonAsync("/api/admin/events", body, TestClients.Json);
         created.EnsureSuccessStatusCode();
         return (await created.Content.ReadFromJsonAsync<ProgramItemDto>(TestClients.Json))!.Id;
     }
 
-    private async Task<(Guid Id, HttpClient Admin)> StartAsync(string boss = "Peasant")
+    private async Task<(Guid Id, HttpClient Admin)> StartAsync(string boss = "Peasant", int? chooseSeconds = null)
     {
         var admin = await TestClients.AdminAsync(_factory);
-        var id = await CreateAsync(admin, boss);
+        var id = await CreateAsync(admin, boss, chooseSeconds);
         (await admin.PostAsync($"/api/admin/events/{id}/start", null)).EnsureSuccessStatusCode();
         return (id, admin);
     }
@@ -649,6 +760,9 @@ public class BossFightTests : IDisposable
 
     private async Task ActOkAsync(string login, Guid id, string action) =>
         (await ActAsync(login, id, action)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+    private async Task ConfirmOkAsync(string login, Guid id) =>
+        (await (await PlayerAsync(login)).PostAsync($"/api/boss/{id}/confirm", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
     private async Task<HttpResponseMessage> CheerAsync(string login, Guid id) =>
         await (await PlayerAsync(login)).PostAsync($"/api/boss/{id}/cheer", null);

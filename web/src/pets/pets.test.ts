@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PetDto } from '../api/types'
-import { CLASS_ICONS, CLASS_NAMES, eggArt, eggStage, levelUpText, petArt, switchToGame, xpProgress } from './pets'
+import { CLASS_ICONS, CLASS_NAMES, eggArt, eggStage, levelUpText, petArt, skillGuide, switchToGame, xpProgress } from './pets'
 
 function pet(over: Partial<PetDto>): PetDto {
   return {
@@ -75,5 +75,32 @@ describe('switchToGame', () => {
     expect(switchToGame('e1', 'e2')).toBe(true)
     expect(switchToGame('e1', 'e1')).toBe(false)
     expect(switchToGame('e1', null)).toBe(false)
+  })
+})
+
+describe('skillGuide', () => {
+  it('маг видит лягнуть, уворот, огонь и лечение — с уроном от интеллекта и ценой в мане', () => {
+    const guide = skillGuide(pet({ class: 'Mage', damage: 5, intellect: 6 }))
+
+    expect(guide.map((s) => s.action)).toEqual(['Attack', 'Dodge', 'Fire', 'Heal'])
+    expect(guide.find((s) => s.action === 'Attack')?.amount).toBe(5)
+    expect(guide.find((s) => s.action === 'Fire')).toMatchObject({ amount: 18, cost: '4 маны' })
+    expect(guide.find((s) => s.action === 'Heal')).toMatchObject({ amount: 12, cost: '3 маны' })
+    expect(guide.find((s) => s.action === 'Dodge')).toMatchObject({ amount: null, cost: null })
+  })
+
+  it('боец бьёт с разбега вдвое сильнее', () => {
+    const guide = skillGuide(pet({ class: 'Fighter', damage: 7, intellect: 1 }))
+
+    expect(guide.map((s) => s.action)).toEqual(['Attack', 'Dodge', 'Power'])
+    expect(guide.find((s) => s.action === 'Power')?.amount).toBe(14)
+  })
+
+  it('танк встаёт стеной, числа у заслона нет; у каждого скилла есть название и описание', () => {
+    const guide = skillGuide(pet({ class: 'Tank', damage: 4 }))
+
+    expect(guide.map((s) => s.action)).toEqual(['Attack', 'Dodge', 'Cover'])
+    expect(guide.find((s) => s.action === 'Cover')?.amount).toBeNull()
+    expect(guide.every((s) => s.name.length > 0 && s.text.length > 20)).toBe(true)
   })
 })

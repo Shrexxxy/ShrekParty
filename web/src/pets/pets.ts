@@ -1,4 +1,5 @@
 import type { PetClass, PetDto } from '../api/types'
+import { actionText, type FighterAction } from '../events/boss'
 import type { IconName } from '../components/Icon'
 
 /** Классы по-русски. */
@@ -103,4 +104,70 @@ export function rememberPet(pet: PetDto): void {
   } catch {
     // Приватный режим — просто покажем всплывашку ещё раз.
   }
+}
+
+/** Скилл в гайде на вкладке питомца: картинка по action, число — для своего питомца (null — без числа). */
+export interface SkillGuide {
+  action: FighterAction
+  name: string
+  amount: number | null
+  /** Цена в мане словами; null — бесплатно. */
+  cost: string | null
+  text: string
+}
+
+const CLASS_SKILLS: Record<PetClass, FighterAction[]> = {
+  Tank: ['Attack', 'Dodge', 'Cover'],
+  Fighter: ['Attack', 'Dodge', 'Power'],
+  Mage: ['Attack', 'Dodge', 'Fire', 'Heal'],
+}
+
+/**
+ * Что умеет питомец в бою с боссом. Числа считаются так же, как на сервере (BossRules.Amount),
+ * но без поддержки с того света — она бывает только в бою.
+ */
+export function skillGuide(pet: Pick<PetDto, 'class' | 'damage' | 'intellect'>): SkillGuide[] {
+  return CLASS_SKILLS[pet.class].map((action) => {
+    const name = actionText(action, null).name
+    switch (action) {
+      case 'Attack':
+        return { action, name, amount: pet.damage, cost: null, text: `Бьёт босса копытом на ${pet.damage}. Обычный удар, есть у всех.` }
+      case 'Dodge':
+        return {
+          action,
+          name,
+          amount: null,
+          cost: null,
+          text: 'Удар босса по тебе пролетит мимо: и одиночный, и стрелы со звёздами. Два хода подряд уворачиваться нельзя.',
+        }
+      case 'Cover':
+        return {
+          action,
+          name,
+          amount: null,
+          cost: null,
+          text:
+            'Закрываешь команду собой. Удар по одному или двоим целиком уходит на тебя, но вдвое слабее; несколько танков делят его поровну. ' +
+            'Удар по всем (стрелы, звёзды) ты ловишь щитом: свою и ещё одну за самого раненого, и тебе не больно.',
+        }
+      case 'Power':
+        return {
+          action,
+          name,
+          amount: 2 * pet.damage,
+          cost: null,
+          text: `Разбег и удар вдвое сильнее обычного: ${2 * pet.damage}. Пока разбегаешься, увернуться в этот ход нельзя.`,
+        }
+      case 'Fire':
+        return { action, name, amount: 3 * pet.intellect, cost: '4 маны', text: `Огненный шар в босса: ${3 * pet.intellect} урона (интеллект × 3).` }
+      case 'Heal':
+        return {
+          action,
+          name,
+          amount: 2 * pet.intellect,
+          cost: '3 маны',
+          text: `Луковое облако лечит любого союзника или тебя самого на ${2 * pet.intellect} (интеллект × 2).`,
+        }
+    }
+  })
 }

@@ -90,8 +90,14 @@ public static class BotBrain
             yield break;
         }
 
+        // Выбрал — подтверждаем (без подтверждения ход у Крестьянина не начнётся).
         if (details.GetProperty("myChoice").ValueKind == JsonValueKind.Object)
         {
+            if (!details.GetProperty("myConfirmed").GetBoolean() && done.Add($"boss-confirm:{id}:{details.GetProperty("turn").GetInt32()}"))
+            {
+                yield return new BotAction("подтверждаю", HttpMethod.Post, $"/api/boss/{id}/confirm");
+            }
+
             yield break;
         }
 

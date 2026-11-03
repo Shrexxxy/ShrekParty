@@ -5,7 +5,9 @@ import { errorText } from '../admin/errors'
 import { DonkeyIcon } from '../components/DonkeyIcon'
 import { Icon } from '../components/Icon'
 import { Sprite } from '../components/Sprite'
-import { CLASS_ICONS, CLASS_NAMES, EGG_TAPS, eggArt, eggStage, petArt, STATS, xpProgress } from './pets'
+import { ACTION_ICONS, skillArt } from '../events/boss'
+import { CLASS_ICONS, CLASS_NAMES, EGG_TAPS, eggArt, eggStage, petArt, skillGuide, STATS, xpProgress } from './pets'
+import { Emoji } from '../components/Emoji'
 
 /** Трещины по стадиям: с каждой стадией их больше. Координаты — в квадрате 100×100 поверх картинки яйца. */
 const CRACK_PATHS = ['M38 40l7 6-4 6 8 6', 'M62 32l-5 8 6 5-4 9', 'M40 72l8-5 3 7 8-4']
@@ -148,6 +150,38 @@ function PetCard({ pet, fresh }: { pet: PetDto; fresh: boolean }) {
       <small className="muted">
         Сила даёт здоровье, ловкость — урон, интеллект — ману. Растёт от заработанных осликов: 50 <DonkeyIcon /> — уровень.
       </small>
+      <SkillsGuide pet={pet} />
+    </div>
+  )
+}
+
+/** Гайд к бою с боссом: свои скиллы с картинками и числами, а ниже — как идёт ход. Читать между драками. */
+function SkillsGuide({ pet }: { pet: PetDto }) {
+  return (
+    <div className="pet-guide">
+      <h3>Скиллы в бою с боссом</h3>
+      {skillGuide(pet).map((s) => (
+        <div key={s.action} className="pet-skill">
+          <Sprite src={skillArt(s.action)} fallback={ACTION_ICONS[s.action]} className="pet-skill-icon" />
+          <div className="pet-skill-text">
+            <b>
+              {s.name}
+              {s.amount !== null && <span className="pet-skill-amount">{s.amount}</span>}
+              {s.cost && <span className="pet-skill-cost">{s.cost}</span>}
+            </b>
+            <small>{s.text}</small>
+          </div>
+        </div>
+      ))}
+      <h3>Как идёт бой</h3>
+      <ul className="pet-guide-rules">
+        <li>Босс заранее показывает, что сделает и по кому, и примерный урон. Читай и выбирай скилл.</li>
+        <li>Выбрал — жми «Подтвердить». Передумал — «Отменить» и выбери другой. Все подтвердили — ход начинается сразу.</li>
+        <li>Мана прибавляется на 1 каждый ход.</li>
+        <li>Попал «в тыкву» — пропускаешь следующий ход.</li>
+        <li>Выбыл — не уходи: кнопка поддержки <Emoji e="📣" /> добавляет +1 к ударам живых в следующем ходу (до +3).</li>
+        <li>С 9-го хода босс в ярости: каждый ход бьёт на 15 % сильнее. Тянуть нельзя.</li>
+      </ul>
     </div>
   )
 }

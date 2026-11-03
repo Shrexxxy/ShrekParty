@@ -10,6 +10,7 @@ public class BossRulesTests
     private static readonly Guid B = Guid.NewGuid();
     private static readonly Guid C = Guid.NewGuid();
     private static readonly Guid D = Guid.NewGuid();
+    private static readonly Guid E = Guid.NewGuid();
 
     [Fact]
     public void MaxHp_is_k_times_attacks()
@@ -96,9 +97,9 @@ public class BossRulesTests
         var fighters = new[] { Pet(A) };
         var normal = BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, fighters, 8, 100, 100, false);
 
-        // 0,30 × 50 × 2,6 = 39; на 10-м ходу ×1,3 = 50,7 → 51.
-        normal.Should().Be(39);
-        BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, fighters, 10, 100, 100, false).Should().Be(51);
+        // 0,15 × 50 × 2,6 = 19,5 → 20; на 10-м ходу ×1,3 = 25,35 → 26.
+        normal.Should().Be(20);
+        BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, fighters, 10, 100, 100, false).Should().Be(26);
     }
 
     [Fact]
@@ -106,30 +107,56 @@ public class BossRulesTests
     {
         var fighters = new[] { Pet(A) };
 
-        // 0,45 × 50 × 1,4 = 31,5 → 32; ниже трети здоровья ×1,5 = 47,25 → 48.
-        BossRules.Hit(BossKind.Fairy, BossMoveKind.Stars, fighters, 1, 30, 100, false).Should().Be(48);
-        BossRules.Hit(BossKind.Fairy, BossMoveKind.Stars, fighters, 1, 40, 100, false).Should().Be(32);
+        // 0,25 × 50 × 1,4 = 17,5 → 18; ниже трети здоровья ×1,5 = 26,25 → 27.
+        BossRules.Hit(BossKind.Fairy, BossMoveKind.Stars, fighters, 1, 30, 100, false).Should().Be(27);
+        BossRules.Hit(BossKind.Fairy, BossMoveKind.Stars, fighters, 1, 40, 100, false).Should().Be(18);
     }
 
     [Fact]
-    public void Cover_takes_all_halved_shared()
+    public void Volley_cover_tank_absorbs_two_arrows_no_damage()
     {
-        // Танки толстые, чтобы пережить половину всего залпа; урон считаем той же формулой.
-        var fighters = new[] { Pet(A, PetClass.Tank, hp: 5000), Pet(B, hp: 200), Pet(C, hp: 200), Pet(D, hp: 200) };
-        var intent = Intent(BossMoveKind.Volley, A, B, C, D);
+        // Пять целей — пять стрел. Танк в заслоне ловит свою и ещё одну — за самого раненого; сам цел.
+        var fighters = new[] { Pet(A, PetClass.Tank, hp: 200), Pet(B, hp: 60), Pet(C, hp: 200), Pet(D, hp: 200), Pet(E, hp: 200) };
         var hit = BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, fighters, 1, 1000, 1000, false);
 
-        var one = Resolve(BossKind.Farquaad, intent, fighters, Choices((A, FighterAction.Cover)), bossHp: 100_000);
+        var result = Resolve(BossKind.Farquaad, Intent(BossMoveKind.Volley, A, B, C, D, E), fighters, Choices((A, FighterAction.Cover)), bossHp: 100_000);
 
-        one.Fighters.Single(f => f.UserId == A).Hp.Should().Be(5000 - (int)Math.Ceiling(hit * 4 / 2.0));
-        one.Fighters.Where(f => f.UserId != A).Should().OnlyContain(f => f.Hp == 200);
-        one.Feed.Should().Contain(f => f.Kind == FxKind.Cover && f.ActorId == A);
+        Hp(result, A).Should().Be(200);
+        Hp(result, B).Should().Be(60);
+        new[] { C, D, E }.Should().OnlyContain(id => Hp(result, id) == 200 - hit);
+        result.Feed.Where(f => f.Kind == FxKind.Absorbed).Select(f => (f.ActorId, f.TargetId)).Should().BeEquivalentTo(new[] { ((Guid?)A, (Guid?)A), (A, B) });
+        result.Feed.Count(f => f.Kind == FxKind.BossHit).Should().Be(3);
+    }
 
-        var twoTanks = new[] { Pet(A, PetClass.Tank, hp: 5000), Pet(B, PetClass.Tank, hp: 5000), Pet(C, hp: 200), Pet(D, hp: 200) };
-        var hit2 = BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, twoTanks, 1, 1000, 1000, false);
-        var two = Resolve(BossKind.Farquaad, intent, twoTanks, Choices((A, FighterAction.Cover), (B, FighterAction.Cover)), bossHp: 100_000);
-        var share = (int)Math.Ceiling(hit2 * 4 / 2.0 / 2);
-        two.Fighters.Where(f => f.UserId == A || f.UserId == B).Should().OnlyContain(f => f.Hp == 5000 - share);
+    [Fact]
+    public void Stars_two_tanks_save_two_most_wounded()
+    {
+        var fighters = new[] { Pet(A, PetClass.Tank, hp: 200), Pet(B, PetClass.Tank, hp: 200), Pet(C, hp: 70), Pet(D, hp: 60), Pet(E, hp: 200) };
+        var hit = BossRules.Hit(BossKind.Fairy, BossMoveKind.Stars, fighters, 1, 1000, 1000, false);
+
+        var result = Resolve(
+            BossKind.Fairy, Intent(BossMoveKind.Stars, A, B, C, D, E), fighters, Choices((A, FighterAction.Cover), (B, FighterAction.Cover)), bossHp: 100_000);
+
+        new[] { A, B }.Should().OnlyContain(id => Hp(result, id) == 200);
+        Hp(result, C).Should().Be(70);
+        Hp(result, D).Should().Be(60);
+        Hp(result, E).Should().Be(200 - hit);
+    }
+
+    [Fact]
+    public void Volley_dodger_not_saved_by_tank()
+    {
+        // Уворачивающемуся стрела и так не попадёт — танк прикрывает другого.
+        var fighters = new[] { Pet(A, PetClass.Tank, hp: 200), Pet(B, hp: 60), Pet(C, hp: 100) };
+        var hit = BossRules.Hit(BossKind.Farquaad, BossMoveKind.Volley, fighters, 1, 1000, 1000, false);
+
+        var result = Resolve(
+            BossKind.Farquaad, Intent(BossMoveKind.Volley, A, B, C), fighters, Choices((A, FighterAction.Cover), (B, FighterAction.Dodge)), bossHp: 100_000);
+
+        Hp(result, B).Should().Be(60);
+        Hp(result, C).Should().Be(100);
+        result.Feed.Should().Contain(f => f.Kind == FxKind.Dodged && f.TargetId == B);
+        hit.Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -251,6 +278,8 @@ public class BossRulesTests
         new(id, cls, hp, 50 > hp ? 50 : hp, mana, maxMana, damage, intellect, DodgedLast: false, Stunned: false);
 
     private static BossIntent Intent(BossMoveKind move, params Guid[] targets) => new(move, targets);
+
+    private static int Hp(TurnResult result, Guid id) => result.Fighters.Single(f => f.UserId == id).Hp;
 
     private static Dictionary<Guid, FighterChoice> Choices(params (Guid Id, FighterAction Action)[] choices) =>
         choices.ToDictionary(c => c.Id, c => new FighterChoice(c.Action, null));

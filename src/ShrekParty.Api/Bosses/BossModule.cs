@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using ShrekParty.Api.Auth;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Events;
@@ -28,8 +29,8 @@ public enum BossPhase
     Lost,
 }
 
-/// <summary>Настройки ивента: какой босс.</summary>
-public record BossSettings(BossKind? Boss = null);
+/// <summary>Настройки ивента: какой босс и сколько секунд на выбор (у Крестьянина таймера нет).</summary>
+public record BossSettings(BossKind? Boss = null, int? ChooseSeconds = null);
 
 /// <summary>Состояние боя в Event.StateJson.</summary>
 /// <param name="Step">Номер перехода: «Дальше» ведущего с устаревшим номером отклоняется.</param>
@@ -38,6 +39,8 @@ public record BossSettings(BossKind? Boss = null);
 /// <param name="CheerBonus">Прибавка к ударам в этот ход — от поддержки в прошлый.</param>
 /// <param name="Feed">Лента последнего разыгранного хода.</param>
 /// <param name="Names">Логины и клички бойцов на момент старта — экранам без запросов к базе.</param>
+/// <param name="ChooseSeconds">Время на выбор; null — ждём, пока все подтвердят.</param>
+/// <param name="Confirmed">Кто подтвердил выбор в этот ход.</param>
 public record BossState(
     BossKind Boss,
     BossPhase Phase,
@@ -54,24 +57,30 @@ public record BossState(
     int CheerBonus,
     IReadOnlyList<Fx> Feed,
     Medal? Medal,
-    IReadOnlyDictionary<Guid, BossName> Names);
+    IReadOnlyDictionary<Guid, BossName> Names,
+    int? ChooseSeconds = null,
+    IReadOnlyList<Guid>? Confirmed = null);
 
-/// <summary>Логин хозяина, кличка драконоослика и его рисунок — для картинки на экранах.</summary>
-public record BossName(string Login, string Name, int Variant = 1);
+/// <summary>Логин хозяина, кличка драконоослика, его рисунок и уровень на старте боя — для подписи на экранах.</summary>
+public record BossName(string Login, string Name, int Variant = 1, int Level = 1);
 
 /// <summary>Боец для экранов; выбор виден всем — чтобы договариваться вслух.</summary>
 public record BossFighterDto(
-    Guid UserId, string Login, string Name, PetClass Class, int Variant, int Hp, int MaxHp, int Mana, int MaxMana, bool Alive, bool Stunned, FighterAction? Choice);
+    Guid UserId, string Login, string? AvatarUrl, string Name, PetClass Class, int Variant, int Level, int Hp, int MaxHp, int Mana, int MaxMana, bool Alive, bool Stunned, FighterAction? Choice, bool Confirmed);
 
 /// <summary>Приз босса на экране итога.</summary>
 /// <param name="Open">Медаль боя его открыла.</param>
 public record BossPrizeDto(string Name, Medal Medal, bool Open, bool Sold);
+
+/// <summary>Ход босса, объявленный заранее; Damage — примерный урон по каждой цели (null — ход не бьёт).</summary>
+public record BossIntentDto(BossMoveKind Move, IReadOnlyList<Guid> Targets, int? Damage);
 
 /// <summary>Действие, почему его сейчас нельзя (null — можно) и сколько урона или лечения даст — для подписи на кнопке.</summary>
 public record BossOptionDto(FighterAction Action, string? Unavailable, int? Amount);
 
 /// <summary>Детали боя.</summary>
 /// <param name="Rage">Множитель ярости босса сейчас (1 — без ярости).</param>
+/// <param name="PlayingMove">Ход босса, который сейчас проигрывается (стрелы, звёзды…).</param>
 /// <param name="MyOptions">Действия зрителя-участника; остальным — пусто.</param>
 /// <param name="Survivors">Сколько питомцев ещё в бою.</param>
 /// <param name="Prizes">Призы этого босса — на экране итога.</param>
@@ -84,7 +93,8 @@ public record BossDetails(
     int BossHp,
     int BossMax,
     decimal Rage,
-    BossIntent? Intent,
+    BossIntentDto? Intent,
+    BossMoveKind? PlayingMove,
     IReadOnlyList<BossFighterDto> Fighters,
     Guid? MyId,
     FighterChoice? MyChoice,
@@ -92,6 +102,7 @@ public record BossDetails(
     IReadOnlyList<Fx> Feed,
     int CheerBonus,
     bool ICheered,
+    bool MyConfirmed,
     Medal? Medal,
     int Survivors,
     IReadOnlyList<BossPrizeDto> Prizes);
@@ -107,14 +118,14 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     /// <summary>Появление босса.</summary>
     public static readonly TimeSpan IntroTime = TimeSpan.FromSeconds(8);
 
-    /// <summary>Выбор действий.</summary>
-    public static readonly TimeSpan ChoosingTime = TimeSpan.FromSeconds(20);
+    /// <summary>Время на выбор по умолчанию — у всех, кроме Крестьянина (у него ждём, пока все подтвердят).</summary>
+    public const int DefaultChooseSeconds = 60;
 
-    /// <summary>Одно событие ленты на экране.</summary>
-    public static readonly TimeSpan FxTime = TimeSpan.FromSeconds(0.6);
+    /// <summary>Одно событие ленты на экране — медленно, чтобы успеть понять, кто что сделал.</summary>
+    public static readonly TimeSpan FxTime = TimeSpan.FromSeconds(1.5);
 
-    /// <summary>Пауза после ленты и минимальная длина показа.</summary>
-    public static readonly TimeSpan ShowingTail = TimeSpan.FromSeconds(1);
+    /// <summary>Пауза после ленты.</summary>
+    public static readonly TimeSpan ShowingTail = TimeSpan.FromSeconds(2);
 
     /// <summary>Разыгрывание хода не короче.</summary>
     public static readonly TimeSpan ShowingMin = TimeSpan.FromSeconds(3);
@@ -159,7 +170,8 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
         var max = BossRules.MaxHp(boss, fighters);
         SetState(ev, new BossState(
             boss, BossPhase.Intro, 0, 0, ev.StartedAt!.Value + IntroTime, max, max, false, null, fighters,
-            new Dictionary<Guid, FighterChoice>(), [], 0, [], null, all.ToDictionary(p => p.UserId, p => new BossName(p.Login, p.Name, p.Variant))));
+            new Dictionary<Guid, FighterChoice>(), [], 0, [], null, all.ToDictionary(p => p.UserId, p => new BossName(p.Login, p.Name, p.Variant, p.Level)),
+            boss == BossKind.Peasant ? null : settings.ChooseSeconds ?? DefaultChooseSeconds));
     }
 
     /// <inheritdoc/>
@@ -168,6 +180,9 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
         var state = StateOf(ev);
         var prizes = state.Phase is BossPhase.Won or BossPhase.Lost ? _prizes ??= await PrizesAsync(state) : [];
         var names = state.Names;
+        // Аватарку можно сменить посреди вечера — берём свежую, а не со старта боя.
+        var ids = state.Fighters.Select(f => f.UserId).ToList();
+        var avatars = (await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id, u => u.ToMe().AvatarUrl);
         var me = state.Fighters.FirstOrDefault(f => f.UserId == viewerId);
         var showChoices = state.Phase == BossPhase.Choosing;
 
@@ -180,12 +195,15 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
             state.BossHp,
             state.BossMax,
             RageOf(state),
-            state.Phase == BossPhase.Choosing ? state.Intent : null,
+            state.Phase == BossPhase.Choosing && state.Intent is { } intent ? IntentOf(state, intent) : null,
+            state.Phase == BossPhase.Showing ? state.Intent?.Move : null,
             state.Fighters
                 .Where(f => names.ContainsKey(f.UserId))
                 .Select(f => new BossFighterDto(
-                    f.UserId, names[f.UserId].Login, names[f.UserId].Name, f.Class, names[f.UserId].Variant, f.Hp, f.MaxHp, f.Mana, f.MaxMana, f.Alive, f.Stunned,
-                    showChoices && state.Choices.TryGetValue(f.UserId, out var c) ? c.Action : null))
+                    f.UserId, names[f.UserId].Login, avatars.GetValueOrDefault(f.UserId), names[f.UserId].Name, f.Class,
+                    names[f.UserId].Variant, names[f.UserId].Level, f.Hp, f.MaxHp, f.Mana, f.MaxMana, f.Alive, f.Stunned,
+                    showChoices && state.Choices.TryGetValue(f.UserId, out var c) ? c.Action : null,
+                    ConfirmedOf(state).Contains(f.UserId)))
                 .ToList(),
             me?.UserId,
             me is not null && state.Choices.TryGetValue(me.UserId, out var mine) ? mine : null,
@@ -193,6 +211,7 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
             state.Phase is BossPhase.Showing or BossPhase.Won or BossPhase.Lost ? state.Feed : [],
             state.CheerBonus,
             me is not null && state.Cheers.Contains(me.UserId),
+            me is not null && ConfirmedOf(state).Contains(me.UserId),
             state.Medal,
             state.Fighters.Count(f => f.Alive),
             prizes);
@@ -279,9 +298,19 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
             _ => new[] { FighterAction.Fire, FighterAction.Heal },
         });
 
-    /// <summary>Все живые выбрали — ход можно разыгрывать.</summary>
-    internal static bool AllChose(BossState state) =>
-        state.Fighters.Where(f => f.Alive && !f.Stunned).All(f => state.Choices.ContainsKey(f.UserId));
+    /// <summary>Все живые и не оглушённые подтвердили — ход можно разыгрывать.</summary>
+    internal static bool AllConfirmed(BossState state) =>
+        state.Fighters.Where(f => f.Alive && !f.Stunned).All(f => ConfirmedOf(state).Contains(f.UserId));
+
+    /// <summary>Подтвердившие (в старом состоянии поля ещё нет).</summary>
+    internal static IReadOnlyList<Guid> ConfirmedOf(BossState state) => state.Confirmed ?? [];
+
+    /// <summary>Объявленный ход с примерным уроном по каждой цели — чтобы игроки понимали, что сейчас будет.</summary>
+    private static BossIntentDto IntentOf(BossState state, BossIntent intent)
+    {
+        var damage = BossRules.Hit(state.Boss, intent.Move, state.Fighters, state.Turn, state.BossHp, state.BossMax, state.NextDoubled);
+        return new BossIntentDto(intent.Move, intent.Targets, damage > 0 ? damage : null);
+    }
 
     /// <summary>
     /// Следующая фаза — по таймеру, по «Дальше» ведущего или когда все выбрали.
@@ -316,9 +345,10 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
     {
         Phase = BossPhase.Choosing,
         Turn = state.Turn + 1,
-        Deadline = now + ChoosingTime,
+        Deadline = state.ChooseSeconds is { } seconds ? now + TimeSpan.FromSeconds(seconds) : null,
         Intent = BossRules.Plan(state.Boss, state.Fighters, random),
         Choices = new Dictionary<Guid, FighterChoice>(),
+        Confirmed = [],
         Feed = [],
     };
 
