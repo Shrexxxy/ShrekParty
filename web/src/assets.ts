@@ -12,6 +12,10 @@ export const ASSETS = {
     dragonUp: '/assets/tapper/dragon-up.png',
     dragonDown: '/assets/tapper/dragon-down.png',
     sky: '/assets/tapper/sky.jpg',
+    /** Длинная полоса неба, едет справа налево под летящим питомцем. */
+    strip: '/assets/tapper/strip.jpg',
+    /** Та же полоса неба для телефона — вертикальная, едет вниз: питомец набирает высоту. */
+    stripVertical: '/assets/tapper/strip-vertical.jpg',
   },
   ui: {
     donkey: '/assets/ui/donkey.png',

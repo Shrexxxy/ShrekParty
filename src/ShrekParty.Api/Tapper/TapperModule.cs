@@ -4,6 +4,7 @@ using ShrekParty.Api.Auth;
 using ShrekParty.Api.Data;
 using ShrekParty.Api.Data.Entities;
 using ShrekParty.Api.Events;
+using ShrekParty.Api.Pets;
 using ShrekParty.Api.Scoring;
 
 namespace ShrekParty.Api.Tapper;
@@ -21,8 +22,8 @@ public enum TapperPhase
 /// <summary>Состояние тапалки в Event.StateJson.</summary>
 public record TapperState(TapperPhase Phase, DateTimeOffset Deadline);
 
-/// <summary>Дракон игрока в гонке.</summary>
-public record TapperRowDto(Guid UserId, string Login, string? AvatarUrl, int Taps);
+/// <summary>Дракон игрока в гонке: его питомец (класс и рисунок; null — питомца нет) и сколько натапал.</summary>
+public record TapperRowDto(Guid UserId, string Login, string? AvatarUrl, int Taps, PetClass? PetClass, int? PetVariant);
 
 /// <summary>Детали тапалки: все драконы по убыванию тапов.</summary>
 public record TapperDetails(TapperPhase Phase, DateTimeOffset Deadline, IReadOnlyList<TapperRowDto> Rows);
@@ -60,8 +61,10 @@ public class TapperModule(AppDbContext db, TimeProvider time) : IEventModule
     {
         var state = StateOf(ev);
         var taps = await db.TapScores.AsNoTracking().Where(t => t.EventId == ev.Id).ToDictionaryAsync(t => t.UserId, t => t.Taps);
+        var pets = await db.Pets.AsNoTracking().ToDictionaryAsync(p => p.UserId);
         var rows = (await db.Users.AsNoTracking().Where(u => u.Role == UserRole.Player).ToListAsync())
-            .Select(u => new TapperRowDto(u.Id, u.Login, u.ToMe().AvatarUrl, taps.GetValueOrDefault(u.Id)))
+            .Select(u => new TapperRowDto(
+                u.Id, u.Login, u.ToMe().AvatarUrl, taps.GetValueOrDefault(u.Id), pets.GetValueOrDefault(u.Id)?.Class, pets.GetValueOrDefault(u.Id)?.Variant))
             .OrderByDescending(r => r.Taps)
             .ThenBy(r => r.Login, StringComparer.OrdinalIgnoreCase)
             .ToList();

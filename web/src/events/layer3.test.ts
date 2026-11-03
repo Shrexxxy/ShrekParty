@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { myTaps, raceProgress, reactionTap, revealedCount, selfieAllowed, tapperBanner } from './layer3'
+import { easeSpeed, flapTap, flapTick, flyerArt, myTaps, skySpeed, tapRate, raceLanes, raceProgress, reactionTap, revealedCount, selfieAllowed } from './layer3'
 
 describe('revealedCount', () => {
   it('открывает по одному, потом правду', () => {
@@ -26,21 +26,6 @@ describe('raceProgress', () => {
 
   it('пока никто не тапал — все на старте', () => {
     expect(raceProgress(0, 0)).toBe(0)
-  })
-})
-
-describe('tapperBanner', () => {
-  it('отсечка «30» держится три секунды', () => {
-    expect(tapperBanner(31_000)).toBeNull()
-    expect(tapperBanner(30_000)).toBe('Осталось 30 секунд!')
-    expect(tapperBanner(27_500)).toBe('Осталось 30 секунд!')
-    expect(tapperBanner(26_000)).toBeNull()
-  })
-
-  it('последние 10 — до конца', () => {
-    expect(tapperBanner(10_000)).toBe('Последние 10!')
-    expect(tapperBanner(1)).toBe('Последние 10!')
-    expect(tapperBanner(0)).toBeNull()
   })
 })
 
@@ -76,5 +61,101 @@ describe('myTaps', () => {
   it('нет в таблице — с нуля', () => {
     expect(myTaps([], 'a')).toBe(0)
     expect(myTaps([{ userId: 'a', taps: 5 }], undefined)).toBe(0)
+  })
+})
+
+describe('raceLanes', () => {
+  const row = (login: string, taps: number) => ({ userId: login, login, avatarUrl: null, taps, petClass: null, petVariant: null })
+
+  it('дорожки на ТВ не прыгают: порядок по логину, а место — отдельной цифрой', () => {
+    const lanes = raceLanes([row('Bob', 30), row('ann', 50), row('Cid', 0)])
+
+    expect(lanes.map((l) => l.login)).toEqual(['ann', 'Bob', 'Cid'])
+    expect(lanes.map((l) => l.place)).toEqual([1, 2, null])
+  })
+
+  it('порядок тот же, когда тапы меняются; равные делят место', () => {
+    expect(raceLanes([row('Bob', 70), row('ann', 50), row('Cid', 70)]).map((l) => [l.login, l.place])).toEqual([
+      ['ann', 3],
+      ['Bob', 1],
+      ['Cid', 1],
+    ])
+  })
+})
+
+describe('flyerArt', () => {
+  it('кадры питомца: 0 — обычная картинка, 1–3 — взмах (fly-1…3)', () => {
+    expect(flyerArt({ petClass: 'Mage', petVariant: 3 }, 0)).toBe('/assets/pets/mage-3.png')
+    expect(flyerArt({ petClass: 'Mage', petVariant: 3 }, 1)).toBe('/assets/pets/mage-3-fly-1.png')
+    expect(flyerArt({ petClass: 'Mage', petVariant: 3 }, 3)).toBe('/assets/pets/mage-3-fly-3.png')
+  })
+
+  it('без питомца — общий дракон: крылья вверх в покое и в начале взмаха, вниз — в конце', () => {
+    expect([0, 1, 2, 3].map((f) => flyerArt({ petClass: null, petVariant: null }, f as 0 | 1 | 2 | 3))).toEqual([
+      '/assets/tapper/dragon-up.png',
+      '/assets/tapper/dragon-up.png',
+      '/assets/tapper/dragon-down.png',
+      '/assets/tapper/dragon-down.png',
+    ])
+  })
+})
+
+describe('flapTap / flapTick', () => {
+  const run = (state: { frame: 0 | 1 | 2 | 3; queue: number }, ticks: number) => {
+    const frames: number[] = []
+    for (let i = 0; i < ticks; i++) {
+      state = flapTick(state)
+      frames.push(state.frame)
+    }
+    return frames
+  }
+
+  it('один тап — один взмах из трёх кадров и снова покой', () => {
+    expect(run(flapTap({ frame: 0, queue: 0 }), 5)).toEqual([1, 2, 3, 0, 0])
+  })
+
+  it('частые тапы — тап посреди взмаха продолжает махать без остановки в покое', () => {
+    let s = flapTick(flapTap({ frame: 0, queue: 0 }))
+    s = flapTick(s)
+    const before = [1, 2]
+    s = flapTap(s)
+    expect([...before, ...run(s, 5)]).toEqual([1, 2, 3, 1, 2, 3, 0])
+  })
+
+  it('телефон: перестал тапать — доигрывает текущий взмах и ещё максимум один, дальше покой', () => {
+    let s = { frame: 0 as const, queue: 0 } as { frame: 0 | 1 | 2 | 3; queue: number }
+    for (let i = 0; i < 20; i++) {
+      s = flapTap(s)
+    }
+    expect(run(s, 8)).toEqual([1, 2, 3, 0, 0, 0, 0, 0])
+    expect(run(flapTap({ frame: 2, queue: 0 }), 6)).toEqual([3, 1, 2, 3, 0, 0])
+  })
+
+  it('ТВ: тапы приходят пачкой раз в секунду — до трёх взмахов вперёд, чтобы между обновлениями не замирал', () => {
+    expect(flapTap({ frame: 0, queue: 0 }, 50, 3).queue).toBe(3)
+  })
+})
+
+describe('скорость неба', () => {
+  it('темп — тапы за последнюю секунду', () => {
+    expect(tapRate([100, 400, 900, 1500, 1900], 2000)).toBe(2)
+    expect(tapRate([], 2000)).toBe(0)
+  })
+
+  it('чем чаще тапаешь, тем быстрее небо; не тапаешь — стоит; есть потолок', () => {
+    expect(skySpeed(0)).toBe(0)
+    expect(skySpeed(4)).toBeLessThan(skySpeed(8))
+    expect(skySpeed(100)).toBe(skySpeed(30))
+  })
+
+  it('скорость меняется плавно: за кадр — часть пути к цели, за секунду — почти до цели', () => {
+    const step = easeSpeed(0, 400, 1 / 60)
+    expect(step).toBeGreaterThan(0)
+    expect(step).toBeLessThan(400)
+    let v = 0
+    for (let i = 0; i < 60; i++) {
+      v = easeSpeed(v, 400, 1 / 60)
+    }
+    expect(v).toBeGreaterThan(380)
   })
 })

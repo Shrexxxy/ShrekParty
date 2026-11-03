@@ -47,6 +47,28 @@ public class TapperTests : IDisposable
     }
 
     [Fact]
+    public async Task Rows_carry_player_pet_so_tv_flies_their_own_dragon()
+    {
+        await _factory.SeedPlayerAsync("Ann");
+        await _factory.SeedPlayerAsync("Bob");
+        await _factory.OpenRegistrationAsync();
+        var adminClient = await TestClients.AdminAsync(_factory);
+        (await adminClient.PostAsJsonAsync("/api/admin/registration/close", new { })).EnsureSuccessStatusCode();
+        IReadOnlyList<ShrekParty.Api.Pets.PetDto> pets = [];
+        await _factory.WithServiceAsync<ShrekParty.Api.Pets.PetService>(async p => pets = await p.AllAsync());
+        var (_, admin) = await StartRunningAsync();
+
+        var rows = (await DetailsAsync(admin)).GetProperty("rows").EnumerateArray().ToDictionary(r => r.GetProperty("login").GetString()!);
+
+        pets.Should().HaveCount(2);
+        foreach (var pet in pets)
+        {
+            rows[pet.Login].GetProperty("petClass").GetString().Should().Be(pet.Class.ToString());
+            rows[pet.Login].GetProperty("petVariant").GetInt32().Should().Be(pet.Variant);
+        }
+    }
+
+    [Fact]
     public async Task Taps_before_start_409()
     {
         await _factory.SeedPlayerAsync("Ann");

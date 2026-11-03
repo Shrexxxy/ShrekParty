@@ -1,4 +1,5 @@
 // Формы activeEvent.details по типам ивентов — зеркало DTO бэкенда.
+import type { PetClass } from '../api/types'
 
 export type TournamentRound = 'Qualifier' | 'Quarter' | 'Semi' | 'ThirdPlace' | 'Final' | 'Challenge'
 export type MatchStatus = 'Pending' | 'Live' | 'Done'
@@ -120,7 +121,8 @@ export interface ReactionDetails {
 export interface TapperDetails {
   phase: 'Countdown' | 'Running'
   deadline: string
-  rows: { userId: string; login: string; avatarUrl: string | null; taps: number }[]
+  /** Питомец игрока летит вместо общего дракона; null — питомца нет. */
+  rows: { userId: string; login: string; avatarUrl: string | null; taps: number; petClass: PetClass | null; petVariant: number | null }[]
 }
 
 export interface DaysDetails {
