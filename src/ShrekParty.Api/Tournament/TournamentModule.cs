@@ -116,7 +116,8 @@ public class TournamentModule(AppDbContext db, Random random) : IEventModule
                     matchBets.Sum(b => b.Amount),
                     m.PlayerAId is { } a ? PariMutuel.Odds(forOdds, a) : null,
                     m.PlayerBId is { } b ? PariMutuel.Odds(forOdds, b) : null,
-                    mine is null ? null : new MyBetDto(mine.OnPlayerId, mine.Amount));
+                    mine is null ? null : new MyBetDto(mine.OnPlayerId, mine.Amount),
+                    m.NextIndex);
             })
             .ToList();
 
@@ -125,7 +126,8 @@ public class TournamentModule(AppDbContext db, Random random) : IEventModule
             : matches.FirstOrDefault(m => m.Status != MatchStatus.Done && (m.PlayerAId == viewerId || m.PlayerBId == viewerId))?.Id;
 
         var challenge = ChallengeOf(ev, matches);
-        return new TournamentDetails(ev.Title, dtos, next, challenge with { OfferedToMe = viewerId is not null && challenge.OfferedToId == viewerId });
+        return new TournamentDetails(
+            ev.Title, dtos, next, challenge with { OfferedToMe = viewerId is not null && challenge.OfferedToId == viewerId }, ToteService.CurrentBetMatch(matches)?.Id);
     }
 
     /// <inheritdoc/>

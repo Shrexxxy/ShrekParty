@@ -348,9 +348,12 @@ public static class BotBrain
 
     private static IEnumerable<BotAction> Tournament(string id, JsonElement details, Guid me, Random random, ISet<string> done)
     {
+        // Тотализатор открыт только на текущий матч — на остальные сервер ставку не примет.
+        var current = details.TryGetProperty("betMatchId", out var bm) && bm.ValueKind == JsonValueKind.String ? bm.GetString() : null;
         foreach (var match in details.GetProperty("matches").EnumerateArray())
         {
-            if (match.GetProperty("status").GetString() != "Pending" || match.GetProperty("isBye").GetBoolean()
+            if (match.GetProperty("id").GetString() != current
+                || match.GetProperty("status").GetString() != "Pending" || match.GetProperty("isBye").GetBoolean()
                 || match.GetProperty("myBet").ValueKind != JsonValueKind.Null
                 || PlayerId(match, "playerA") is not { } a || PlayerId(match, "playerB") is not { } b || a == me || b == me)
             {

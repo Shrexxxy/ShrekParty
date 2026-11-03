@@ -23,6 +23,15 @@ public class ToteService(AppDbContext db, ILiveNotifier live, TimeProvider time)
     private static readonly SemaphoreSlim BetLock = new(1, 1);
 
     /// <summary>
+    /// Матч, на который сейчас открыт тотализатор: первый по сетке несыгранный, где известны оба игрока.
+    /// Пока идёт матч, им становится следующий — ставят, глядя на игру.
+    /// </summary>
+    public static TournamentMatch? CurrentBetMatch(IEnumerable<TournamentMatch> matches) =>
+        matches.Where(m => m.Status == MatchStatus.Pending && !m.IsBye && m.PlayerAId is not null && m.PlayerBId is not null)
+            .OrderBy(m => m.Index)
+            .FirstOrDefault();
+
+    /// <summary>
     /// Ставка игрока: списывается сразу. Нарушение правил — <see cref="EventRuleException"/>, неверные данные — <see cref="BadInputException"/>.
     /// </summary>
     public async Task PlaceBetAsync(Guid matchId, Guid userId, Guid onPlayerId, int amount)
@@ -44,6 +53,11 @@ public class ToteService(AppDbContext db, ILiveNotifier live, TimeProvider time)
             if (match.Status != MatchStatus.Pending || match.PlayerAId is null || match.PlayerBId is null || tote is null)
             {
                 throw new EventRuleException("closed");
+            }
+            var eventMatches = await db.TournamentMatches.AsNoTracking().Where(m => m.EventId == match.EventId).ToListAsync();
+            if (CurrentBetMatch(eventMatches)?.Id != match.Id)
+            {
+                throw new EventRuleException("not_current");
             }
             if (userId == match.PlayerAId || userId == match.PlayerBId)
             {

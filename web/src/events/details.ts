@@ -28,6 +28,8 @@ export interface MatchDto {
   oddsA: number | null
   oddsB: number | null
   myBet: { onPlayerId: string; amount: number } | null
+  /** Куда проходит победитель (index матча) — для линий сетки; null — дальше некуда. */
+  nextIndex: number | null
 }
 
 export interface TournamentDetails {
@@ -35,6 +37,8 @@ export interface TournamentDetails {
   matches: MatchDto[]
   myNextMatchId: string | null
   challenge: { state: ChallengeState; offeredToId: string | null; offeredToMe: boolean }
+  /** Матч, на который сейчас открыт тотализатор; null — ставить не на что. */
+  betMatchId: string | null
 }
 
 export interface LaughDetails {

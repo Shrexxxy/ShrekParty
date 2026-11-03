@@ -1,0 +1,110 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "QwenImage21Cache",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "device": "auto",
+      "dtype": "default"
+    }
+  },
+  "4": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "register-bg.jpg"
+    }
+  },
+  "5": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Turn this photo into a frame from the animated movie Shrek: stylized DreamWorks 3D CGI animation render, not photorealistic, with exaggerated cartoon proportions and soft rounded shapes. Everyone becomes a cartoon fairy-tale villager of Far Far Away in medieval costumes based on their clothes. The room becomes a swamp-side ogre's wooden cabin party with torches, mud mugs, onions and a 'Keep Out' sign; the paper party hats stay on. Keep the exact same composition, camera angle and framing as the original photo, nothing cropped or zoomed. Keep exactly the same number of people, each one in the same place, with the same pose, gestures, arms around each other and head tilt. Keep every person individually recognizable: keep their own face shape, nose, jaw, eyebrows, facial hair, hairstyle, hair color and expression, translated into the new style; do not give everyone the same generic face. Keep the clothing silhouettes and colors, reinterpreted as themed costumes. Do not add, remove or merge people. Only change the art style, and add themed props, costume details and background details that fit the world.",
+      "negative_prompt": "",
+      "resolution": 1328,
+      "images.image_1": [
+        "4",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "6": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "9",
+        0
+      ],
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "5",
+        1
+      ],
+      "latent_image": [
+        "5",
+        2
+      ],
+      "seed": 42,
+      "steps": 25,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "7": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "6",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "7",
+        0
+      ],
+      "filename_prefix": "neurophoto"
+    }
+  }
+}

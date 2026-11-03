@@ -1410,7 +1410,9 @@ button.finish {
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  /* Прокрутка срезает всё за краем — отступ, чтобы обводка и свечение матча влезали целиком. */
+  padding: 10px;
+  margin: -10px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1419,7 +1421,40 @@ button.finish {
   font-size: clamp(16px, 1.6vw, 28px);
 }
 
+/* На ТВ все колонки одной ширины и все матчи одного размера — по самой полной карточке (За 3-е место + два игрока + банк). */
+.tournament.tv .bracket-column {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 22vw;
+}
+
+.tournament.tv .bracket-match {
+  min-height: 6.4em;
+  align-content: start;
+}
+
+.tournament.tv .bracket-player {
+  overflow: hidden;
+}
+
+/* Линии между раундами — под карточками. */
+.bracket {
+  position: relative;
+}
+
+.bracket-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  fill: none;
+  stroke: rgb(255 246 223 / 0.3);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
 .bracket-column {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1454,8 +1489,20 @@ button.finish {
   animation: pulse 1.2s infinite;
 }
 
+/* Свой следующий матч — мятный пунктир, чтобы не путать с жёлтым текущим. */
 .bracket-match.mine {
-  outline: 2px solid var(--ogre-bright);
+  outline: 2px dashed var(--mint);
+}
+
+/* Текущий матч — наш жёлтый: обводка и свечение, его видно с другого конца комнаты. */
+.bracket-match.current {
+  outline: 3px solid var(--lamp);
+  background: rgb(255 209 102 / 0.14);
+  box-shadow: 0 0 8px rgb(255 209 102 / 0.45);
+}
+
+.tournament.tv .bracket-match.current {
+  box-shadow: 0 0 24px rgb(255 209 102 / 0.45);
 }
 
 @keyframes pulse {
@@ -1535,6 +1582,51 @@ button.finish {
   display: grid;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+/* Блоки турнира на телефоне: тотализатор, мои ставки, сетка. */
+.tournament-block {
+  display: grid;
+  gap: 8px;
+}
+
+.tournament-block h3 {
+  margin: 0;
+}
+
+.tournament-block .bet-card {
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.my-bets {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-bets li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+
+.my-bets li b {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.my-bets li.won b {
+  color: var(--mint);
+}
+
+.my-bets li.lost {
+  opacity: 0.6;
 }
 
 .bet-sides {
@@ -2030,6 +2122,32 @@ details summary {
   color: var(--ogre-bright);
 }
 
+.reaction-login {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* На телефоне таблица во всю ширину экрана: столбец имени фиксирован, числа узкие, длинный логин — с многоточием. */
+.reaction:not(.tv) .reaction-board {
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.reaction:not(.tv) .reaction-board th,
+.reaction:not(.tv) .reaction-board td {
+  padding: 6px 2px;
+}
+
+.reaction:not(.tv) .reaction-board th:first-child {
+  width: 38%;
+}
+
+.reaction:not(.tv) .reaction-player {
+  gap: 4px;
+}
+
 /* Тапалка */
 .tapper-countdown {
   font-size: 120px;
@@ -2239,9 +2357,10 @@ details summary {
   max-height: 70vh;
 }
 
+/* Кнопки-имена: колонок сколько влезет (на телефоне — две), длинное имя переносится, а не распирает экран вбок. */
 .neuro-options {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 8px;
 }
 
@@ -2249,9 +2368,15 @@ details summary {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 14px 6px;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 4px;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.neuro-options button > :first-child {
+  flex: none;
 }
 
 .neuro-options button.on {

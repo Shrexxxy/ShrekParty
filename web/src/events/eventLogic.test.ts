@@ -22,6 +22,7 @@ function match(round: MatchDto['round'], roundIndex: number): MatchDto {
     oddsA: null,
     oddsB: null,
     myBet: null,
+    nextIndex: null,
   }
 }
 

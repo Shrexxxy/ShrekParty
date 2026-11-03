@@ -148,11 +148,16 @@ public class TournamentService(AppDbContext db, ILiveNotifier live, MediaStorage
     }
 
     /// <summary>
-    /// Фото матча — для карусели ТВ с подписью.
+    /// Фото матча — для карусели ТВ с подписью. onlyLive — снимает гость: только пока матч идёт (ведущий — когда угодно).
     /// </summary>
-    public async Task AddPhotoAsync(Guid matchId, Stream content, string contentType, Guid authorId)
+    public async Task AddPhotoAsync(Guid matchId, Stream content, string contentType, Guid authorId, bool onlyLive = false)
     {
         var (match, _, _) = await LoadAsync(matchId);
+        if (onlyLive && match.Status != MatchStatus.Live)
+        {
+            throw new EventRuleException("not_live");
+        }
+
         await media.SaveAsync(content, contentType, MediaKind.Photo, authorId, eventId: match.EventId, matchId: match.Id, tag: "match");
         await SaveAsync();
     }

@@ -306,6 +306,52 @@ public class TournamentTests : IDisposable
     }
 
     [Fact]
+    public async Task Any_player_can_photo_a_live_match()
+    {
+        // Снимать матч может любой гость, но только пока матч идёт.
+        await SeedPlayersAsync("Ann", "Bob", "Cid");
+        var (_, admin) = await StartTournamentAsync();
+        var cid = await TestClients.LoggedInAsync(_factory, "Cid", TestData.PlayerPassword);
+        var match = (await DetailsAsync(admin)).GetProperty("matches").EnumerateArray()
+            .First(m => m.GetProperty("status").GetString() == "Pending" && m.GetProperty("playerA").ValueKind != JsonValueKind.Null
+                && m.GetProperty("playerB").ValueKind != JsonValueKind.Null && !m.GetProperty("isBye").GetBoolean());
+
+        var early = await cid.PostAsync($"/api/matches/{MatchId(match)}/photos", Photo());
+        (await admin.PostAsync($"/api/admin/matches/{MatchId(match)}/start", null)).EnsureSuccessStatusCode();
+        var live = await cid.PostAsync($"/api/matches/{MatchId(match)}/photos", Photo());
+
+        early.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await early.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().Should().Be("not_live");
+        live.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await DetailsAsync(admin)).GetProperty("matches").EnumerateArray().Single(m => MatchId(m) == MatchId(match))
+            .GetProperty("photos").GetInt32().Should().Be(1);
+    }
+
+    private static MultipartFormDataContent Photo()
+    {
+        var file = new ByteArrayContent([1, 2, 3]);
+        file.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        return new MultipartFormDataContent { { file, "file", "match.jpg" } };
+    }
+
+    [Fact]
+    public async Task Matches_say_where_the_winner_goes_for_bracket_lines()
+    {
+        // Сетка рисует линии от матча к матчу, куда проходит победитель.
+        await SeedPlayersAsync("Ann", "Bob", "Cid", "Dan");
+        var (_, admin) = await StartTournamentAsync();
+        var matches = (await DetailsAsync(admin)).GetProperty("matches").EnumerateArray().ToList();
+        var final = matches.Single(m => m.GetProperty("round").GetString() == "Final");
+
+        foreach (var semi in matches.Where(m => m.GetProperty("round").GetString() == "Semi"))
+        {
+            semi.GetProperty("nextIndex").GetInt32().Should().Be(final.GetProperty("index").GetInt32());
+        }
+
+        final.GetProperty("nextIndex").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task Reset_clears_matches_and_match_photos()
     {
         await SeedPlayersAsync("Ann", "Bob");

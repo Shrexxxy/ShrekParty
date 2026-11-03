@@ -177,16 +177,45 @@ public class ToteTests : IDisposable
     [Fact]
     public async Task Concurrent_bets_cannot_overdraw()
     {
+        // Две ставки разом на текущий матч: пройдёт одна, баланс в минус не уйдёт.
         var t = await SetupAsync(8, startCapital: 30);
-        var quarters = Matches(await DetailsAsync(t.Admin), "Quarter");
-        var bettor = t.Players[0];
-        var open = quarters.Where(m => PlayerId(m, "playerA") != bettor.Id && PlayerId(m, "playerB") != bettor.Id).Take(2).ToList();
+        var current = Matches(await DetailsAsync(t.Admin), "Quarter")[0];
+        var bettor = t.Players.First(p => p.Id != PlayerId(current, "playerA") && p.Id != PlayerId(current, "playerB"));
 
-        var responses = await Task.WhenAll(open.Select(m => BetAsync(bettor.Client, m, PlayerId(m, "playerA"), 25)));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => BetAsync(bettor.Client, current, PlayerId(current, "playerA"), 25)));
 
         responses.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
         responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(1);
         (await TotalAsync(t.Admin, bettor.Login)).Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Bets_only_on_current_match()
+    {
+        // Тотализатор открыт только на текущий матч — первый по сетке несыгранный, где оба игрока известны.
+        var t = await SetupAsync(4);
+        var semis = Matches(await DetailsAsync(t.Admin), "Semi");
+        var later = semis[1];
+        var bettor = t.Players.First(p => p.Id != PlayerId(later, "playerA") && p.Id != PlayerId(later, "playerB"));
+
+        var response = await BetAsync(bettor.Client, later, PlayerId(later, "playerA"), 10);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorAsync(response)).Should().Be("not_current");
+        (await DetailsAsync(bettor.Client)).GetProperty("betMatchId").GetGuid().Should().Be(MatchId(semis[0]));
+    }
+
+    [Fact]
+    public async Task Current_match_started_bets_move_to_next()
+    {
+        // Пока идёт матч, ставят уже на следующий.
+        var t = await SetupAsync(4);
+        var semis = Matches(await DetailsAsync(t.Admin), "Semi");
+        (await t.Admin.PostAsync($"/api/admin/matches/{MatchId(semis[0])}/start", null)).EnsureSuccessStatusCode();
+        var bettor = t.Players.First(p => p.Id != PlayerId(semis[1], "playerA") && p.Id != PlayerId(semis[1], "playerB"));
+
+        await BetOkAsync(bettor.Client, semis[1], PlayerId(semis[1], "playerA"), 10);
+        (await DetailsAsync(bettor.Client)).GetProperty("betMatchId").GetGuid().Should().Be(MatchId(semis[1]));
     }
 
     [Fact]

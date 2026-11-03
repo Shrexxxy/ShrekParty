@@ -22,7 +22,8 @@ function ReactionBoard({ details }: { details: ReactionDetails }) {
         {details.rows.map((r) => (
           <tr key={r.userId}>
             <td className="reaction-player">
-              <Avatar url={r.avatarUrl} login={r.login} size={28} /> {r.login}
+              <Avatar url={r.avatarUrl} login={r.login} size={28} />
+              <span className="reaction-login">{r.login}</span>
             </td>
             {Array.from({ length: details.totalRounds }, (_, i) => {
               const attempt = r.attempts.find((a) => a.round === i + 1)

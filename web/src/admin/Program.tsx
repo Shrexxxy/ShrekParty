@@ -171,6 +171,17 @@ export function Program({ version }: { version?: string }) {
 
   return (
     <section className="card admin-block">
+      {/* Добавление — сверху: программа длинная, листать до конца неудобно. */}
+      {adding ? (
+        <AddEventForm
+          onAdded={() => {
+            setAdding(false)
+            load()
+          }}
+        />
+      ) : (
+        <button onClick={() => setAdding(true)}>+ Ивент</button>
+      )}
       {items.length === 0 && <p className="muted">Пусто — добавь первый ивент</p>}
       <ol className="program">
         {items.map((item) => (
@@ -218,16 +229,6 @@ export function Program({ version }: { version?: string }) {
         ))}
       </ol>
       {error && <p className="error">{error}</p>}
-      {adding ? (
-        <AddEventForm
-          onAdded={() => {
-            setAdding(false)
-            load()
-          }}
-        />
-      ) : (
-        <button onClick={() => setAdding(true)}>+ Ивент</button>
-      )}
     </section>
   )
 }

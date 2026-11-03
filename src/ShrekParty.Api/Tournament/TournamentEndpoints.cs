@@ -6,7 +6,7 @@ using ShrekParty.Api.Media;
 namespace ShrekParty.Api.Tournament;
 
 /// <summary>
-/// Маршруты турнира: пульт матчей (админ) и решение про вызов (победитель финала).
+/// Маршруты турнира: пульт матчей (админ), фото матча (любой гость, пока матч идёт) и решение про вызов (победитель финала).
 /// </summary>
 public static class TournamentEndpoints
 {
@@ -36,18 +36,14 @@ public static class TournamentEndpoints
             return Results.NoContent();
         });
 
-        admin.MapPost("/{id:guid}/photos", async (Guid id, IFormFile? file, ClaimsPrincipal user, TournamentService service) =>
-        {
-            if (file is null || file.Length == 0 || file.Length > AvatarEndpoints.MaxUploadBytes
-                || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            {
-                return Results.BadRequest(new { error = "bad_file" });
-            }
+        admin.MapPost("/{id:guid}/photos", (Guid id, IFormFile? file, ClaimsPrincipal user, TournamentService service) =>
+            AddPhotoAsync(id, file, user, service, onlyLive: false)).DisableAntiforgery();
 
-            await using var stream = file.OpenReadStream();
-            await service.AddPhotoAsync(id, stream, file.ContentType, user.UserId()!.Value);
-            return Results.NoContent();
-        }).DisableAntiforgery();
+        // Снимать матч может любой гость — пока матч идёт.
+        routes.MapPost("/api/matches/{id:guid}/photos", (Guid id, IFormFile? file, ClaimsPrincipal user, TournamentService service) =>
+                AddPhotoAsync(id, file, user, service, onlyLive: true))
+            .RequireAuthorization(AuthEndpoints.PlayerPolicy)
+            .DisableAntiforgery();
 
         routes.MapPost("/api/tournaments/{id:guid}/challenge", async (Guid id, ChallengeRequest request, ClaimsPrincipal user, TournamentService service) =>
             {
@@ -57,5 +53,18 @@ public static class TournamentEndpoints
             .RequireAuthorization(AuthEndpoints.PlayerPolicy);
 
         return app;
+    }
+
+    private static async Task<IResult> AddPhotoAsync(Guid id, IFormFile? file, ClaimsPrincipal user, TournamentService service, bool onlyLive)
+    {
+        if (file is null || file.Length == 0 || file.Length > AvatarEndpoints.MaxUploadBytes
+            || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.BadRequest(new { error = "bad_file" });
+        }
+
+        await using var stream = file.OpenReadStream();
+        await service.AddPhotoAsync(id, stream, file.ContentType, user.UserId()!.Value, onlyLive);
+        return Results.NoContent();
     }
 }
