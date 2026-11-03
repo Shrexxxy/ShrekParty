@@ -8,3 +8,6 @@ data
 web/node_modules
 src/ShrekParty.Api/wwwroot
 deploy/.env
+web/public/_review
+web/public/_sketch
+comfy
