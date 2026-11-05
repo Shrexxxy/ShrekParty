@@ -33,6 +33,15 @@ using ShrekParty.Api.Tv;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var tempPath = builder.Configuration["ASPNETCORE_TEMP"]
+               ?? Path.Combine(AppContext.BaseDirectory, "temp");
+
+Directory.CreateDirectory(tempPath);
+
+Environment.SetEnvironmentVariable("ASPNETCORE_TEMP", tempPath);
+
+Console.WriteLine($"ASP.NET Core TEMP: {tempPath}");
+
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.Section));
 builder.Services.Configure<AccountsOptions>(builder.Configuration.GetSection(AccountsOptions.Section));
 builder.Services.Configure<PartyOptions>(builder.Configuration.GetSection(PartyOptions.Section));

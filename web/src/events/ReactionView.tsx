@@ -7,34 +7,40 @@ import { Emoji, EmojiText } from '../components/Emoji'
 
 /** Табличка времён: попытки по раундам и лучшая. */
 function ReactionBoard({ details }: { details: ReactionDetails }) {
-  return (
-    <table className="reaction-board">
-      <thead>
-        <tr>
-          <th />
-          {Array.from({ length: details.totalRounds }, (_, i) => (
-            <th key={i}>{i + 1}</th>
-          ))}
-          <th>Лучшее</th>
-        </tr>
-      </thead>
-      <tbody>
-        {details.rows.map((r) => (
-          <tr key={r.userId}>
-            <td className="reaction-player">
-              <Avatar url={r.avatarUrl} login={r.login} size={28} />
-              <span className="reaction-login">{r.login}</span>
-            </td>
-            {Array.from({ length: details.totalRounds }, (_, i) => {
-              const attempt = r.attempts.find((a) => a.round === i + 1)
-              return <td key={i}>{!attempt ? '—' : attempt.falseStart ? <Emoji e="🚫" /> : attempt.ms}</td>
-            })}
-            <td className="reaction-best">{r.best ?? '—'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )
+    return (
+        <div className="reaction-board-wrapper">
+            <table className="reaction-board">
+                <thead>
+                <tr>
+                    <th />
+                    {Array.from({ length: details.totalRounds }, (_, i) => (
+                        <th key={i}>{i + 1}</th>
+                    ))}
+                    <th>Лучшее</th>
+                </tr>
+                </thead>
+                <tbody>
+                {details.rows.map((r) => (
+                    <tr key={r.userId}>
+                        <td className="reaction-player">
+                            <Avatar url={r.avatarUrl} login={r.login} size={28} />
+                            <span className="reaction-login">{r.login}</span>
+                        </td>
+                        {Array.from({ length: details.totalRounds }, (_, i) => {
+                            const attempt = r.attempts.find((a) => a.round === i + 1)
+                            return (
+                                <td key={i}>
+                                    {!attempt ? '—' : attempt.falseStart ? <Emoji e="🚫" /> : attempt.ms}
+                                </td>
+                            )
+                        })}
+                        <td className="reaction-best">{r.best ?? '—'}</td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+        </div>
+    )
 }
 
 /**

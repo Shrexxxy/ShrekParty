@@ -180,7 +180,12 @@ export function Program({ version }: { version?: string }) {
           }}
         />
       ) : (
-        <button onClick={() => setAdding(true)}>+ Ивент</button>
+          <button
+              onClick={() => setAdding(true)}
+              style={{ marginBottom: '16px' }}
+          >
+            + Ивент
+          </button>
       )}
       {items.length === 0 && <p className="muted">Пусто — добавь первый ивент</p>}
       <ol className="program">

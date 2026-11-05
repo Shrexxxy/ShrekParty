@@ -137,16 +137,7 @@ public class TournamentModule(AppDbContext db, Random random) : IEventModule
     public async Task<IReadOnlyList<Ranked<Guid>>> RankAsync(Event ev)
     {
         var matches = await db.TournamentMatches.Where(m => m.EventId == ev.Id).ToListAsync();
-        var decision = StateOf(ev).Decision;
-        var bracketDone = matches.Where(m => m.Round != TournamentRound.Challenge).All(m => m.Status == MatchStatus.Done);
-        // Победитель ещё думает про вызов — ведущий может завершить: молчание засчитывается как отказ (см. AfterFinishAsync).
-        var challengeDone = decision != ChallengeState.Accepted
-            || matches.Any(m => m.Round == TournamentRound.Challenge && m.Status == MatchStatus.Done);
-        if (!bracketDone || !challengeDone)
-        {
-            throw new EventRuleException("not_complete");
-        }
-
+        
         return TournamentRanking.Rank(matches
             .Where(m => m.Round != TournamentRound.Challenge)
             .Select(m => new MatchResult(m.Round, m.WinnerId, m.LoserId)));

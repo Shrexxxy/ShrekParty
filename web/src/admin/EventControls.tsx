@@ -151,11 +151,11 @@ function LaughControls({ event, details }: { event: ActiveEventDto; details: Lau
   )
 }
 
-const HIDE_PHASES: Record<HideDetails['phase'], string> = {
-  Hiding: '<Emoji e="🙈" /> Прячутся',
-  Shooting: '<Emoji e="📸" /> Съёмка',
-  Voting: '<Emoji e="😂" /> Голосование',
-}
+const HIDE_PHASES: Record<HideDetails['phase'], React.ReactNode> = {
+  Hiding: <><Emoji e="🙈" /> Прячутся</>,
+  Shooting: <><Emoji e="📸" /> Съёмка</>,
+  Voting: <><Emoji e="😂" /> Голосование</>,
+};
 
 /** Экран отметок: фото и галочки, кто на нём; пусто — фото без людей. */
 function HideMarker({
