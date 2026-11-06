@@ -19,7 +19,7 @@ const DEFAULT_MAX: Partial<Record<EventType, number>> = {
   Quiz: 100,
   Mafia: 25,
 }
-const STATUS_LABELS = { Draft: '⏳', Active: '▶️ идёт', Finished: '✅' } as const
+const STATUS_LABELS = { Draft: '⏳', Starting: '⏱️ старт', Active: '▶️ идёт', Finished: '✅' } as const
 
 /** Форма нового пункта программы: общие поля + настройки типа. */
 function AddEventForm({ onAdded }: { onAdded: () => void }) {
