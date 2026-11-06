@@ -4706,8 +4706,10 @@ body:has(.boss-backdrop) {
   .boss-bar-text {
     font-weight: 700;
     color: var(--text);
+    width: 3.5em;          /* <-- ДОБАВИТЬ: фиксируем ширину под самые длинные цифры (100/100) */
+    text-align: right;     /* <-- ДОБАВИТЬ: прижимаем текст вправо */
   }
-
+  
   /* На ТВ делаем цифры заметно крупнее */
   .boss.tv .boss-bar-text {
     font-size: min(2.2vh, 1.4vw);
