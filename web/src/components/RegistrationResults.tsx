@@ -55,7 +55,7 @@ export function RegistrationResults({
         <span>#</span>
         <span>Игрок</span>
         <span>Время</span>
-        <span>Пароль</span>
+        <span>Сложность</span>
         <span>Скорость</span>
         <span>Пароль</span>
         <span>Итого</span>

@@ -995,12 +995,13 @@ button.danger {
   display: grid;
   gap: 2px;
 }
-
 @container (min-width: 760px) {
   .reg-head,
   .reg-row {
     display: grid;
-    grid-template-columns: 2.5ch minmax(0, 1.4fr) 6.5em minmax(0, 2fr) 4.5em 4.5em 5em;
+    /* Увеличили Время до 9.5em, чтобы "опоздал 127:23" влезало. 
+       Остальные колонки сделали фиксированными по 5em */
+    grid-template-columns: 2.5ch minmax(150px, 1.5fr) 9.5em minmax(200px, 2.5fr) 5em 5em 5em;
     gap: 12px;
     align-items: center;
   }
@@ -1011,24 +1012,55 @@ button.danger {
     font-size: 0.8em;
   }
 
+  .reg-head span {
+    white-space: nowrap;
+  }
+
+  /* Центрируем заголовки над числовыми колонками (Скорость, Пароль, Итого) */
+  .reg-head span:nth-child(1),
+  .reg-head span:nth-child(5),
+  .reg-head span:nth-child(6),
+  .reg-head span:nth-child(7) {
+    text-align: center;
+  }
+
   .reg-main,
   .reg-details {
     display: contents;
     font-size: 1em;
   }
 
-  /* В разметке «Итого» стоит в первой строке — на широком экране переносим её в последнюю колонку. */
   .reg-row .total {
     order: 1;
+    justify-self: center; /* Центрируем цифру итого */
   }
 
   .reg-row .pwd {
     flex: none;
     order: 0;
+    display: grid;
+    gap: 4px;
+    min-width: 0; /* Позволяет тексту сжиматься, а не распирать колонку */
+  }
+
+  /* Центрируем цифры скорости и пароля */
+  .reg-row .part {
+    justify-self: center;
   }
 
   .reg-row .part small {
     display: none;
+  }
+
+  /* Запрещаем перенос времени, чтобы оно не ломалось */
+  .reg-row .time {
+    white-space: nowrap;
+  }
+
+  /* Разрешаем тексту "взломают за..." переноситься, если не влезает */
+  .reg-row .pwd small {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
