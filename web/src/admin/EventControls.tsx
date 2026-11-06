@@ -336,6 +336,20 @@ function CeremonyControls({ event, details }: { event: ActiveEventDto; details: 
 /** Пульт текущего ивента по типу. */
 export function EventControls({ event, serverTime }: { event: ActiveEventDto; serverTime: string }) {
   const details = event.details
+
+  if (!details) {
+    return (
+        <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <h3 className="muted" style={{ fontSize: '24px', marginBottom: '16px' }}>
+            ⏱️ Игра начнется через несколько секунд...
+          </h3>
+          <p style={{ fontSize: '16px', opacity: 0.7 }}>
+            Экран обновится автоматически.
+          </p>
+        </div>
+    )
+  }
+  
   switch (event.type) {
     case 'Tournament':
       return <TournamentControls details={details as TournamentDetails} />
