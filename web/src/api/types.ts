@@ -18,7 +18,7 @@ export type EventType =
   | 'Quiz'
   | 'Auction'
   | 'Mafia'
-export type EventStatus = 'Draft' | 'Active' | 'Finished'
+export type EventStatus = 'Draft' | 'Starting' | 'Active' | 'Finished'
 
 export interface MeDto {
   id: string
@@ -57,7 +57,7 @@ export interface ActiveEventDto {
   type: EventType
   title: string
   startedAt: string | null
-  /** Своя форма у каждого типа — см. модули ивентов. */
+  status: EventStatus // <-- ДОБАВИТЬ
   details: unknown
 }
 

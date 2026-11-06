@@ -28,7 +28,8 @@ public class EventEngine(
     IEnumerable<IEventModule> modules,
     DonkeyService donkeys,
     ILiveNotifier live,
-    TimeProvider time)
+    TimeProvider time,
+    ILogger<EventEngine> logger)
 {
     /// <summary>Типы, которые не входят в программу: живут своей жизнью.</summary>
     private static readonly EventType[] NotInProgram = [EventType.Registration, EventType.Tote];
@@ -148,14 +149,14 @@ public class EventEngine(
         {
             return EngineOutcome.NotDraft;
         }
-        if (await db.Events.AnyAsync(e => e.Status == EventStatus.Active && e.Type != EventType.Tote))
+        
+        if (await db.Events.AnyAsync(e => (e.Status == EventStatus.Active || e.Status == EventStatus.Starting) && e.Type != EventType.Tote))
         {
             return EngineOutcome.AlreadyActive;
         }
 
-        ev.Status = EventStatus.Active;
-        ev.StartedAt = time.GetUtcNow();
-        await ModuleFor(ev.Type)!.StartAsync(ev);
+        ev.Status = EventStatus.Starting;
+        ev.StartedAt = time.GetUtcNow().AddSeconds(15);
         await db.SaveChangesAsync();
         await live.BroadcastAsync();
         return EngineOutcome.Ok;
@@ -219,6 +220,41 @@ public class EventEngine(
             return;
         }
 
+        // Проверяем, не пора ли запустить ивент
+        if (active.Status == EventStatus.Starting)
+        {
+            if (time.GetUtcNow() >= active.StartedAt)
+            {
+                try
+                {
+                    active.Status = EventStatus.Active;
+                    active.StartedAt = time.GetUtcNow();
+                    await ModuleFor(active.Type)!.StartAsync(active);
+                    await db.SaveChangesAsync();
+                    await live.BroadcastAsync();
+                }
+                catch (EventRuleException ex)
+                {
+                    // Если игра не может стартовать (мало игроков) - откатываем в черновик
+                    active.Status = EventStatus.Draft;
+                    active.StartedAt = null;
+                    await db.SaveChangesAsync();
+                    await live.BroadcastAsync();
+                    logger.LogWarning("Ивент {Title} не запущен: {Message}", active.Title, ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    // Любая другая ошибка - тоже не роняем сервер
+                    active.Status = EventStatus.Draft;
+                    active.StartedAt = null;
+                    await db.SaveChangesAsync();
+                    await live.BroadcastAsync();
+                    logger.LogError(ex, "Критическая ошибка при запуске ивента {Title}", active.Title);
+                }
+            }
+            return;
+        }
+
         var module = ModuleFor(active.Type)!;
         if (await module.TickAsync(active, time.GetUtcNow()))
         {
@@ -250,13 +286,19 @@ public class EventEngine(
             return null;
         }
 
-        var details = await ModuleFor(active.Type)!.GetDetailsAsync(active, viewerId, isAdmin);
-        return new ActiveEventDto(active.Id, active.Type, active.Title, active.StartedAt, details);
+        // Пока идет подготовка, деталей игры еще нет
+        var details = active.Status == EventStatus.Active 
+            ? await ModuleFor(active.Type)!.GetDetailsAsync(active, viewerId, isAdmin) 
+            : null;
+
+        return new ActiveEventDto(active.Id, active.Type, active.Title, active.StartedAt, details, active.Status);
     }
 
-    private Task<Event?> ActiveEventAsync() =>
-        db.Events.FirstOrDefaultAsync(e => e.Status == EventStatus.Active && !NotInProgram.Contains(e.Type));
 
+    private Task<Event?> ActiveEventAsync() =>
+        db.Events.FirstOrDefaultAsync(e => (e.Status == EventStatus.Active ||
+                                            e.Status == EventStatus.Starting) &&
+                                           !NotInProgram.Contains(e.Type));
     // Последний зарегистрированный модуль типа выигрывает — так тесты подменяют модуль.
     private IEventModule? ModuleFor(EventType type) => modules.LastOrDefault(m => m.Type == type);
 

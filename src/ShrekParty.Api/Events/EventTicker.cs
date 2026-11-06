@@ -27,7 +27,16 @@ public class EventTicker(IServiceScopeFactory scopes, IConfiguration configurati
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 // Падение одного тика не должно останавливать вечеринку.
-                logger.LogError(e, "Тик ивентов упал");
+                try
+                {
+                    logger.LogError(e, "Тик ивентов упал");
+                }
+                catch
+                {
+                    // Если логгер сам сломался (например, нет прав на EventLog), 
+                    // пишем прямо в консоль, чтобы сервер выжил.
+                    Console.WriteLine($"[КРИТИЧЕСКАЯ ОШИБКА ЛОГГЕРА] Тик ивентов упал: {e}");
+                }
             }
         }
     }

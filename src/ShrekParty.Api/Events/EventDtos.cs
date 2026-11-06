@@ -28,4 +28,4 @@ public record ReorderRequest(int Order);
 /// <summary>
 /// Текущий ивент в снапшоте; <see cref="Details"/> — своя форма у каждого типа.
 /// </summary>
-public record ActiveEventDto(Guid Id, EventType Type, string Title, DateTimeOffset? StartedAt, object? Details);
+public record ActiveEventDto(Guid Id, EventType Type, string Title, DateTimeOffset? StartedAt, object? Details, EventStatus Status);

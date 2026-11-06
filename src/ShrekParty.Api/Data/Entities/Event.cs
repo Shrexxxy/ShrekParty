@@ -59,6 +59,7 @@ public enum EventType
 public enum EventStatus
 {
     Draft,
+    Starting,
     Active,
     Finished,
 }
