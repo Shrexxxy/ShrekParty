@@ -160,7 +160,7 @@ public class BossModule(AppDbContext db, ILiveNotifier live, PetService pets, Ra
         await pets.HatchAllAsync();
         var all = await pets.AllAsync();
         var fighters = all
-            .Select(p => new Fighter(p.UserId, p.Class, p.Health, p.Health, p.Mana, p.Mana, p.Damage, p.Intellect, false, false))
+            .Select(p => new Fighter(p.UserId, p.Class, p.Health, p.Health, p.Mana, p.Mana, p.Damage, p.Intellect, false, false, false))
             .ToList();
         if (fighters.Count == 0)
         {
