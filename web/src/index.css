@@ -3810,7 +3810,10 @@ span.pet-art {
 }
 
 .boss.tv .boss-fighter {
-  --fall: -90deg;
+  width: auto;
+  min-width: min(18vh, 12vw); /* <-- ДОБАВИТЬ: задаем минимальную ширину карточкам */
+  padding: 0.8vh 0.6vw;
+  font-size: min(2vh, 1.1vw);
 }
 
 .boss-fighter.dead .boss-pet {
