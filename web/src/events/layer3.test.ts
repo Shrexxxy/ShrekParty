@@ -45,7 +45,7 @@ describe('selfieAllowed', () => {
   })
 
   it('во время ивента камера свернула бы страницу', () => {
-    expect(selfieAllowed('Finished', { id: 'e', type: 'Days', title: 'Дни', startedAt: null, details: {} })).toBe(false)
+    expect(selfieAllowed('Finished', { id: 'e', type: 'Days', title: 'Дни', startedAt: null, details: {}, status: 'Active' as const })).toBe(false)
   })
 
   it('до конца регистрации — нет', () => {

@@ -100,7 +100,7 @@ describe('stepView', () => {
 })
 
 describe('isDarkPhase', () => {
-  const hide = (phase: string) => ({ id: 'e', type: 'HideAndSeek' as const, title: 'Прятки', startedAt: null, details: { phase } })
+  const hide = (phase: string) => ({ id: 'e', type: 'HideAndSeek' as const, title: 'Прятки', startedAt: null, details: { phase }, status: 'Active' as const })
 
   it('темно, пока прячутся и снимают', () => {
     expect(isDarkPhase(hide('Hiding'))).toBe(true)
