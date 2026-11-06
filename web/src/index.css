@@ -4702,4 +4702,19 @@ body:has(.boss-backdrop) {
   .register-backdrop::after {
     display: none;
   }
+  /* Цифры HP и маны рядом с полосками */
+  .boss-bar-text {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* На ТВ делаем цифры заметно крупнее */
+  .boss.tv .boss-bar-text {
+    font-size: min(2.2vh, 1.4vw);
+  }
+
+  /* Чуть уменьшаем шрифт на телефоне, чтобы влезало в карточку */
+  .boss:not(.tv) .boss-bar-text {
+    font-size: 11px;
+  }
 }

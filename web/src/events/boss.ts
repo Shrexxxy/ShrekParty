@@ -365,7 +365,7 @@ export function actionText(action: FighterAction, amount: number | null): { name
     case 'Cover':
       return { name: 'Встать стеной', hint: 'Закрывает всех собой: весь урон по команде на тебя, вдвое меньше' }
     case 'Power':
-      return { name: 'С разбега', hint: `Двойной урон ${amount}, но увернуться в этот ход нельзя` }
+      return { name: 'С разбега', hint: `Урон ${amount}. HP>50%: x2, иначе x1.5. Кулдаун 1 ход.` }
     case 'Fire':
       return { name: 'Драконий чих', hint: `Огнём по боссу: урон ${amount}, 4 маны` }
     case 'Heal':

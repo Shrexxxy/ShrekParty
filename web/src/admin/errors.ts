@@ -88,6 +88,7 @@ const MESSAGES: Record<string, string> = {
   bad_amount: 'Ставка — от 1 ослика',
   own_photo: 'Своё фото лайкать нельзя',
   not_yet: 'Лайкать можно, когда закончится съёмка',
+  power_cooldown: 'Нужен отдых (1 ход)'
 }
 
 /**

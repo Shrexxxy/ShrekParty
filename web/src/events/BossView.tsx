@@ -102,11 +102,18 @@ function PetPic({ f }: { f: BossFighter }) {
   )
 }
 
-function Bar({ value, max, kind }: { value: number; max: number; kind: 'hp' | 'mana' | 'boss' }) {
+function Bar({ value, max, kind, showText }: { value: number; max: number; kind: 'hp' | 'mana' | 'boss'; showText?: boolean }) {
   return (
-    <div className={`boss-bar ${kind}`}>
-      <span style={{ width: `${hpPercent(value, max)}%` }} />
-    </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+        <div className={`boss-bar ${kind}`} style={{ flex: 1 }}>
+          <span style={{ width: `${hpPercent(value, max)}%` }} />
+        </div>
+        {showText && (
+            <span className="boss-bar-text" style={{ fontSize: '0.85em', opacity: 0.8, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          {value}/{max}
+        </span>
+        )}
+      </div>
   )
 }
 
@@ -286,8 +293,8 @@ function FighterCard({
       <small className="muted">
         {CLASS_NAMES[f.class]} · {f.level} ур.
       </small>
-      <Bar value={f.hp} max={f.maxHp} kind="hp" />
-      <Bar value={f.mana} max={f.maxMana} kind="mana" />
+      <Bar value={f.hp} max={f.maxHp} kind="hp" showText />
+      <Bar value={f.mana} max={f.maxMana} kind="mana" showText />
     </div>
   )
 }
@@ -300,7 +307,7 @@ function BossTop({ details }: { details: BossDetails }) {
   return (
     <>
       <b>{BOSS_NAMES[details.boss]}</b>
-      <Bar value={details.bossHp} max={details.bossMax} kind="boss" />
+      <Bar value={details.bossHp} max={details.bossMax} kind="boss" showText />
       {details.rage > 1 && <span className="boss-rage"><Emoji e="😡" /> ×{details.rage.toFixed(2).replace(/\.?0+$/, '')}</span>}
     </>
   )
@@ -431,10 +438,10 @@ function Actions({ eventId, details, me }: { eventId: string; details: BossDetai
         {details.fighters
           .filter((f) => f.alive)
           .map((f) => (
-            <button key={f.userId} onClick={() => void act('Heal', f.userId)}>
-              <PetPic f={f} /> {f.login}
-              <Bar value={f.hp} max={f.maxHp} kind="hp" />
-            </button>
+              <button key={f.userId} onClick={() => void act('Heal', f.userId)}>
+                <PetPic f={f} /> {f.login}
+                <Bar value={f.hp} max={f.maxHp} kind="hp" showText />  {/* <-- ДОБАВИТЬ showText ЗДЕСЬ */}
+              </button>
           ))}
         <button className="link" onClick={() => setHealing(false)}>
           ↩
@@ -583,10 +590,10 @@ export function BossView({ eventId, details: raw, serverTime, tv }: { eventId: s
       <Header details={details} serverTime={serverTime} />
       {(details.phase === 'Intro' || bossTurn || details.phase === 'Won' || details.phase === 'Lost') && <Boss details={details} fx={fx} step={step} />}
       {details.phase === 'Choosing' && (
-        <div className="boss-mini">
-          <BossPic boss={details.boss} className="boss-mini-face" />
-          <Bar value={details.bossHp} max={details.bossMax} kind="boss" />
-        </div>
+          <div className="boss-mini">
+            <BossPic boss={details.boss} className="boss-mini-face" />
+            <Bar value={details.bossHp} max={details.bossMax} kind="boss" showText /> {/* <-- ДОБАВИТЬ showText ЗДЕСЬ */}
+          </div>
       )}
       {details.phase === 'Choosing' && <Intent details={details} />}
       {!bossTurn && spotlight && <FighterCard f={spotlight} fx={fx} step={step} move={details.playingMove} targeted={targets.has(spotlight.userId)} big />}

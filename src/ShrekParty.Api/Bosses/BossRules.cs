@@ -143,7 +143,7 @@ public enum Medal
 /// <param name="Damage">Урон обычной атаки: 2 + ловкость.</param>
 /// <param name="DodgedLast">Уклонялся в прошлый ход — сейчас нельзя.</param>
 /// <param name="Stunned">Тыква: следующий ход пропускает.</param>
-public record Fighter(Guid UserId, PetClass Class, int Hp, int MaxHp, int Mana, int MaxMana, int Damage, int Intellect, bool DodgedLast, bool Stunned)
+public record Fighter(Guid UserId, PetClass Class, int Hp, int MaxHp, int Mana, int MaxMana, int Damage, int Intellect, bool DodgedLast, bool Stunned, bool PowerUsedLastTurn)
 {
     /// <summary>Ещё в бою.</summary>
     public bool Alive => Hp > 0;
@@ -254,13 +254,16 @@ public static class BossRules
         return action switch
         {
             FighterAction.Attack => fighter.Damage + bonus,
-            FighterAction.Power => 2 * (fighter.Damage + bonus),
+            // Если HP больше половины — x2, иначе x1.5 (округляем вверх)
+            FighterAction.Power => fighter.Hp * 2 > fighter.MaxHp 
+                ? 2 * (fighter.Damage + bonus) 
+                : (int)Math.Ceiling(1.5m * (fighter.Damage + bonus)),
             FighterAction.Fire => 3 * fighter.Intellect + bonus,
             FighterAction.Heal => 2 * fighter.Intellect,
             _ => null,
         };
     }
-
+    
     /// <summary>Почему действие сейчас нельзя: null — можно.</summary>
     public static string? Unavailable(Fighter fighter, FighterAction action) => (fighter, action) switch
     {
@@ -270,6 +273,7 @@ public static class BossRules
         ({ Class: not PetClass.Fighter }, FighterAction.Power) => "bad_action",
         ({ Class: not PetClass.Mage }, FighterAction.Fire or FighterAction.Heal) => "bad_action",
         ({ DodgedLast: true }, FighterAction.Dodge) => "dodge_twice",
+        ({ PowerUsedLastTurn: true }, FighterAction.Power) => "power_cooldown", // <-- НОВАЯ ПРОВЕРКА
         ({ Mana: < FireMana }, FighterAction.Fire) => "no_mana",
         ({ Mana: < HealMana }, FighterAction.Heal) => "no_mana",
         _ => null,
@@ -358,7 +362,9 @@ public static class BossRules
             var (kind, raw) = action switch
             {
                 FighterAction.Attack => (FxKind.Attack, f.Damage + bonus),
-                FighterAction.Power => (FxKind.Power, 2 * (f.Damage + bonus)),
+                FighterAction.Power => (FxKind.Power, f.Hp * 2 > f.MaxHp 
+                    ? 2 * (f.Damage + bonus) 
+                    : (int)Math.Ceiling(1.5m * (f.Damage + bonus))),
                 FighterAction.Fire => (FxKind.Fire, 3 * f.Intellect + bonus),
                 null => (FxKind.Weak, (f.Damage + bonus + 1) / 2),
                 _ => (FxKind.Attack, -1),
@@ -478,15 +484,15 @@ public static class BossRules
             var f = team[b.UserId];
             if (!f.Alive)
             {
-                return f with { Hp = 0, Stunned = false, DodgedLast = false };
+                return f with { Hp = 0, Stunned = false, DodgedLast = false, PowerUsedLastTurn = false };
             }
 
-            // Тыква, которую наложили в этот ход, остаётся на следующий; отсиженная — снимается.
             var stunned = f.Stunned && !b.Stunned;
             return f with
             {
                 Mana = Math.Min(f.MaxMana, f.Mana + 1),
                 DodgedLast = acts.GetValueOrDefault(b.UserId) == FighterAction.Dodge,
+                PowerUsedLastTurn = acts.GetValueOrDefault(b.UserId) == FighterAction.Power, // <-- ЗАПОМИНАЕМ
                 Stunned = stunned,
             };
         }).ToList();
