@@ -575,10 +575,15 @@ fieldset {
 .cookie-taps button {
   background: transparent;
   border-radius: 0;
+  border: none; /* Убираем рамки браузера */
+  outline: none; /* Убираем обводку при фокусе */
+  padding: 0;
 }
 
-.cookie-taps button:active {
-  background: rgba(255, 255, 255, 0.08);
+.cookie-taps button:active,
+.cookie-taps button:focus {
+  background: transparent;
+  outline: none;
 }
 
 .cookie-done {
