@@ -58,7 +58,7 @@ public record NeuroDetails(
 public class NeuroModule(AppDbContext db, NeuroCatalog catalog, Random random, TimeProvider time) : IEventModule
 {
     /// <summary>Время на угадывание одного фото.</summary>
-    public static readonly TimeSpan GuessTime = TimeSpan.FromSeconds(20);
+    public static readonly TimeSpan GuessTime = TimeSpan.FromSeconds(40);
 
     /// <summary>Сколько показываем ответ — успеть рассмотреть три фото.</summary>
     public static readonly TimeSpan RevealTime = TimeSpan.FromSeconds(12);
