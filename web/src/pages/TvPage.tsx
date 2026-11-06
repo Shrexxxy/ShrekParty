@@ -28,6 +28,34 @@ export function TvPage() {
   const sawOpen = useRef(false)
   const handledClose = useRef<string | null>(null)
 
+  // --- ЛОГИКА ОБРАТНОГО ОТСЧЕТА ДЛЯ ТВ ---
+  const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const offsetRef = useRef(0)
+  const activeEvent = snapshot?.activeEvent
+
+  useEffect(() => {
+    if (snapshot?.serverTime) {
+      offsetRef.current = new Date(snapshot.serverTime).getTime() - Date.now()
+    }
+  }, [snapshot?.serverTime])
+
+  useEffect(() => {
+    if (activeEvent && activeEvent.status === 'Starting' && activeEvent.startedAt) {
+      const target = new Date(activeEvent.startedAt).getTime()
+      const updateTimer = () => {
+        const estimatedServerNow = Date.now() + offsetRef.current
+        const diff = Math.max(0, Math.ceil((target - estimatedServerNow) / 1000))
+        setTimeLeft(diff)
+      }
+      updateTimer()
+      const interval = setInterval(updateTimer, 100)
+      return () => clearInterval(interval)
+    } else {
+      setTimeLeft(null)
+    }
+  }, [activeEvent])
+  // ---------------------------------------
+
   const state = snapshot?.registration.state
   const closedAt = snapshot?.registration.closedAt ?? null
   const serverTime = snapshot?.serverTime
@@ -65,11 +93,11 @@ export function TvPage() {
 
   if (!sound) {
     return (
-      <main className="page tv center">
-        <button className="primary tv-unlock" onClick={unlockSound}>
-          <Emoji e="🔊" /> Включить звук и полный экран
-        </button>
-      </main>
+        <main className="page tv center">
+          <button className="primary tv-unlock" onClick={unlockSound}>
+            <Emoji e="🔊" /> Включить звук и полный экран
+          </button>
+        </main>
     )
   }
 
@@ -78,30 +106,46 @@ export function TvPage() {
   }
 
   return (
-    <main className="page tv">
-      <TvMessageOverlay message={snapshot.tvMessage} serverTime={snapshot.serverTime} />
-      {!snapshot.activeEvent && snapshot.pets?.beforeFirstEvent && snapshot.pets.hatched < snapshot.pets.total && (
-        <div className="tv-pets-counter">
-          <Emoji e="🥚" /> Вылупилось драконоосликов: {snapshot.pets.hatched} из {snapshot.pets.total}
-        </div>
-      )}
-      {snapshot.activeEvent ? (
-        <div className="tv-event">
-          <h1 className="tv-title">{snapshot.activeEvent.title}</h1>
-          <EventView event={snapshot.activeEvent} serverTime={snapshot.serverTime} tv />
-        </div>
-      ) : state === 'Finished' && afterClose ? (
-        <TvAfterClose
-          key={afterClose.closedAt}
-          withClosing={afterClose.withClosing}
-          tableMs={afterClose.tableMs}
-          onDone={finishAfterClose}
-        />
-      ) : state === 'Finished' ? (
-        <TvCarousel snapshot={snapshot} />
-      ) : (
-        <TvWaiting snapshot={snapshot} />
-      )}
-    </main>
+      <main className="page tv">
+        <TvMessageOverlay message={snapshot.tvMessage} serverTime={snapshot.serverTime} />
+        {!snapshot.activeEvent && snapshot.pets?.beforeFirstEvent && snapshot.pets.hatched < snapshot.pets.total && (
+            <div className="tv-pets-counter">
+              <Emoji e="🥚" /> Вылупилось драконоосликов: {snapshot.pets.hatched} из {snapshot.pets.total}
+            </div>
+        )}
+
+        {/* --- БЛОК ОТРИСОВКИ --- */}
+        {snapshot.activeEvent ? (
+            snapshot.activeEvent.status === 'Starting' ? (
+                // Экран подготовки (таймер)
+                <div className="tv-hero" style={{ display: 'grid', placeContent: 'center', textAlign: 'center', height: '100%' }}>
+                  <h1 className="tv-hero-title" style={{ color: 'var(--lamp)', fontSize: 'clamp(32px, 5vw, 80px)' }}>
+                    {snapshot.activeEvent.title}
+                  </h1>
+                  <div className="tv-hero-number" style={{ fontSize: 'clamp(150px, 35vw, 400px)', lineHeight: 1 }}>
+                    {timeLeft ?? 15}
+                  </div>
+                  <p className="tv-open-sub" style={{ fontWeight: 800 }}>Приготовьтесь!</p>
+                </div>
+            ) : (
+                // Экран самой игры
+                <div className="tv-event">
+                  <h1 className="tv-title">{snapshot.activeEvent.title}</h1>
+                  <EventView event={snapshot.activeEvent} serverTime={snapshot.serverTime} tv />
+                </div>
+            )
+        ) : state === 'Finished' && afterClose ? (
+            <TvAfterClose
+                key={afterClose.closedAt}
+                withClosing={afterClose.withClosing}
+                tableMs={afterClose.tableMs}
+                onDone={finishAfterClose}
+            />
+        ) : state === 'Finished' ? (
+            <TvCarousel snapshot={snapshot} />
+        ) : (
+            <TvWaiting snapshot={snapshot} />
+        )}
+      </main>
   )
 }

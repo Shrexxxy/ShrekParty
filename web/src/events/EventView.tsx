@@ -31,6 +31,9 @@ import { TournamentView } from './TournamentView'
 /** Экран текущего ивента — общий для телефона и ТВ (tv меняет раскладку). */
 export function EventView({ event, serverTime, myId, tv }: { event: ActiveEventDto; serverTime: string; myId?: string; tv?: boolean }) {
   const details = event.details
+  if (!details) {
+    return <p className="muted" style={{ textAlign: 'center', fontSize: '24px' }}>Загрузка игры...</p>
+  }
   switch (event.type) {
     case 'Tournament':
       return <TournamentView eventId={event.id} details={details as TournamentDetails} myId={myId} tv={tv} />
