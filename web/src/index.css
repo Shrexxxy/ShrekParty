@@ -4709,8 +4709,12 @@ body:has(.boss-backdrop) {
   .boss-bar-text {
     font-weight: 700;
     color: var(--text);
-    width: 3.5em;          /* <-- ДОБАВИТЬ: фиксируем ширину под самые длинные цифры (100/100) */
-    text-align: right;     /* <-- ДОБАВИТЬ: прижимаем текст вправо */
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85em;         /* Базовый размер для телефона */
+    opacity: 0.8;
+    width: 4.5em;              /* <-- ДОСТАТОЧНАЯ ШИРИНА, чтобы влезло 100/100 */
+    text-align: right;         /* Выравниваем цифры по правому краю */
+    flex-shrink: 0;            /* Запрещаем тексту сжиматься */
   }
   
   /* На ТВ делаем цифры заметно крупнее */
@@ -4721,5 +4725,6 @@ body:has(.boss-backdrop) {
   /* Чуть уменьшаем шрифт на телефоне, чтобы влезало в карточку */
   .boss:not(.tv) .boss-bar-text {
     font-size: 11px;
+    width: 4em;
   }
 }

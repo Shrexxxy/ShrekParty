@@ -105,11 +105,11 @@ function PetPic({ f }: { f: BossFighter }) {
 function Bar({ value, max, kind, showText }: { value: number; max: number; kind: 'hp' | 'mana' | 'boss'; showText?: boolean }) {
   return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
-        <div className={`boss-bar ${kind}`} style={{ flex: 1 }}>
+        <div className={`boss-bar ${kind}`} style={{ flex: 1, minWidth: 0 }}>
           <span style={{ width: `${hpPercent(value, max)}%` }} />
         </div>
         {showText && (
-            <span className="boss-bar-text" style={{ fontSize: '0.85em', opacity: 0.8, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            <span className="boss-bar-text">
           {value}/{max}
         </span>
         )}
